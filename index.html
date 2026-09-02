@@ -544,7 +544,7 @@
 </div>
 
 <div class="modal-scrim" id="storyScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="storyTitle">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
     <div class="modal-head">
       <div>
         <h2 id="storyTitle">Why this exists</h2>
@@ -571,7 +571,7 @@
 </div>
 
 <div class="modal-scrim" id="plannerScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plannerTitle">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plannerTitle" tabindex="-1">
     <div class="modal-head">
       <div>
         <h2 id="plannerTitle">Plan my trip</h2>
@@ -635,6 +635,16 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
   function iconUse(name, extra){
     return '<svg '+(extra||'')+'><use href="#ic-'+name+'"/></svg>';
   }
+
+  /* ---------------- Safe-output helpers ---------------- */
+  // Escapes text before it's inserted via innerHTML/template strings, so that
+  // place names, aliases, or notes containing HTML/script-like text render as
+  // plain text instead of being parsed as markup.
+  const ESCAPE_MAP = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
+  function escapeHtml(str){
+    return String(str==null?"":str).replace(/[&<>"']/g, ch => ESCAPE_MAP[ch]);
+  }
+  function fmtRating(v){ return (Math.round(Number(v)*10)/10).toFixed(1); }
 
   /* ---------------- Data prep ---------------- */
   const DURATION_HOURS = {1:0.75, 2:1.5, 3:3, 4:5};
@@ -846,10 +856,10 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
     const notes = rlist.map(r=>`
       <div class="note">
         <div class="note-head">
-          <span class="note-alias">${r.alias}</span>
-          <span class="note-rating" title="${r.rating}/10">${starsHtml(r.rating,"0.8em")}</span>
+          <span class="note-alias">${escapeHtml(r.alias)}</span>
+          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.8em")}</span>
         </div>
-        <div class="note-text">"${r.note}"</div>
+        <div class="note-text">"${escapeHtml(r.note)}"</div>
       </div>`).join("");
     const expanded = state.selectedKey === p.key;
     return `
@@ -858,11 +868,11 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
         <div class="card-icon" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='17' height='17'")}</div>
         <div class="card-main">
           <div class="card-title-row">
-            <span class="card-title">${p.name}</span>
-            <span class="card-rating" title="${p.avgRating}/10">${starsHtml(p.avgRating)}</span>
+            <span class="card-title">${escapeHtml(p.name)}</span>
+            <span class="card-rating" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating)}</span>
           </div>
           <div class="card-meta">
-            <span>${p.category}</span><span class="sep">·</span><span>${p.neighbourhood}</span>
+            <span>${escapeHtml(p.category)}</span><span class="sep">·</span><span>${escapeHtml(p.neighbourhood)}</span>
             <span class="sep">·</span><span>Recommended by ${p.recCount} friend${p.recCount>1?"s":""}</span>
           </div>
         </div>
@@ -941,18 +951,66 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
   // no separate "open to anything" option — defaulting to the top tier IS "anything".
   const plannerState = { categories:new Set(["any"]), timeId:"t3", energy:3, budget:4, seed:0 };
 
+  /* ---------------- Modal open/close: focus trap + Escape-to-close ---------------- */
+  // Keeps keyboard/screen-reader focus inside whichever modal is open, sends
+  // focus into it on open, and returns focus to the button that opened it.
+  let modalLastFocused = null;
+  let modalKeydownHandler = null;
+
+  function getFocusable(container){
+    return Array.from(container.querySelectorAll(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(el => el.offsetParent !== null);
+  }
+
+  function openScrim(scrimEl, triggerEl){
+    modalLastFocused = triggerEl || document.activeElement;
+    scrimEl.classList.add("open");
+    const modalEl = scrimEl.querySelector(".modal");
+    modalKeydownHandler = (e)=>{
+      if(e.key === "Escape"){
+        e.preventDefault();
+        closeScrim(scrimEl);
+        return;
+      }
+      if(e.key !== "Tab") return;
+      const focusable = getFocusable(modalEl);
+      if(focusable.length === 0){ e.preventDefault(); return; }
+      const first = focusable[0], last = focusable[focusable.length-1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", modalKeydownHandler);
+    requestAnimationFrame(()=>{
+      const focusable = getFocusable(modalEl);
+      (focusable[0] || modalEl).focus();
+    });
+  }
+
+  function closeScrim(scrimEl){
+    scrimEl.classList.remove("open");
+    if(modalKeydownHandler){
+      document.removeEventListener("keydown", modalKeydownHandler);
+      modalKeydownHandler = null;
+    }
+    if(modalLastFocused && typeof modalLastFocused.focus === "function") modalLastFocused.focus();
+    modalLastFocused = null;
+  }
+
   const scrim = document.getElementById("plannerScrim");
   const body = document.getElementById("plannerBody");
-  document.getElementById("openPlanner").addEventListener("click", ()=>{ openModal(); });
+  const openPlannerBtn = document.getElementById("openPlanner");
+  openPlannerBtn.addEventListener("click", ()=>{ openModal(); });
   document.getElementById("closePlanner").addEventListener("click", closeModal);
   scrim.addEventListener("click", (e)=>{ if(e.target===scrim) closeModal(); });
-  function openModal(){ scrim.classList.add("open"); renderForm(); }
-  function closeModal(){ scrim.classList.remove("open"); }
+  function openModal(){ renderForm(); openScrim(scrim, openPlannerBtn); }
+  function closeModal(){ closeScrim(scrim); }
 
   const storyScrim = document.getElementById("storyScrim");
-  document.getElementById("openStory").addEventListener("click", ()=> storyScrim.classList.add("open"));
-  document.getElementById("closeStory").addEventListener("click", ()=> storyScrim.classList.remove("open"));
-  storyScrim.addEventListener("click",(e)=>{ if(e.target===storyScrim) storyScrim.classList.remove("open"); });
+  const openStoryBtn = document.getElementById("openStory");
+  openStoryBtn.addEventListener("click", ()=> openScrim(storyScrim, openStoryBtn));
+  document.getElementById("closeStory").addEventListener("click", ()=> closeScrim(storyScrim));
+  storyScrim.addEventListener("click",(e)=>{ if(e.target===storyScrim) closeScrim(storyScrim); });
 
   function renderForm(){
     body.innerHTML = `
@@ -1234,10 +1292,10 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
           <div class="plan-item">
             <div class="pi-icon" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='13' height='13'")}</div>
             <div class="pi-main">
-              <div class="pi-name">${p.name}</div>
-              <div class="pi-meta">${p.category} · ${p.neighbourhood} · ${hoursLabel(p.hours)} · ${p.priceLabel} · ${starsHtml(p.avgRating,"0.85em")}</div>
+              <div class="pi-name">${escapeHtml(p.name)}</div>
+              <div class="pi-meta">${escapeHtml(p.category)} · ${escapeHtml(p.neighbourhood)} · ${hoursLabel(p.hours)} · ${p.priceLabel} · ${starsHtml(p.avgRating,"0.85em")}</div>
             </div>
-            <a class="pi-link" href="${p.mapsUrl}" target="_blank" rel="noopener" aria-label="Open ${p.name} in Google Maps">↗</a>
+            <a class="pi-link" href="${p.mapsUrl}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(p.name)} in Google Maps">↗</a>
           </div>
         `).join("")}
       </div>
