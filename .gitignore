@@ -1,0 +1,37 @@
+# .gitignore — files Git should never track or upload to GitHub.
+# Anything matching a line below is invisible to Git.
+
+# ---- Secrets (most important) ----
+# Never commit these. They hold passwords, API keys and tokens.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+credentials.json
+
+# ---- Operating system junk ----
+# Files Windows/macOS create automatically. Not part of the website.
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ---- Code editor settings ----
+# Personal to your machine, not to the project.
+.vscode/
+.idea/
+*.swp
+
+# ---- Development & QA leftovers ----
+# Screenshot scripts and throwaway bundles from earlier sessions.
+check*.py
+site-package/
+*.zip
+_tmp_*
+*.log
+
+# ---- If we ever add packages later ----
+node_modules/
+.vercel/

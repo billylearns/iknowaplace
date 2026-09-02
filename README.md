@@ -4,6 +4,8 @@ Recommendations from people you actually trust — not a scraped review, not an 
 
 Every place on this site was recommended by someone real, with their own rating and their own words. It's a browsable map + list for exploring Toronto through 56 recommendations from 22 friends, plus a "Plan my trip" tool that builds a real day plan out of them (time / energy / budget in, a few realistic plans out — no AI guessing, no generic itinerary).
 
+![The I Know a Place website: a hand-drawn map of Toronto with colour-coded pins, beside a scrollable list of recommended places showing each one's category, neighbourhood, star rating and how many friends recommended it.](screenshot.png)
+
 **Live site:** _(add your Vercel URL here once deployed)_
 
 ## Why this exists
