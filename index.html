@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>I Know a Place</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -484,6 +489,8 @@
     header.top{padding-top:16px;}
   }
 </style>
+</head>
+<body>
 
 <div class="app">
   <header class="top">
@@ -888,6 +895,7 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
 
     if(visible.length===0){
       listEl.style.display="none";
+      listEl.innerHTML = "";
       emptyEl.style.display="block";
     } else {
       listEl.style.display="flex";
@@ -1258,3 +1266,5 @@ const RECS_RAW = [{"recommendation_key": "REC001", "place_key": "PLC004", "contr
   refresh();
 })();
 </script>
+</body>
+</html>
