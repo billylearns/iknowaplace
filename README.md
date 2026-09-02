@@ -6,7 +6,7 @@ Every place on this site was recommended by someone real, with their own rating 
 
 ![The I Know a Place website: a hand-drawn map of Toronto with colour-coded pins, beside a scrollable list of recommended places showing each one's category, neighbourhood, star rating and how many friends recommended it.](screenshot.png)
 
-**Live site:** _(add your Vercel URL here once deployed)_
+**Live site:** [iknowaplace-eta.vercel.app](https://iknowaplace-eta.vercel.app/)
 
 ## Why this exists
 
@@ -18,7 +18,7 @@ Plain HTML, CSS, and JavaScript — no framework, no build step, no backend. All
 
 ## Data
 
-Sourced from a Google Form filled out by real friends, cleaned and anonymized (aliases only, no last names). See `/data` if included, or ask the maintainer for the original spreadsheet.
+Sourced from a Google Form filled out by real friends, then cleaned and anonymized (first-name aliases only, no last names). There is no separate data folder — all 39 places and 56 recommendations are embedded directly in `index.html` as two JavaScript arrays, `PLACES_RAW` and `RECS_RAW`. `template.html` is the same page with those two arrays replaced by placeholders, so the site can be regenerated from a fresh export.
 
 ## Status
 
