@@ -1,0 +1,562 @@
+[
+  {
+    "recommendation_key": "REC001",
+    "place_key": "PLC004",
+    "contributor_alias": "Aaron",
+    "rating": 9,
+    "public_note": "The bagel club sandwich is one of my top five food items in the city.",
+    "price_level": 1,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC002",
+    "place_key": "PLC002",
+    "contributor_alias": "Ashton",
+    "rating": 10,
+    "public_note": "Unreal pizza.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC003",
+    "place_key": "PLC035",
+    "contributor_alias": "Ashton",
+    "rating": 10,
+    "public_note": "A great place to spend the day with friends. The ferry is affordable, and it is worth planning for a full day.",
+    "price_level": 1,
+    "energy_level": 2,
+    "time_level": 4
+  },
+  {
+    "recommendation_key": "REC004",
+    "place_key": "PLC016",
+    "contributor_alias": "Ava",
+    "rating": 9,
+    "public_note": "I love the stir-fried pineapple curry.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC005",
+    "place_key": "PLC032",
+    "contributor_alias": "Ava",
+    "rating": 9,
+    "public_note": "I have seen some great theatre here, including Come From Away.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC006",
+    "place_key": "PLC037",
+    "contributor_alias": "Ava",
+    "rating": 9,
+    "public_note": "A lively place to hang out with friends, especially on the weekend.",
+    "price_level": 0,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC007",
+    "place_key": "PLC039",
+    "contributor_alias": "Ava",
+    "rating": 8,
+    "public_note": "The live-band karaoke night is a great experience; check the current schedule before going.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC008",
+    "place_key": "PLC008",
+    "contributor_alias": "Denise",
+    "rating": 7,
+    "public_note": "There is an expensive restaurant at the top, or you can try EdgeWalk for something more adventurous.",
+    "price_level": 4,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC009",
+    "place_key": "PLC014",
+    "contributor_alias": "Denise",
+    "rating": 9,
+    "public_note": "Get a drink with a view—great with friends or for a date night.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC010",
+    "place_key": "PLC033",
+    "contributor_alias": "Denise",
+    "rating": 8,
+    "public_note": "A great museum with rotating exhibitions; check the current schedule before going.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC011",
+    "place_key": "PLC026",
+    "contributor_alias": "Douglas",
+    "rating": 9,
+    "public_note": "Pho is unreal.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC012",
+    "place_key": "PLC030",
+    "contributor_alias": "Douglas",
+    "rating": 8,
+    "public_note": "Prices vary significantly depending on the event, seat, and food or drinks.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 4
+  },
+  {
+    "recommendation_key": "REC013",
+    "place_key": "PLC035",
+    "contributor_alias": "Douglas",
+    "rating": 9,
+    "public_note": "The ferry is affordable, and it is great for renting bikes or bringing a picnic.",
+    "price_level": 1,
+    "energy_level": 3,
+    "time_level": 4
+  },
+  {
+    "recommendation_key": "REC014",
+    "place_key": "PLC006",
+    "contributor_alias": "Greg",
+    "rating": 10,
+    "public_note": "Some of the best burgers in the city.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC015",
+    "place_key": "PLC011",
+    "contributor_alias": "Greg",
+    "rating": 6,
+    "public_note": "A large, beautiful mall with plenty of stores, although it can be very crowded on weekends.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC016",
+    "place_key": "PLC030",
+    "contributor_alias": "Greg",
+    "rating": 7,
+    "public_note": "The concert atmosphere is incredible—I saw Taylor Swift here.",
+    "price_level": 4,
+    "energy_level": 3,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC017",
+    "place_key": "PLC035",
+    "contributor_alias": "Greg",
+    "rating": 9,
+    "public_note": "You can rent bikes and ride around, many nice beaches!",
+    "price_level": 1,
+    "energy_level": 2,
+    "time_level": 4
+  },
+  {
+    "recommendation_key": "REC018",
+    "place_key": "PLC002",
+    "contributor_alias": "James",
+    "rating": 9,
+    "public_note": "Great margherita pizza for vegetarians.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC019",
+    "place_key": "PLC023",
+    "contributor_alias": "James",
+    "rating": 8,
+    "public_note": "The Friday night social session combines music, guided connection, and ice baths in a fun atmosphere. It was my first time trying ice baths, and I felt amazing afterward.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC020",
+    "place_key": "PLC008",
+    "contributor_alias": "Janet",
+    "rating": 6,
+    "public_note": "Very touristy, but still a Toronto staple.",
+    "price_level": 3,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC021",
+    "place_key": "PLC011",
+    "contributor_alias": "Janet",
+    "rating": 7,
+    "public_note": "A massive mall, but it can be busy.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC022",
+    "place_key": "PLC015",
+    "contributor_alias": "Janet",
+    "rating": 9,
+    "public_note": "The hot Pilates class is my favourite.",
+    "price_level": 2,
+    "energy_level": 3,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC023",
+    "place_key": "PLC018",
+    "contributor_alias": "Janet",
+    "rating": 8,
+    "public_note": "Great cocktails.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC024",
+    "place_key": "PLC002",
+    "contributor_alias": "Jim",
+    "rating": 10,
+    "public_note": "Some of the best pizza in the city—I especially love the salami and pepper slice.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC025",
+    "place_key": "PLC008",
+    "contributor_alias": "Jim",
+    "rating": 9,
+    "public_note": "EdgeWalk was fun and exciting.",
+    "price_level": 4,
+    "energy_level": 3,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC026",
+    "place_key": "PLC022",
+    "contributor_alias": "Jim",
+    "rating": 8,
+    "public_note": "Great matcha and a relaxing place to visit alone or with friends.",
+    "price_level": 1,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC027",
+    "place_key": "PLC037",
+    "contributor_alias": "Jim",
+    "rating": 10,
+    "public_note": "A great place to hang out with friends; you will often see volleyball games on summer weekends.",
+    "price_level": 0,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC028",
+    "place_key": "PLC025",
+    "contributor_alias": "Joyce",
+    "rating": 8,
+    "public_note": "Near Trinity Bellwoods, with affordable drinks during the day or at night.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC029",
+    "place_key": "PLC031",
+    "contributor_alias": "Joyce",
+    "rating": 10,
+    "public_note": "Great Chinese food and a popular late-night option; check current hours before going.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC030",
+    "place_key": "PLC039",
+    "contributor_alias": "Joyce",
+    "rating": 8,
+    "public_note": "One of Toronto's oldest taverns, with a great atmosphere.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC031",
+    "place_key": "PLC020",
+    "contributor_alias": "Kimberly",
+    "rating": 8,
+    "public_note": "Mahjong Bar has great vibes for a night out, love starting the night here and moving on to other bars in the area! Reasonably priced drinks and not too crowded.",
+    "price_level": 1,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC032",
+    "place_key": "PLC038",
+    "contributor_alias": "Kimberly",
+    "rating": 9,
+    "public_note": "Wang Lang is some of the best Thai food in Toronto! Very unique dishes I haven’t seen at other Thai restaurants. Best to go with a group and share! Must try = yum salmon.",
+    "price_level": 3,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC033",
+    "place_key": "PLC003",
+    "contributor_alias": "Larry",
+    "rating": 9,
+    "public_note": "Great music and a fun bar.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC034",
+    "place_key": "PLC017",
+    "contributor_alias": "Larry",
+    "rating": 10,
+    "public_note": "Great food, great prices, amazing service.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC035",
+    "place_key": "PLC019",
+    "contributor_alias": "Larry",
+    "rating": 10,
+    "public_note": "Good music and a fun crowd.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC036",
+    "place_key": "PLC010",
+    "contributor_alias": "Luke",
+    "rating": 9,
+    "public_note": "Some of the best coffee in the city.",
+    "price_level": 1,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC037",
+    "place_key": "PLC024",
+    "contributor_alias": "Luke",
+    "rating": 8,
+    "public_note": "Very fun.",
+    "price_level": 3,
+    "energy_level": 3,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC038",
+    "place_key": "PLC036",
+    "contributor_alias": "Luke",
+    "rating": 8,
+    "public_note": "A beautiful lakefront park for a walk.",
+    "price_level": 0,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC039",
+    "place_key": "PLC030",
+    "contributor_alias": "Mason",
+    "rating": 10,
+    "public_note": "A great place to watch a baseball game.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC040",
+    "place_key": "PLC007",
+    "contributor_alias": "Nathan",
+    "rating": 10,
+    "public_note": "An excellent space to play sports.",
+    "price_level": 0,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC041",
+    "place_key": "PLC003",
+    "contributor_alias": "Paul",
+    "rating": 10,
+    "public_note": "Great nightlife spot, amazing country music.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC042",
+    "place_key": "PLC007",
+    "contributor_alias": "Paul",
+    "rating": 8,
+    "public_note": "A fun place for sports—expect some very competitive Spikeball players.",
+    "price_level": 0,
+    "energy_level": 3,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC043",
+    "place_key": "PLC012",
+    "contributor_alias": "Paul",
+    "rating": 10,
+    "public_note": "Amazing brunch spot.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC044",
+    "place_key": "PLC013",
+    "contributor_alias": "Peter",
+    "rating": 8,
+    "public_note": "A relaxing park for an easy outing.",
+    "price_level": 0,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC045",
+    "place_key": "PLC009",
+    "contributor_alias": "Raymond",
+    "rating": 8,
+    "public_note": "Go for the matcha.",
+    "price_level": 1,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC046",
+    "place_key": "PLC001",
+    "contributor_alias": "Robert",
+    "rating": 7,
+    "public_note": "Cool art and changing exhibitions; check the current free-admission schedule before visiting.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC047",
+    "place_key": "PLC027",
+    "contributor_alias": "Robert",
+    "rating": 4,
+    "public_note": "A convenient late-night stop after going out; check current hours and be aware that the area can feel hectic.",
+    "price_level": 1,
+    "energy_level": 2,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC048",
+    "place_key": "PLC030",
+    "contributor_alias": "Robert",
+    "rating": 7,
+    "public_note": "Fun to watch baseball in the summer, drinks are a bit overpriced.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 3
+  },
+  {
+    "recommendation_key": "REC049",
+    "place_key": "PLC028",
+    "contributor_alias": "Thomas",
+    "rating": 10,
+    "public_note": "Some of the best Mexican food and cocktails in Toronto.",
+    "price_level": 4,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC050",
+    "place_key": "PLC005",
+    "contributor_alias": "Tyler",
+    "rating": 9,
+    "public_note": "Incredible Spanish tapas—the grilled octopus is a must.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC051",
+    "place_key": "PLC013",
+    "contributor_alias": "Tyler",
+    "rating": 8,
+    "public_note": "A great park for hanging out with friends; it gets busy after work in summer.",
+    "price_level": 0,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC052",
+    "place_key": "PLC021",
+    "contributor_alias": "Tyler",
+    "rating": 9,
+    "public_note": "Great gelato; expect a line at popular times.",
+    "price_level": 1,
+    "energy_level": 1,
+    "time_level": 1
+  },
+  {
+    "recommendation_key": "REC053",
+    "place_key": "PLC034",
+    "contributor_alias": "Tyler",
+    "rating": 9,
+    "public_note": "Go watch a Toronto Raptors game.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC054",
+    "place_key": "PLC023",
+    "contributor_alias": "Vince",
+    "rating": 9,
+    "public_note": "Great atmosphere love the guided classes.",
+    "price_level": 2,
+    "energy_level": 1,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC055",
+    "place_key": "PLC029",
+    "contributor_alias": "Vince",
+    "rating": 6,
+    "public_note": "Similar to many other aquariums, so it may be less exciting for frequent aquarium visitors.",
+    "price_level": 2,
+    "energy_level": 2,
+    "time_level": 2
+  },
+  {
+    "recommendation_key": "REC056",
+    "place_key": "PLC033",
+    "contributor_alias": "Vince",
+    "rating": 9,
+    "public_note": "ROM After Dark can turn the museum into a fun 19+ night out; check the current event schedule.",
+    "price_level": 3,
+    "energy_level": 2,
+    "time_level": 3
+  }
+]
