@@ -49,9 +49,10 @@ it should look intentional and finished, not like an in-progress prototype.
 
 ## 3. Everything already built
 
-Single self-contained page, `index.html` — plain HTML/CSS/JS, no framework,
-no build step, no backend. All data is inlined as JS arrays in a `<script>`
-tag. This is a deliberate stack choice (see README: "learning AI-assisted
+Single page, `index.html` — plain HTML/CSS/JS, no framework, no build step,
+no backend, no dependencies. The data is **not** in the page any more: it is
+fetched at load time from `data/places.json` and `data/recommendations.json`
+(see §5). This is a deliberate stack choice (see README: "learning AI-assisted
 vibe coding from the ground up").
 
 Built and working:
@@ -114,24 +115,39 @@ Built and working:
 
 ## 5. The data
 
-- Embedded directly in `index.html` as `const PLACES_RAW = [...]` and
-  `const RECS_RAW = [...]` (raw JSON-shaped arrays, one row per Google Form
-  export record). JS then derives working objects (`places`, `recsByPlace`)
-  from these at load time.
-- **`template.html`** is a parallel file, byte-for-byte identical to
-  `index.html` except those two arrays are replaced with placeholder tokens
-  `__PLACES_JSON__` / `__RECS_JSON__`. The intent is that it's a template
-  for regenerating the site from fresh data.
-  - **Gap to know about**: there is currently no build script that actually
-    performs that substitution. `check.py` / `check2.py` are Playwright
-    screenshot/QA scripts (used during development to visually verify
-    changes), not a build/generation pipeline. If the underlying data
-    changes, someone needs to either hand-edit both files' arrays in sync,
-    or write a small script to fill `template.html`'s placeholders and
-    output a new `index.html`. Whenever `index.html` is edited by hand,
-    remember to mirror the same edit into `template.html` (everything
-    except the two data lines should stay identical between them — this was
-    verified line-by-line during this session).
+- Lives in two JSON files, **not** in `index.html`:
+  - `data/places.json` — 39 places
+  - `data/recommendations.json` — 56 recommendations
+  Both are pretty-printed, one field per line, so they can be read and
+  edited by hand and produce small, reviewable diffs.
+- `index.html`'s script is an `async` IIFE whose first act is to fetch both
+  files into `PLACES_RAW` / `RECS_RAW`; every line after that is unchanged
+  from when the arrays were inline. JS then derives the working objects
+  (`places`, `recsByPlace`) from them exactly as before.
+- The two files are linked by `place_key` (`PLC001`…`PLC039`); each
+  recommendation also has its own `recommendation_key` (`REC001`…`REC056`).
+  **These keys are permanent — never renumber or reuse them.**
+- `recommendation_count` and `average_rating` are stored on each place even
+  though they're derivable from the recommendations, because the sorting,
+  filtering, map badges and planner scoring read them directly. If you edit
+  the recommendations, update them to match: the counts must still sum to 56.
+- **Because the page uses `fetch()`, it cannot be opened from `file://`.**
+  Double-clicking `index.html` shows a "Couldn't load the recommendations"
+  message instead of the site. Serve the folder over http — `npx serve` in
+  the project folder — and open the address it prints. Vercel is unaffected.
+- **`template.html` no longer exists.** It was a hand-synced duplicate of
+  `index.html` with the two data lines swapped for `__PLACES_JSON__` /
+  `__RECS_JSON__` placeholders, and no script ever performed that
+  substitution. Once the data moved out of the page, `index.html` *was*
+  that file, so it was deleted (recoverable from Git history). There is now
+  exactly one page file to edit — no sync rule to remember.
+- Source of truth history: the data originally came from a Google Form,
+  was cleaned into `I_Know_A_Place_Base44_Import.xlsx`, and that workbook
+  generated the original inline arrays. The JSON files were verified
+  field-for-field against both the old inline arrays and that workbook.
+  The workbook is now retired and gitignored (`*.xlsx`) — it is **not** on
+  GitHub, because its "Raw Responses" sheet holds friends' unedited form
+  wording. The JSON files are the source of truth from here on.
 
 ## 6. Planner algorithm details (technical decisions)
 
@@ -186,9 +202,12 @@ No AI/LLM generates the plans — it's a scored, weighted-random selection:
 ## 8. Current functionality status
 
 Everything in §3 is built and working as of this handoff. The **live,
-current state of `index.html`/`template.html` matches what's on GitHub**
-(`github.com/billylearns/iknowaplace`, `main` branch) and what's published
-to the owner's private Claude Artifact. There is no known open bug in this
+current state of `index.html` and `data/` matches what's on GitHub**
+(`github.com/billylearns/iknowaplace`, `main` branch) and what is deployed
+to Vercel (`iknowaplace-eta.vercel.app`). The owner's private Claude
+Artifact copy of the site is **retired** — an Artifact is a single page with
+no `data/` folder to fetch from, so it cannot run this version. Vercel is
+now the one canonical live copy. There is no known open bug in this
 version — all issues raised during this session (slider, stats row, dropdown
 label wording, option-card text contrast) were fixed and confirmed.
 
@@ -270,13 +289,13 @@ than assuming.
   commits are titled "Add files via upload" with no real message). Once
   Claude Code is working from a proper local clone, normal `git commit` /
   `git push` should be used going forward for real history.
-- `.gitignore` excludes: `*.png`, `*.zip`, `check.py`, `check2.py`,
-  `site-package/`. These are development/QA artifacts (screenshots taken
-  while iterating on design changes, a stale early static-export bundle in
-  `site-package/`, and Playwright screenshot scripts) — safe to ignore or
-  delete, not part of the deployed site. There are many such stray files
-  sitting in the project root from this session's iteration history; feel
-  free to clean them up.
+- `.gitignore` excludes: `*.zip`, `check*.py`, `site-package/`, `*.log`,
+  editor/OS junk, and `*.xlsx` (the private source workbook — see §5).
+  The development/QA artifacts are screenshots taken while iterating on
+  design changes, a stale early static-export bundle in `site-package/`,
+  and Playwright screenshot scripts — safe to ignore or delete, not part
+  of the deployed site. Note `screenshot.png` **is** tracked, since the
+  README embeds it.
 - No CI/CD, no tests. `check.py`/`check2.py` are manual Playwright scripts
   (screenshot + console-error check) run ad hoc during development, not
   wired into any automated pipeline. Useful pattern to reuse for visual QA:
@@ -298,11 +317,10 @@ than assuming.
   - However, they set up a Formspree recommendation and Vercel deployment
     conversation already, so they're ramping up — don't over-explain things
     already covered.
-- `index.html` and `template.html` must be kept in sync on every edit
-  (identical except the two data-array lines) — this was manually verified
-  line-by-line after every change in this session. A quick way to check:
-  diff the two files' line arrays and confirm only the `PLACES_RAW`/
-  `RECS_RAW` lines differ.
+- There is no longer any file to keep in sync with `index.html` —
+  `template.html` was deleted when the data moved into `data/` (see §5).
+  Edit `index.html` for anything about the page; edit `data/*.json` for
+  anything about the content.
 - When testing changes, this session used headless Playwright/Chromium
   (`file://` URL on the local `index.html`) to screenshot before/after
   states rather than guessing — recommended to continue that habit, since
@@ -311,5 +329,7 @@ than assuming.
 - The site intentionally has **no external JS dependencies** (no npm, no
   CDN libraries) beyond the Google Fonts stylesheet link (Fraunces, Work
   Sans, IBM Plex Mono). Keep it that way unless there's a strong reason not
-  to — it's part of the stated design ("one self-contained file that any
-  static host can serve as-is").
+  to — it's part of the stated design (README: "no framework, no build step,
+  no backend, no dependencies"). `npx serve` is a dev-time convenience for
+  viewing the page locally, not a project dependency: nothing is installed
+  into the repo and the deployed site still needs no build.

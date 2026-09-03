@@ -14,11 +14,24 @@ Full story is on the site itself (the "Why this exists" link), but in short: rec
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript — no framework, no build step, no backend. All 39 places and their recommendations are baked directly into the page as data, so the whole thing is one self-contained file that any static host (this one runs on Vercel) can serve as-is.
+Plain HTML, CSS, and JavaScript — no framework, no build step, no backend, no dependencies. `index.html` is the whole site: markup, styles and logic in one file. It reads its content from two JSON files in `data/`, so any static host (this one runs on Vercel) can serve the folder as-is.
+
+## Run it locally
+
+The page loads its data with `fetch()`, and browsers block that on `file://` URLs — so opening `index.html` by double-clicking it won't work. Serve the folder over http instead. With [Node](https://nodejs.org) installed, run this in the project folder and open the address it prints:
+
+```bash
+npx serve
+```
 
 ## Data
 
-Sourced from a Google Form filled out by real friends, then cleaned and anonymized (first-name aliases only, no last names). There is no separate data folder — all 39 places and 56 recommendations are embedded directly in `index.html` as two JavaScript arrays, `PLACES_RAW` and `RECS_RAW`. `template.html` is the same page with those two arrays replaced by placeholders, so the site can be regenerated from a fresh export.
+Sourced from a Google Form filled out by real friends, then cleaned and anonymized (first-name aliases only, no last names). It lives in two files you can open and edit directly:
+
+- `data/places.json` — the 39 places (name, category, neighbourhood, coordinates, address, rating summary)
+- `data/recommendations.json` — the 56 recommendations (who suggested it, their rating, their note)
+
+The two are linked by `place_key`: every recommendation names the place it belongs to. Those keys are permanent — never renumber them.
 
 ## Status
 
