@@ -35,3 +35,8 @@ _tmp_*
 # ---- If we ever add packages later ----
 node_modules/
 .vercel/
+
+# ---- Private source data ----
+# The original Excel workbook the site data came from. Keep it local:
+# its "Raw Responses" sheet holds friends' unedited form wording.
+*.xlsx
