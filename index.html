@@ -13,7 +13,11 @@
 
 <div class="app">
   <header class="masthead">
-    <div class="mast-bar">
+    <div class="mast-id">
+      <h1 class="word">I Know a Place<span class="dot">.</span></h1>
+      <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+    </div>
+    <div class="mast-right">
       <button class="city-stamp" id="openCities" aria-haspopup="dialog">
         <span class="city-stamp-name">Toronto</span>
         <span class="city-stamp-sub">city one</span>
@@ -24,50 +28,34 @@
       </nav>
       <button class="btn-primary" id="openPlanner">Plan my trip</button>
     </div>
-    <div class="mast-name">
-      <h1 class="word">I Know a Place<span class="dot">.</span></h1>
-      <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
-    </div>
   </header>
 
-  <hr class="rule-route" aria-hidden="true">
+  <main class="stage">
+    <div class="mapfield">
+      <svg class="atlas" id="atlas" xmlns="http://www.w3.org/2000/svg" aria-label="Map of recommended places in Toronto"></svg>
+      <div class="map-tooltip" id="mapTooltip"></div>
+    </div>
+    <p class="schematic">Schematic map, not to scale.</p>
+    <div class="map-legend" id="mapLegend"></div>
 
-  <div class="filter-bar" id="filterBar"></div>
-
-  <main class="split">
-    <section class="map-pane">
-      <div class="map-caption">
-        <span id="mapCount">39 places</span>
+    <aside class="panel" aria-label="Recommendations">
+      <div class="panel-head">
+        <h2 id="listHeading">39 places</h2>
+        <div class="filter-cats" id="filterBar"></div>
+        <div class="refine" id="refineBar"></div>
+        <div class="searchline">
+          <label class="visually-hidden" for="searchBox">Search a place by name</label>
+          <input type="text" id="searchBox" placeholder="Search a place by name" autocomplete="off">
+        </div>
       </div>
-      <div style="position:relative;">
-        <svg class="atlas" id="atlas" viewBox="0 0 600 620" xmlns="http://www.w3.org/2000/svg"></svg>
-        <div class="map-tooltip" id="mapTooltip"></div>
+      <div class="panel-scroll">
+        <div class="list" id="list"></div>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <h3 id="emptyTitle">No matches</h3>
+          <p>Try loosening a filter or clearing your search.</p>
+        </div>
       </div>
-      <div class="map-legend" id="mapLegend"></div>
-    </section>
-
-    <section class="list-pane">
-      <div class="list-head">
-        <h2 id="listHeading">Recommendations (39)</h2>
-        <label class="select-field sort-field">
-          <select id="fSort" aria-label="Sort recommendations">
-            <option value="rating-desc">Highest rating</option>
-            <option value="rating-asc">Lowest rating</option>
-            <option value="most-recommended">Most recommended</option>
-            <option value="neighbourhood">Neighbourhood</option>
-          </select>
-        </label>
-      </div>
-      <div class="search-row">
-        <svg class="search-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>
-        <input type="text" id="searchBox" placeholder="Search a place by name…" autocomplete="off">
-      </div>
-      <div class="list" id="list"></div>
-      <div class="empty-state" id="emptyState" style="display:none;">
-        <h3 id="emptyTitle">No matches</h3>
-        <p>Try loosening a filter or clearing your search.</p>
-      </div>
-    </section>
+    </aside>
   </main>
 
   <hr class="rule-route" aria-hidden="true">
@@ -191,8 +179,7 @@
     ]);
   } catch (err) {
     console.error("Could not load the recommendation data.", err);
-    document.getElementById("listHeading").textContent = "Recommendations";
-    document.getElementById("mapCount").textContent = "—";
+    document.getElementById("listHeading").textContent = "Places";
     document.getElementById("emptyTitle").textContent = "Couldn't load the recommendations";
     document.getElementById("emptyState").querySelector("p").textContent =
       "The data files in the data/ folder didn't load. If you opened this page straight " +
@@ -310,44 +297,57 @@
 
   /* ---------------- Filter bar (dropdowns) ---------------- */
   const filterBar = document.getElementById("filterBar");
+
+  // Category is the filter people actually reach for, so it reads as a row of
+  // words rather than a dropdown. Price, rating and sort stay <select> - the
+  // native control is right for them - but lose their boxes.
   function renderFilterBar(){
-    filterBar.innerHTML = `
-      <label class="select-field">
-        <select id="fCategory" aria-label="Filter by category">
-          <option value="All">All activities</option>
-          ${CAT_ORDER.map(c=>`<option value="${c}" ${state.filterCat===c?"selected":""}>${c}</option>`).join("")}
-        </select>
-      </label>
-      <label class="select-field">
+    const opts = ["All"].concat(CAT_ORDER);
+    filterBar.innerHTML = opts.map(c=>
+      `<button type="button" class="cat${state.filterCat===c?" on":""}" data-cat="${escapeHtml(c)}"`+
+      ` aria-pressed="${state.filterCat===c}">${escapeHtml(c==="All"?"All activities":c)}</button>`
+    ).join("");
+    filterBar.querySelectorAll("button.cat").forEach(b=>{
+      b.addEventListener("click", ()=>{ state.filterCat = b.dataset.cat; renderFilterBar(); refresh(); });
+    });
+  }
+
+  // Built once; these three keep their own listeners, so nothing re-renders them.
+  function renderRefineBar(){
+    const bar = document.getElementById("refineBar");
+    bar.innerHTML = `
+      <label class="refine-field">Price
         <select id="fPrice" aria-label="Filter by price">
           <option value="any">All prices</option>
-          ${PRICE_LABELS.map((lbl,i)=>`<option value="${i}" ${state.filterPrice===String(i)?"selected":""}>${lbl}</option>`).join("")}
+          ${PRICE_LABELS.map((lbl,i)=>`<option value="${i}">${lbl}</option>`).join("")}
         </select>
       </label>
-      <label class="select-field">
+      <label class="refine-field">Rating
         <select id="fRating" aria-label="Filter by rating">
           <option value="any">All ratings</option>
-          ${RATING_STEPS.map(s=>`<option value="${s}" ${state.filterMinRating===String(s)?"selected":""}>${s}★ ${s===5?"only":"&amp; up"}</option>`).join("")}
+          ${RATING_STEPS.map(v=>`<option value="${v}">${v}★ ${v===5?"only":"&amp; up"}</option>`).join("")}
         </select>
       </label>
-    `;
-    document.getElementById("fCategory").value = state.filterCat;
-    document.getElementById("fCategory").onchange = (e)=>{ state.filterCat = e.target.value; refresh(); };
-    document.getElementById("fPrice").value = state.filterPrice;
-    document.getElementById("fPrice").onchange = (e)=>{ state.filterPrice = e.target.value; refresh(); };
+      <label class="refine-field">Sort
+        <select id="fSort" aria-label="Sort places">
+          <option value="rating-desc">Highest rating</option>
+          <option value="rating-asc">Lowest rating</option>
+          <option value="most-recommended">Most recommended</option>
+          <option value="neighbourhood">Neighbourhood</option>
+        </select>
+      </label>`;
+    document.getElementById("fPrice").onchange  = (e)=>{ state.filterPrice = e.target.value; refresh(); };
     document.getElementById("fRating").onchange = (e)=>{ state.filterMinRating = e.target.value; refresh(); };
+    document.getElementById("fSort").onchange   = (e)=>{ state.sortBy = e.target.value; refresh(); };
   }
+
   document.getElementById("searchBox").addEventListener("input", (e)=>{
     state.search = e.target.value.trim().toLowerCase();
     refresh();
   });
-  document.getElementById("fSort").addEventListener("change", (e)=>{
-    state.sortBy = e.target.value;
-    refresh();
-  });
 
   /* ---------------- Map projection ---------------- */
-  const VB_W = 600, VB_H = 620, PAD = 46;
+  const VB_W = 1500, VB_H = 900, PAD = 150;
   const lats = places.map(p=>p.lat), lngs = places.map(p=>p.lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
@@ -355,10 +355,10 @@
   const lngCorrection = Math.cos(avgLatRad);
   const spanX = (maxLng-minLng) * lngCorrection;
   const spanY = (maxLat-minLat);
-  const scale = Math.min((VB_W-PAD*2)/spanX, (VB_H-140-PAD)/spanY);
+  const scale = Math.min((VB_W-PAD*2)/spanX, (VB_H*0.82-PAD)/spanY);
   function project(lat,lng){
     const x = PAD + ((lng-minLng)*lngCorrection) * scale + (VB_W-PAD*2-spanX*scale)/2;
-    const y = 40 + ( (maxLat-lat) * scale );
+    const y = PAD + ( (maxLat-lat) * scale );
     return {x,y};
   }
   places.forEach(p=>{ const {x,y}=project(p.lat,p.lng); p.mx=x; p.my=y; });
@@ -370,7 +370,7 @@
         const a=places[i], b=places[j];
         const dx=b.mx-a.mx, dy=b.my-a.my;
         const dist=Math.hypot(dx,dy) || 0.001;
-        const minDist = 15;
+        const minDist = 30;
         if(dist < minDist){
           const push = (minDist-dist)/2;
           const ux=dx/dist, uy=dy/dist;
@@ -381,7 +381,7 @@
     }
   }
 
-  function radiusFor(p){ return 6 + Math.min(4, (p.recCount-1)*1.1); }
+  function radiusFor(p){ return 14; }
 
   /* ---------------- Render map ---------------- */
   const atlas = document.getElementById("atlas");
@@ -392,31 +392,55 @@
     return el;
   }
   function renderAtlasChrome(){
-    // water band (Lake Ontario, stylised — south edge of the data)
-    const waterTop = 40 + (maxLat-minLat)*scale*0.86;
-    const water = svgEl("path", {
-      d:`M0,${waterTop} C 120,${waterTop-10} 220,${waterTop+14} 340,${waterTop} S 520,${waterTop-16} 600,${waterTop+6} L600,620 L0,620 Z`,
-      fill:"var(--water-fill)", opacity:"0.9"
-    });
-    atlas.appendChild(water);
-    const waterLine = svgEl("path", {
-      d:`M0,${waterTop} C 120,${waterTop-10} 220,${waterTop+14} 340,${waterTop} S 520,${waterTop-16} 600,${waterTop+6}`,
-      fill:"none", stroke:"var(--water-line)", "stroke-width":"1.4", opacity:"0.55"
-    });
-    atlas.appendChild(waterLine);
-    const lbl = svgEl("text", {x:16, y:waterTop+34, "font-family":"var(--font-display)", "font-style":"italic",
-      "font-size":"13", fill:"var(--water-line)", opacity:"0.75"});
+    const waterTop = PAD + (maxLat-minLat)*scale*0.94;
+    atlas.setAttribute("viewBox", "0 0 "+VB_W+" "+VB_H);
+    atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
+
+    // Dashed graticule rather than solid rules: the same route-dash language
+    // the page dividers use, so the map reads as part of the same drawing.
+    for(let gx=0; gx<=VB_W; gx+=Math.round(VB_W/11)){
+      atlas.appendChild(svgEl("line",{x1:gx,y1:0,x2:gx,y2:waterTop,
+        stroke:"var(--green-line)","stroke-width":"1","stroke-dasharray":"2 7",opacity:"0.8"}));
+    }
+    for(let gy=Math.max(10,PAD-60); gy<waterTop; gy+=Math.round(VB_H/9)){
+      atlas.appendChild(svgEl("line",{x1:0,y1:gy,x2:VB_W,y2:gy,
+        stroke:"var(--green-line)","stroke-width":"1","stroke-dasharray":"2 7",opacity:"0.8"}));
+    }
+
+    atlas.appendChild(svgEl("path", {
+      d:`M0,${waterTop} C ${VB_W*0.2},${waterTop-18} ${VB_W*0.37},${waterTop+22} ${VB_W*0.57},${waterTop}`+
+        ` S ${VB_W*0.87},${waterTop-26} ${VB_W},${waterTop+10} L${VB_W},${VB_H} L0,${VB_H} Z`,
+      fill:"var(--water-fill)"
+    }));
+    const lbl = svgEl("text", {x:VB_W*0.42, y:waterTop+52, "font-family":"Instrument Serif, Georgia, serif",
+      "font-style":"italic", "font-size":"20", fill:"var(--water-line)", opacity:"0.9"});
     lbl.textContent = "Lake Ontario";
     atlas.appendChild(lbl);
-
-    // faint grid for texture
-    for(let gx=0; gx<=600; gx+=60){
-      atlas.appendChild(svgEl("line",{x1:gx,y1:20,x2:gx,y2:waterTop+10,stroke:"var(--border)","stroke-width":"1",opacity:"0.35"}));
-    }
-    for(let gy=40; gy<waterTop; gy+=54){
-      atlas.appendChild(svgEl("line",{x1:10,y1:gy,x2:590,y2:gy,stroke:"var(--border)","stroke-width":"1",opacity:"0.35"}));
-    }
   }
+
+  // The canvas is sized for a wide desktop stage. On a narrow screen, scaling
+  // the whole thing down makes the markers unreadable, so crop the viewBox to
+  // the pin cluster (plus a little water) instead of shrinking everything.
+  function fitMapToViewport(){
+    if(window.innerWidth > 880){
+      atlas.setAttribute("viewBox", "0 0 "+VB_W+" "+VB_H);
+      atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
+      return;
+    }
+    const xs = places.map(p=>p.mx), ys = places.map(p=>p.my);
+    const pad = 70;
+    const x0 = Math.max(0, Math.min(...xs) - pad);
+    const x1 = Math.min(VB_W, Math.max(...xs) + pad);
+    const y0 = Math.max(0, Math.min(...ys) - pad);
+    const y1 = Math.min(VB_H, Math.max(...ys) + pad * 2.2);
+    atlas.setAttribute("viewBox", x0+" "+y0+" "+(x1-x0)+" "+(y1-y0));
+    atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
+  }
+  let fitTimer = null;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(fitMapToViewport, 150);
+  });
 
   let markerEls = {};
   function renderMarkers(visibleKeys){
@@ -424,28 +448,47 @@
     markerEls = {};
     places.forEach(p=>{
       const visible = visibleKeys.has(p.key);
-      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""), opacity: visible? "1":"0.16", "data-key":p.key});
+      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""),
+        opacity: visible? "1":"0.16", "data-key":p.key});
       if(!visible) g.style.pointerEvents = "none";
       const r = radiusFor(p);
-      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+7, fill: CATS[p.category].color}));
-      g.appendChild(svgEl("circle", {class:"dot", cx:p.mx, cy:p.my, r:r, fill: CATS[p.category].color}));
+      const colour = CATS[p.category].color;
+      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+9, fill:colour}));
+      g.appendChild(svgEl("circle", {class:"dot", cx:p.mx, cy:p.my, r:r, fill:colour}));
+
+      // Category is carried by the glyph as well as the colour, so the marker
+      // still says what it is without relying on colour alone.
+      const use = document.createElementNS("http://www.w3.org/2000/svg","use");
+      use.setAttribute("href", "#ic-"+CATS[p.category].icon);
+      use.setAttribute("x", p.mx-7); use.setAttribute("y", p.my-7);
+      use.setAttribute("width", 14); use.setAttribute("height", 14);
+      use.setAttribute("class", "glyph");
+      g.appendChild(use);
+
       if(p.recCount>1){
-        const t = svgEl("text", {x:p.mx, y:p.my+3.4, "text-anchor":"middle", class:"badge-count",
-          fill:"#fff", "font-size":"8.5"});
+        g.appendChild(svgEl("circle", {class:"count-ring", cx:p.mx+11, cy:p.my-11, r:8,
+          fill:"var(--paper)", stroke:colour, "stroke-width":"1.5"}));
+        const t = svgEl("text", {x:p.mx+11, y:p.my-7.6, "text-anchor":"middle",
+          class:"badge-count", fill:colour, "font-size":"9.5"});
         t.textContent = p.recCount;
         g.appendChild(t);
       }
       g.addEventListener("click", ()=> selectPlace(p.key, true));
-      g.addEventListener("mouseenter", (e)=> showTooltip(p, e));
+      g.addEventListener("mouseenter", ()=> showTooltip(p));
       g.addEventListener("mouseleave", hideTooltip);
       atlas.appendChild(g);
       markerEls[p.key] = g;
     });
   }
+
   function showTooltip(p){
     tooltip.textContent = p.name + " · " + p.neighbourhood;
-    tooltip.style.left = p.mx/VB_W*100 + "%";
-    tooltip.style.top = p.my/VB_H*100 + "%";
+    const marker = markerEls[p.key];
+    if(!marker) return;
+    const m = marker.getBoundingClientRect();
+    const f = atlas.parentNode.getBoundingClientRect();
+    tooltip.style.left = (m.left + m.width/2 - f.left) + "px";
+    tooltip.style.top  = (m.top + m.height/2 - f.top) + "px";
     tooltip.classList.add("show");
   }
   function hideTooltip(){ tooltip.classList.remove("show"); }
@@ -527,8 +570,8 @@
     });
     const visibleKeys = new Set(visible.map(p=>p.key));
 
-    document.getElementById("listHeading").textContent = `Recommendations (${visible.length})`;
-    document.getElementById("mapCount").textContent = visible.length + " place" + (visible.length===1?"":"s");
+    document.getElementById("listHeading").textContent =
+      visible.length + " place" + (visible.length===1 ? "" : "s");
 
     renderMarkers(visibleKeys);
 
@@ -974,8 +1017,10 @@
   /* ---------------- Init ---------------- */
   renderFooter();
   renderAtlasChrome();
+  fitMapToViewport();
   renderLegend();
   renderFilterBar();
+  renderRefineBar();
   refresh();
 })();
 </script>

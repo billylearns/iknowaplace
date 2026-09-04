@@ -94,6 +94,7 @@
   /* ---------- Reset & base ---------- */
   *,*::before,*::after{box-sizing:border-box;}
   html,body{height:100%;}
+  html{overflow-x:hidden;}
   body{
     margin:0;
     background:var(--bg);
@@ -116,12 +117,168 @@
   }
   .visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
 
-  /* ---------- Layout shell ---------- */
-  .app{
-    max-width:1280px;
-    margin:0 auto;
-    padding:0 20px 64px;
+  /* ---------- Shell -------------------------------------------
+     No centred max-width column any more. The masthead is a band and
+     the map is a field that runs to the edges of the window. */
+  .app{position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh;}
+
+  /* ---------- Masthead ----------------------------------------
+     Identity sits in its own band above the map, so the type never
+     competes with the pin cluster for the same space. */
+  .masthead{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:var(--s-5);
+    flex-wrap:wrap;
+    padding:var(--s-4) var(--s-6) var(--s-5);
+    background:var(--paper-2);
+    border-bottom:1.5px dashed var(--green-line);
   }
+  .word{
+    font-family:var(--font-display);
+    font-size:clamp(2.1rem, 3.6vw, 3.1rem);
+    font-weight:400;
+    letter-spacing:-.04em;
+    line-height:.94;
+    margin:0;
+    color:var(--green-deep);
+  }
+  .word .dot{color:var(--ochre);}
+  .kicker{
+    font-family:var(--font-display);
+    font-style:italic;
+    font-size:1.0625rem;
+    color:var(--ink-2);
+    margin:var(--s-2) 0 0;
+    max-width:34ch;
+  }
+  .kicker strong{font-weight:400; color:var(--ink);}
+  .mast-right{
+    display:flex; align-items:center; gap:var(--s-2);
+    flex-wrap:wrap; justify-content:flex-end;
+  }
+  .mast-nav{display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;}
+  .nav-link{
+    display:inline-flex; align-items:center; min-height:44px;
+    background:none; border:none;
+    font-family:var(--font-body); font-size:.9375rem; font-weight:500;
+    color:var(--ink-2); padding:0 10px; border-radius:var(--r-flat);
+  }
+  .nav-link:hover{color:var(--green); text-decoration:underline; text-underline-offset:4px;}
+  .city-stamp{
+    display:inline-flex; flex-direction:column; align-items:center; gap:1px;
+    padding:6px 16px;
+    background:none; border:1.5px solid var(--ochre); border-radius:var(--r-pill);
+    color:var(--green-deep);
+    transform:rotate(-1.2deg);
+    transition:transform .18s ease, border-color .18s ease;
+  }
+  .city-stamp:hover{transform:rotate(0deg); border-color:var(--ochre-ink);}
+  .city-stamp-name{font-family:var(--font-display); font-size:1.0625rem; line-height:1;}
+  .city-stamp-sub{
+    font-family:var(--font-body); font-size:.5625rem; font-weight:600;
+    letter-spacing:.18em; text-transform:uppercase; color:var(--ochre-ink);
+  }
+
+  /* ---------- The stage ---------------------------------------
+     The map is the ground the product stands on: full-bleed, no
+     border, no radius. The index floats over it on paper. */
+  .stage{
+    position:relative;
+    flex:1 0 auto;
+    height:calc(100vh - 156px);
+    min-height:540px;
+    overflow:hidden;
+    background:var(--paper);
+  }
+  .mapfield{position:absolute; inset:0; z-index:0;}
+  svg.atlas{display:block; width:100%; height:100%;}
+  .schematic{
+    position:absolute; left:var(--s-6); top:var(--s-5); z-index:2;
+    font-family:var(--font-display); font-style:italic;
+    font-size:.95rem; color:var(--ink-3);
+  }
+  .map-legend{
+    position:absolute; left:var(--s-6); bottom:var(--s-5); z-index:2;
+    display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-4);
+    max-width:42ch;
+    font-size:.75rem; color:var(--ink-2);
+    background:color-mix(in srgb, var(--paper) 84%, transparent);
+    border:1px solid var(--green-line);
+    padding:10px 14px;
+  }
+  .map-legend span{display:flex; align-items:center; gap:6px;}
+  .map-legend .swatch{width:9px; height:9px; border-radius:var(--r-pill);}
+
+  .marker{cursor:pointer;}
+  .marker circle.halo{opacity:0; transition:opacity .15s ease;}
+  .marker:hover circle.halo, .marker.selected circle.halo{opacity:.26;}
+  .marker circle.dot{transition:r .12s ease;}
+  .marker.selected circle.dot{stroke:var(--ink); stroke-width:2.5;}
+  .marker .glyph{pointer-events:none; color:#fff;}
+  .marker .badge-count{font-family:var(--font-body); font-weight:700; pointer-events:none;}
+  .map-tooltip{
+    position:absolute; pointer-events:none; z-index:5;
+    background:var(--ink); color:var(--paper);
+    padding:5px 9px; border-radius:var(--r-flat);
+    font-size:.75rem; font-weight:600; white-space:nowrap;
+    transform:translate(-50%,-190%);
+    opacity:0; transition:opacity .1s ease;
+  }
+  .map-tooltip.show{opacity:1;}
+
+  /* ---------- The index panel --------------------------------- */
+  .panel{
+    position:absolute; top:var(--s-5); right:var(--s-6); bottom:var(--s-5);
+    width:min(430px, calc(100% - var(--s-6) * 2));
+    z-index:4;
+    display:flex; flex-direction:column;
+    background:var(--paper);
+    border:1px solid var(--green-line);
+    box-shadow:0 24px 60px -28px rgba(30,40,25,.45);
+  }
+  .panel-head{padding:var(--s-5) var(--s-5) var(--s-3); border-bottom:1px dashed var(--green-line);}
+  .panel-head h2{font-size:1.5rem; color:var(--green-deep); letter-spacing:-.02em;}
+  .panel-scroll{overflow:auto; padding:0 var(--s-5) var(--s-5);}
+
+  /* Controls, unboxed. A row of words for category; the native select
+     kept for the rest, but reduced to an underline and a caret. */
+  .filter-cats{display:flex; flex-wrap:wrap; gap:var(--s-1) var(--s-4); margin-top:var(--s-3);}
+  .filter-cats .cat{
+    background:none; border:none; padding:3px 0;
+    font-size:.8125rem; font-weight:500; color:var(--ink-3);
+    border-bottom:1.5px solid transparent;
+  }
+  .filter-cats .cat:hover{color:var(--ink);}
+  .filter-cats .cat.on{color:var(--green-deep); border-bottom-color:var(--green);}
+
+  .refine{display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-4); margin-top:var(--s-3);}
+  .refine-field{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:.75rem; color:var(--ink-3);
+  }
+  .refine-field select{
+    appearance:none; -webkit-appearance:none;
+    background-color:transparent; border:none;
+    border-bottom:1.5px solid var(--green-line);
+    font-family:var(--font-body); font-size:.75rem; font-weight:600;
+    color:var(--ink); padding:2px 14px 2px 0; cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),
+                     linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+    background-position:calc(100% - 5px) 60%, calc(100% - 1px) 60%;
+    background-size:4px 4px, 4px 4px;
+    background-repeat:no-repeat;
+  }
+  .refine-field select:hover{border-bottom-color:var(--green);}
+
+  .searchline{margin-top:var(--s-4); border-bottom:1.5px solid var(--green-line); padding-bottom:6px;}
+  .searchline input{
+    border:none; outline:none; background:none; width:100%;
+    font-family:var(--font-display); font-style:italic; font-size:1.05rem; color:var(--ink);
+  }
+  .searchline input::placeholder{color:var(--ink-3);}
+  .searchline:focus-within{border-bottom-color:var(--green);}
 
   /* ---------- Paper -------------------------------------------
      A single tiled SVG noise over the whole page. No image file and
@@ -149,106 +306,9 @@
     margin:0 0 var(--s-5);
   }
 
-  /* ---------- Masthead ---------------------------------------- */
-  .masthead{padding:var(--s-4) 0 var(--s-5);}
-  .mast-bar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:var(--s-4);
-    flex-wrap:wrap;
-    margin-bottom:var(--s-6);
-  }
-  /* Nav and the primary action are pushed right together, leaving the
-     city stamp alone on the left. */
-  .mast-nav{
-    display:flex;
-    align-items:center;
-    gap:var(--s-2);
-    flex-wrap:wrap;
-    margin-left:auto;
-  }
-  .nav-link{
-    display:inline-flex;
-    align-items:center;
-    min-height:44px;        /* full tap target, not just the text box */
-    background:none;
-    border:none;
-    font-family:var(--font-body);
-    font-size:0.9375rem;
-    font-weight:500;
-    color:var(--ink-2);
-    padding:0 10px;
-    border-radius:var(--r-flat);
-  }
-  .nav-link:hover{color:var(--green); text-decoration:underline; text-underline-offset:4px;}
-
-  /* The city stamp. Amici's little oval "MENU" badge, rethought as
-     the thing that says Toronto is the first city rather than the
-     only one. Rotated, but barely - 1.2deg reads as hand-placed;
-     more reads as a gimmick. */
-  .city-stamp{
-    display:inline-flex;
-    flex-direction:column;
-    align-items:center;
-    gap:1px;
-    padding:7px 18px;
-    background:none;
-    border:1.5px solid var(--ochre);
-    border-radius:var(--r-pill);
-    color:var(--green-deep);
-    transform:rotate(-1.2deg);
-    transition:transform .18s ease, border-color .18s ease;
-  }
-  .city-stamp:hover{transform:rotate(0deg); border-color:var(--ochre-ink);}
-  .city-stamp-name{
-    font-family:var(--font-display);
-    font-size:1.0625rem;
-    line-height:1;
-    letter-spacing:0.01em;
-  }
-  .city-stamp-sub{
-    font-family:var(--font-body);
-    font-size:0.5625rem;
-    font-weight:600;
-    letter-spacing:0.18em;
-    text-transform:uppercase;
-    color:var(--ochre-ink);
-  }
-
-  /* Wordmark and tagline sit on one baseline as a two-column
-     composition, so the masthead stays confident without spending
-     200px of vertical space before the product starts. */
-  .mast-name{
-    display:flex;
-    align-items:flex-end;
-    justify-content:space-between;
-    gap:var(--s-4) var(--s-7);
-    flex-wrap:wrap;
-  }
-  .word{
-    font-family:var(--font-display);
-    font-size:clamp(2.75rem, 7vw, 4.5rem);
-    font-weight:400;
-    letter-spacing:-0.035em;
-    line-height:0.92;
-    margin:0;
-    color:var(--green-deep);
-  }
-  .word .dot{color:var(--ochre);}
-  .kicker{
-    font-family:var(--font-display);
-    font-style:italic;
-    font-size:clamp(1rem, 2.4vw, 1.1875rem);
-    color:var(--ink-2);
-    max-width:30ch;
-    text-align:right;
-    padding-bottom:0.45rem;   /* optical baseline match to the wordmark */
-  }
-  .kicker strong{font-weight:400; color:var(--ink);}
-
   /* ---------- Footer ------------------------------------------ */
-  .site-foot{padding-bottom:var(--s-5);}
+  .site-foot{padding:var(--s-5) var(--s-6); background:var(--paper-2);
+             border-top:1.5px dashed var(--green-line);}
   .marquee{overflow:hidden; margin-bottom:var(--s-5);}
   .marquee-track{
     display:flex;
@@ -335,63 +395,6 @@
     text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1.5px;
   }
 
-  /* ---------- Filters ---------- */
-  .filter-bar{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    padding:4px 2px 16px;
-  }
-  .select-field{
-    position:relative;
-    display:flex;
-    align-items:center;
-  }
-  .select-field select{
-    appearance:none;
-    -webkit-appearance:none;
-    font-family:var(--font-body);
-    font-size:0.85rem;
-    font-weight:600;
-    color:var(--ink);
-    background:var(--surface);
-    border:1.5px solid var(--border);
-    border-radius:var(--r-flat);
-    padding:9px 32px 9px 14px;
-    cursor:pointer;
-  }
-  .select-field select:hover{border-color:var(--ink-faint);}
-  .select-field::after{
-    content:"";
-    position:absolute;
-    right:12px; top:50%;
-    width:8px; height:8px;
-    border-right:1.6px solid var(--ink-soft);
-    border-bottom:1.6px solid var(--ink-soft);
-    transform:translateY(-65%) rotate(45deg);
-    pointer-events:none;
-  }
-  .search-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    border:1.5px solid var(--border);
-    background:var(--surface);
-    border-radius:var(--r-flat);
-    padding:9px 12px;
-    margin:0 2px 12px;
-  }
-  .search-row .search-icon{flex:0 0 auto; color:var(--ink-faint);}
-  .search-row input{
-    border:none; outline:none; background:transparent; flex:1;
-    font-family:var(--font-body); font-size:0.88rem; color:var(--ink);
-  }
-  .search-row input::placeholder{color:var(--ink-faint);}
-
-  /* Numbers that sit in columns or change in place keep their width. */
-  .count-pill, .map-caption, .badge-count, .card-rating, .note-rating,
-  .stat-chip, .plan-stats, .option-card .s{font-variant-numeric:tabular-nums;}
-
   /* ---------- Star ratings ----------
      Two identical SVG rows stacked; the gold one is clipped to a
      percentage width. Because it is geometry rather than a font glyph,
@@ -409,64 +412,6 @@
     overflow:hidden;
     color:var(--star);
   }
-
-  /* ---------- Main split ---------- */
-  main.split{
-    display:grid;
-    grid-template-columns:minmax(0,58%) minmax(0,42%);
-    gap:22px;
-    align-items:start;
-  }
-  .map-pane{
-    position:sticky;
-    top:16px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:var(--r-flat);
-    overflow:hidden;
-    box-shadow:var(--shadow);
-  }
-  .map-pane .map-caption{
-    display:flex; justify-content:flex-end; align-items:baseline;
-    padding:12px 16px 0;
-    font-family:var(--font-mono);
-    font-size:0.7rem;
-    color:var(--ink-faint);
-    letter-spacing:0.03em;
-    text-transform:uppercase;
-  }
-  svg.atlas{display:block; width:100%; height:auto;}
-  .marker{cursor:pointer;}
-  .marker circle.halo{opacity:0; transition:opacity .15s ease;}
-  .marker:hover circle.halo, .marker.selected circle.halo{opacity:0.28;}
-  .marker circle.dot{stroke:var(--surface); stroke-width:2; transition:r .12s ease;}
-  .marker.selected circle.dot{stroke:var(--ink);}
-  .marker .glyph{pointer-events:none;}
-  .marker .badge-count{
-    font-family:var(--font-mono); font-weight:600;
-  }
-  .map-tooltip{
-    position:absolute;
-    pointer-events:none;
-    background:var(--ink);
-    color:var(--bg);
-    padding:5px 9px;
-    border-radius:var(--r-flat);
-    font-size:0.72rem;
-    font-weight:600;
-    white-space:nowrap;
-    transform:translate(-50%,-130%);
-    opacity:0;
-    transition:opacity .1s ease;
-    z-index:5;
-  }
-  .map-tooltip.show{opacity:1;}
-  .map-legend{
-    display:flex; flex-wrap:wrap; gap:10px 14px; padding:10px 16px 16px;
-    font-size:0.72rem; color:var(--ink-soft);
-  }
-  .map-legend span{display:flex; align-items:center; gap:5px;}
-  .map-legend .swatch{width:8px;height:8px;border-radius:var(--r-pill);}
 
   /* ---------- The index ----------
      No cards. Rows separated by a hairline, which is what lets the eye
@@ -713,26 +658,29 @@
   .results-actions{display:flex; gap:10px; justify-content:space-between; margin-top:4px; flex-wrap:wrap;}
 
   /* ---------- Responsive ---------- */
+  /* ---------- Responsive --------------------------------------
+     The stage stops being a stage: the map becomes a band you meet
+     first, and the index runs underneath it on the page. */
   @media (max-width: 880px){
-    main.split{grid-template-columns:1fr;}
-    .map-pane{position:static;}
-    svg.atlas{height:auto; max-height:46vh;}
-    /* The serif heading and the sort control both want the full width at
-       375px, so stop them fighting over one line. */
-    .list-pane .list-head{flex-direction:column; align-items:stretch; gap:var(--s-2);}
-    .list-head .sort-field{align-self:flex-start;}
-    .masthead{padding-top:var(--s-3);}
-    .kicker{text-align:left; padding-bottom:0;}
-    .mast-bar{
-      display:grid;
-      grid-template-columns:auto auto;
-      justify-content:space-between;
-      align-items:center;
-      gap:var(--s-3) var(--s-2);
-    }
-    .city-stamp{grid-area:1 / 1; padding:6px 14px;}
-    .btn-primary{grid-area:1 / 2;}
-    .mast-nav{grid-area:2 / 1 / 3 / 3; margin-left:-10px;}
-    .mast-bar{margin-bottom:var(--s-5);}
+    .masthead{padding:var(--s-3) var(--s-4) var(--s-4);}
+    /* Identity takes the first line, every control wraps under it. Nothing
+       is allowed to push the page wider than the screen. */
+    .mast-id{flex:1 1 100%;}
+    .mast-right{flex:1 1 100%; justify-content:flex-start; gap:var(--s-1) var(--s-2);}
+    .mast-nav{gap:0;}
+    .nav-link{font-size:.875rem; padding:0 8px;}
+    .word{font-size:clamp(2rem, 9vw, 2.6rem);}
+    .kicker{font-size:1rem;}
+    .stage{height:auto; min-height:0; overflow:visible; display:flex; flex-direction:column;}
+    .mapfield{position:relative; inset:auto; height:52vh; min-height:340px;
+              border-bottom:1px solid var(--green-line);}
+    .schematic{display:none;}
+    .map-legend{position:static; max-width:none; border:none;
+                border-bottom:1px dashed var(--green-line);
+                background:none; padding:var(--s-3) var(--s-4);}
+    .panel{position:static; width:auto; border:none; box-shadow:none;}
+    .panel-head{padding:var(--s-4) var(--s-4) var(--s-3);}
+    .panel-scroll{overflow:visible; padding:0 var(--s-4) var(--s-5);}
+    .site-foot{padding-left:var(--s-4); padding-right:var(--s-4);}
     .marquee-track{font-size:1.125rem; animation-duration:60s;}
   }
