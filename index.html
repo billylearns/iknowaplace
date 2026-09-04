@@ -277,13 +277,22 @@
   recs.forEach(r=>{ (recsByPlace[r.placeKey] ||= []).push(r); });
 
   /* ---------------- Star rating helper (10-pt data -> 5-star display, half-star increments) ---------------- */
+  // The star was a text glyph, so its shape and width changed with whatever
+  // font the platform happened to use, and half-stars were unreadable at
+  // small sizes. Same 0-10 -> 5-star mapping, same aria-label, same public
+  // signature - only the rendering is different.
+  const STAR_D = "M12 3.1l2.72 5.51 6.08.88-4.4 4.29 1.04 6.06L12 16.98l-5.44 2.86 1.04-6.06-4.4-4.29 6.08-.88z";
+  const STAR_ROW = '<svg viewBox="0 0 120 24" aria-hidden="true" focusable="false">'+
+    [0,1,2,3,4].map(i=>'<path transform="translate('+(i*24)+' 0)" d="'+STAR_D+'"/>').join("")+
+    '</svg>';
+
   function starsHtml(value0to10, size){
     const stars = value0to10/2;
     const pct = Math.max(0, Math.min(100, (stars/5)*100));
     const s = size || "1em";
     return `<span class="stars" style="font-size:${s}" aria-label="${stars.toFixed(1)} out of 5 stars">`+
-      `<span class="bg">★★★★★</span>`+
-      `<span class="fg" style="width:${pct}%">★★★★★</span>`+
+      `<span class="bg">${STAR_ROW}</span>`+
+      `<span class="fg" style="width:${pct}%">${STAR_ROW}</span>`+
     `</span>`;
   }
 
@@ -452,10 +461,23 @@
 
   function statRow(p){
     return `<div class="stat-row">
-      <span class="stat-chip">$ <b>${p.priceLabel}</b></span>
-      <span class="stat-chip">⏱ <b>${p.timeLabel}</b></span>
-      <span class="stat-chip">⚡ <b>${p.energyLabel} energy</b></span>
+      <span class="stat-chip"><b>${escapeHtml(p.priceLabel)}</b></span>
+      <span class="stat-chip"><b>${escapeHtml(p.timeLabel)}</b></span>
+      <span class="stat-chip"><b>${escapeHtml(p.energyLabel)} energy</b></span>
     </div>`;
+  }
+
+  // The whole point of this site is that real people recommended these
+  // places, so the collapsed row names one of them instead of reporting a
+  // count. "Ashton + 2 friends" reads as people; "Recommended by 3 friends"
+  // reads as a statistic.
+  function contributorLine(p){
+    const list = recsByPlace[p.key] || [];
+    if(list.length === 0) return "";
+    const first = `<em>${escapeHtml(list[0].alias)}</em>`;
+    const others = list.length - 1;
+    if(others === 0) return first;
+    return `${first} + ${others} friend${others > 1 ? "s" : ""}`;
   }
 
   function cardHtml(p){
@@ -463,33 +485,33 @@
     const notes = rlist.map(r=>`
       <div class="note">
         <div class="note-head">
-          <span class="note-alias">${escapeHtml(r.alias)}</span>
-          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.8em")}</span>
+          <span class="note-stamp">${escapeHtml(r.alias)}</span>
+          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.75em")}</span>
         </div>
-        <div class="note-text">"${escapeHtml(r.note)}"</div>
+        <blockquote class="note-text">${escapeHtml(r.note)}</blockquote>
       </div>`).join("");
     const expanded = state.selectedKey === p.key;
     return `
-    <article class="card${expanded? " expanded selected":""}" id="card-${p.key}" data-key="${p.key}">
-      <div class="card-top">
-        <div class="card-icon" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='17' height='17'")}</div>
-        <div class="card-main">
-          <div class="card-title-row">
-            <span class="card-title">${escapeHtml(p.name)}</span>
-            <span class="card-rating" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating)}</span>
-          </div>
-          <div class="card-meta">
-            <span>${escapeHtml(p.category)}</span><span class="sep">·</span><span>${escapeHtml(p.neighbourhood)}</span>
-            <span class="sep">·</span><span>Recommended by ${p.recCount} friend${p.recCount>1?"s":""}</span>
-          </div>
-        </div>
-        <span class="card-chevron">⌄</span>
-      </div>
-      <div class="card-detail">
+    <article class="row${expanded? " expanded selected":""}" id="card-${p.key}" data-key="${p.key}">
+      <button class="row-top" type="button" aria-expanded="${expanded}" aria-controls="detail-${p.key}">
+        <span class="row-mark" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='15' height='15' aria-hidden='true'")}</span>
+        <span class="row-main">
+          <span class="row-headline">
+            <span class="row-title">${escapeHtml(p.name)}</span>
+            <span class="row-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"0.8125rem")}</span>
+          </span>
+          <span class="row-where">${escapeHtml(p.category)} <span class="sep">·</span> ${escapeHtml(p.neighbourhood)}</span>
+          <span class="row-who">${contributorLine(p)}</span>
+        </span>
+        <span class="row-chevron" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>
+        </span>
+      </button>
+      <div class="row-detail" id="detail-${p.key}">
         ${statRow(p)}
         <div class="note-list">${notes}</div>
         <div class="card-links">
-          <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">↗ Open in Google Maps</a>
+          <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
         </div>
       </div>
     </article>`;
@@ -519,9 +541,9 @@
       emptyEl.style.display="none";
       const sorted = [...visible].sort(SORTERS[state.sortBy]);
       listEl.innerHTML = sorted.map(cardHtml).join("");
-      listEl.querySelectorAll(".card-top").forEach(top=>{
+      listEl.querySelectorAll(".row-top").forEach(top=>{
         top.addEventListener("click", ()=>{
-          const key = top.closest(".card").dataset.key;
+          const key = top.closest(".row").dataset.key;
           selectPlace(key, false);
         });
       });
