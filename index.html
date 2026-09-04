@@ -12,16 +12,25 @@
 <body>
 
 <div class="app">
-  <header class="top">
-    <div class="brand">
-      <div class="word">I Know a Place<span class="dot">.</span></div>
-      <div class="kicker">Recommendations from people you <strong>actually</strong> trust</div>
-      <button class="story-link" id="openStory">Why this exists →</button>
-    </div>
-    <div class="top-actions">
+  <header class="masthead">
+    <div class="mast-bar">
+      <button class="city-stamp" id="openCities" aria-haspopup="dialog">
+        <span class="city-stamp-name">Toronto</span>
+        <span class="city-stamp-sub">city one</span>
+      </button>
+      <nav class="mast-nav" aria-label="Main">
+        <button class="nav-link" id="openStory">Why this exists</button>
+        <button class="nav-link" id="openContribute" aria-haspopup="dialog">Contribute a place</button>
+      </nav>
       <button class="btn-primary" id="openPlanner">Plan my trip</button>
     </div>
+    <div class="mast-name">
+      <h1 class="word">I Know a Place<span class="dot">.</span></h1>
+      <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+    </div>
   </header>
+
+  <hr class="rule-route" aria-hidden="true">
 
   <div class="filter-bar" id="filterBar"></div>
 
@@ -60,6 +69,58 @@
       </div>
     </section>
   </main>
+
+  <hr class="rule-route" aria-hidden="true">
+
+  <footer class="site-foot">
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track" id="marqueeTrack"></div>
+    </div>
+    <div class="foot-row">
+      <p class="colophon" id="colophon"></p>
+      <a class="foot-link" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">Billy Liu</a>
+    </div>
+  </footer>
+</div>
+
+<div class="modal-scrim" id="citiesScrim">
+  <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="citiesTitle" tabindex="-1">
+    <div class="modal-head">
+      <div>
+        <h2 id="citiesTitle">Toronto is city one</h2>
+      </div>
+      <button class="modal-close" id="closeCities" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="holding-copy">Every place here was recommended by someone I know, which is
+      the slow part — a city only goes up once enough friends have actually been.</p>
+      <p class="holding-copy">Toronto is the one that is ready. More are coming, and they
+      will appear right here when they are.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-scrim" id="contributeScrim">
+  <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="contributeTitle" tabindex="-1">
+    <div class="modal-head">
+      <div>
+        <h2 id="contributeTitle">Contribute a place</h2>
+      </div>
+      <button class="modal-close" id="closeContribute" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="holding-copy">A proper form is being built: your name, the place, what you
+      thought of it, and roughly what it costs in time, money and energy.</p>
+      <p class="holding-copy">It is not ready yet, so nothing here would go anywhere. Until
+      it is, send it to me and I will add it by hand.</p>
+      <div class="story-linkedin-row">
+        <a class="story-linkedin" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56z"/></svg>
+          Send it on LinkedIn
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-scrim" id="storyScrim">
@@ -552,6 +613,18 @@
   function openModal(){ renderForm(); openScrim(scrim, openPlannerBtn); }
   function closeModal(){ closeScrim(scrim); }
 
+  // Contribute and the city selector are visible product now, but neither
+  // feature exists yet - so both open an honest holding modal rather than
+  // pretending to work. They reuse the same focus trap as the other modals.
+  [["citiesScrim","openCities","closeCities"],
+   ["contributeScrim","openContribute","closeContribute"]].forEach(([scrimId, openId, closeId])=>{
+    const el = document.getElementById(scrimId);
+    const btn = document.getElementById(openId);
+    btn.addEventListener("click", ()=> openScrim(el, btn));
+    document.getElementById(closeId).addEventListener("click", ()=> closeScrim(el));
+    el.addEventListener("click", (e)=>{ if(e.target===el) closeScrim(el); });
+  });
+
   const storyScrim = document.getElementById("storyScrim");
   const openStoryBtn = document.getElementById("openStory");
   openStoryBtn.addEventListener("click", ()=> openScrim(storyScrim, openStoryBtn));
@@ -863,7 +936,21 @@
     `;
   }
 
+  /* ---------------- Footer ---------------- */
+  function renderFooter(){
+    const hoods = [...new Set(places.map(p=>p.neighbourhood))].sort();
+    // The track is duplicated so the loop can translate a full copy width and
+    // land back exactly where it started, with no visible seam.
+    const strip = hoods.map(h=>`<span>${escapeHtml(h)}</span>`).join("");
+    document.getElementById("marqueeTrack").innerHTML = strip + strip;
+
+    const friends = new Set(recs.map(r=>r.alias)).size;
+    document.getElementById("colophon").textContent =
+      `${places.length} places · ${recs.length} recommendations · ${friends} friends · Toronto`;
+  }
+
   /* ---------------- Init ---------------- */
+  renderFooter();
   renderAtlasChrome();
   renderLegend();
   renderFilterBar();
