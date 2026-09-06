@@ -52,8 +52,10 @@ it should look intentional and finished, not like an in-progress prototype.
 Single page, `index.html` — plain HTML/CSS/JS, no framework, no build step,
 no backend, no dependencies. The data is **not** in the page any more: it is
 fetched at load time from `data/places.json` and `data/recommendations.json`
-(see §5). This is a deliberate stack choice (see README: "learning AI-assisted
-vibe coding from the ground up").
+(see §5), and since the redesign the **styles live in `css/app.css`**, linked
+from the page. Still no build step — it is one `<link>` — but the design
+system is now a file you can open and read. This is a deliberate stack choice
+(see README: "learning AI-assisted vibe coding from the ground up").
 
 Built and working:
 - **Header** — wordmark, tagline, "Why this exists →" link (opens a modal),
@@ -87,26 +89,42 @@ Built and working:
     lists with hours/links.
   - "Show me different plans" reshuffles (increments a seed, regenerates).
   - "Adjust my answers" goes back to the form.
-- Full **dark mode support** — the palette is token-based (CSS custom
-  properties) and swaps automatically via `prefers-color-scheme`, with a
-  `data-theme` attribute override available. (Note: a later redesign
-  attempted to *remove* dark mode entirely in favor of one committed light
-  theme — that attempt was built, reviewed, and explicitly rejected by the
-  owner; see §9. Dark mode is currently intact and working.)
+- **One light theme.** On `main`, dark mode is still present and swaps via
+  `prefers-color-scheme`. On the redesign branch it has been **deliberately
+  removed** and both token blocks deleted, so the site looks identical to
+  every viewer regardless of their OS setting — which is what a portfolio
+  share needs. This was re-confirmed explicitly before it was done; see §9
+  and §14 for why that history matters.
 - Responsive layout: collapses to a single column under 880px.
 
 ## 4. How the current page works (structure)
 
-- `header.top` → brand + story link + Plan my trip button
-- `#filterBar` → rendered by JS (`renderFilterBar()`), not static HTML
-- `main.split` → CSS grid, two columns:
-  - `.map-pane` (≈58%) — sticky-positioned SVG map + legend
-  - `.list-pane` (≈42%) — sort/search controls + `#list` (cards) +
-    `#emptyState` (no-matches message)
-- Two modals (`.modal-scrim` pattern, both hidden by default, toggled via a
-  `.open` class): `#storyScrim` (Why this exists) and `#plannerScrim` (Plan
-  my trip, contents re-rendered per step via `renderForm()` /
-  `renderResults()` into `#plannerBody`).
+**This describes the redesign branch (`redesign/field-guide`). On `main` the
+layout is still the original `main.split` two-column grid** — see §14.
+
+- `header.masthead` → a band on the chrome ground holding the wordmark,
+  tagline, Toronto city stamp, nav (Why this exists / Contribute a place) and
+  the Plan my trip button. Identity sits above the map rather than on it, so
+  the type never competes with the pin cluster.
+- `main.stage` → the map is **full-bleed**, no border and no box, filling the
+  viewport below the masthead. The index floats over it:
+  - `.mapfield` — the SVG map, plus `#mapLegend` and the "schematic map, not
+    to scale" note positioned over the field
+  - `.panel` — a paper panel pinned right, containing `#listHeading`,
+    `#filterBar` (category as a row of words), `#refineBar` (price / rating /
+    sort as underlined selects), the search line, `#list` and `#emptyState`
+  - Under 880px the stage unwinds: the map becomes a band and the panel runs
+    underneath it on the page.
+- `#filterBar` and `#refineBar` are both rendered by JS
+  (`renderFilterBar()` / `renderRefineBar()`), not static HTML.
+- Four modals (`.modal-scrim` pattern, hidden by default, toggled via a
+  `.open` class), all sharing one focus trap (`openScrim()` / `closeScrim()`,
+  which also handle Escape and returning focus to the trigger):
+  `#storyScrim` (Why this exists), `#plannerScrim` (Plan my trip, contents
+  re-rendered per step via `renderForm()` / `renderResults()` into
+  `#plannerBody`), and two honest holding modals — `#contributeScrim` and
+  `#citiesScrim` — which say the feature is being built rather than
+  pretending to work. Neither has a form or a backend behind it.
 - All rendering is imperative JS (no framework): `refresh()` is the central
   function that re-filters/re-sorts/re-renders both the map markers and the
   list whenever a filter, search, or sort changes.
@@ -199,7 +217,7 @@ No AI/LLM generates the plans — it's a scored, weighted-random selection:
   reworked marker/tooltip code). Flag this explicitly to the owner before
   assuming it's wanted.
 
-## 8. Current functionality status
+## 8. Current functionality status (of `main`)
 
 Everything in §3 is built and working as of this handoff. The **live,
 current state of `index.html` and `data/` matches what's on GitHub**
@@ -233,6 +251,13 @@ JS errors), and then **the owner reviewed it and said it looked worse.** The
 entire attempt was reverted back to the last GitHub-saved commit (the state
 described in §3–§8), and that reverted version is what's currently live
 everywhere (workspace, GitHub, artifact).
+
+**Update (2026-09):** a second redesign is now underway and going well —
+see §14. It revisited two of these three ideas with the owner's explicit
+approval: dark mode *was* removed, and the layout *was* restructured around
+the map. What made the difference was not the ideas but the process — small
+staged commits with a screenshot review gate after each one, instead of one
+end-to-end rewrite reviewed only at the finish.
 
 **Implication for whoever continues this project**: the owner has already
 seen and rejected this specific direction once. If asked to revisit map
@@ -282,7 +307,12 @@ than assuming.
   owner's own machine with their own git/GitHub credentials — a normal
   `git remote add origin ...` + `git push` should just work there. Verify
   this local repo's remote isn't already misconfigured before assuming.
-- **In practice, GitHub has so far been kept in sync manually** — the owner
+- **This is no longer true as of 2026-09.** `git push` works fine from the
+  owner's machine: `origin` is configured to
+  `https://github.com/billylearns/iknowaplace.git` and the branch
+  `redesign/field-guide` has been pushed to it with real, descriptive commit
+  messages. Use normal git from here on.
+- **Historical note — GitHub was previously kept in sync manually** — the owner
   used GitHub's web "Add file → Upload files" button twice, not `git push`.
   This works fine and is a legitimate workflow the owner is comfortable
   with, but it means **commit history is not meaningful** (both existing
@@ -317,19 +347,62 @@ than assuming.
   - However, they set up a Formspree recommendation and Vercel deployment
     conversation already, so they're ramping up — don't over-explain things
     already covered.
-- There is no longer any file to keep in sync with `index.html` —
-  `template.html` was deleted when the data moved into `data/` (see §5).
-  Edit `index.html` for anything about the page; edit `data/*.json` for
-  anything about the content.
+- Nothing needs hand-syncing, but there are now three places to edit rather
+  than one: `index.html` for markup and behaviour, `css/app.css` for anything
+  visual, and `data/*.json` for content. (`template.html` was deleted when the
+  data moved into `data/` — see §5.)
 - When testing changes, this session used headless Playwright/Chromium
   (`file://` URL on the local `index.html`) to screenshot before/after
   states rather than guessing — recommended to continue that habit, since
   the map/planner have enough generated-JS behavior that visual bugs aren't
   always obvious from reading the code alone.
 - The site intentionally has **no external JS dependencies** (no npm, no
-  CDN libraries) beyond the Google Fonts stylesheet link (Fraunces, Work
-  Sans, IBM Plex Mono). Keep it that way unless there's a strong reason not
+  CDN libraries) beyond the Google Fonts stylesheet link. On `main` that is Fraunces, Work
+  Sans and IBM Plex Mono; on the redesign branch it is **Instrument Serif and
+  Instrument Sans** — two families from one foundry, one job each. Instrument
+  Serif ships Regular only, so never ask for a heavier weight or the browser
+  will synthesise a faux bold. Keep it that way unless there's a strong reason not
   to — it's part of the stated design (README: "no framework, no build step,
   no backend, no dependencies"). `npx serve` is a dev-time convenience for
   viewing the page locally, not a project dependency: nothing is installed
   into the repo and the deployed site still needs no build.
+
+## 14. The visual redesign (in progress, 2026-09)
+
+An active redesign lives on the branch **`redesign/field-guide`**, pushed to
+GitHub. `main` is untouched, so what is deployed to Vercel is unaffected.
+
+**The full plan is in [`docs/VISUAL_REDESIGN_PLAN.md`](docs/VISUAL_REDESIGN_PLAN.md)** —
+read that before touching anything visual. It carries the direction, the design
+system as actually built (tokens with measured contrast ratios, type rules,
+row and marker anatomy), the stage table, the do-not-touch list, and the
+verification checklist.
+
+The short version:
+
+- **Direction: "Atlas Field with a header band."** Identity in a band up top;
+  the map full-bleed below it as the ground the product stands on; the index
+  floating over it on paper. References were Amici (personality, warmth) and
+  KOBU (restraint, hierarchy), translated rather than copied.
+- **Palette:** warm off-white paper (`#FBF7ED`) with a nature green
+  (`#2E5D3C`) brand and one ochre accent used only on decorative elements.
+  Category colours are the only other colour in the interface.
+- **What shipped so far:** new tokens and typefaces, dark mode removed, CSS
+  moved to `css/app.css`, masthead with paper grain and a footer marquee,
+  Contribute and Toronto entry points, cards replaced by hairline index rows
+  that name the friend who recommended each place ("*Ashton* + 2 friends"),
+  stars rebuilt as SVG, and the whole page recomposed around the map.
+- **Still to do:** map plate polish, the mobile Map/List toggle, modals,
+  motion, QA, and docs.
+
+**Two process notes worth keeping.** First, there is a hard approval gate after
+every stage — desktop and 375px screenshots, then stop — precisely because of
+the history in §9. Second, an earlier version of the plan split the work by
+component, which meant no stage was ever allowed to change the page's skeleton;
+after three stages the site still looked like the prototype with new paint. If
+a stage only changes materials, it is not enough.
+
+**Do not** modify `data/*.json`, the planner algorithm, or `refresh()` /
+`selectPlace()` control flow as part of visual work. And no Tailwind, no
+shadcn/ui, no React, no MapLibre yet — each of those was evaluated and
+declined for reasons recorded in the plan.
