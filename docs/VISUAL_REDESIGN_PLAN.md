@@ -1,6 +1,7 @@
 # I Know a Place — Visual Redesign Plan
 
-**Status:** stages 1–4a shipped on branch `redesign/field-guide`. Stage 4b next.
+**Status:** stages 1–4a are **merged into `main` and live**. Stage 4b next,
+continuing on `redesign/field-guide`.
 **Last updated:** 2026-09-06
 
 This is the living plan for the visual redesign. It supersedes the original
@@ -29,7 +30,7 @@ than their layouts.
 | | |
 |---|---|
 | **Direction** | **A3 — Atlas Field with a header band** (see §3). |
-| **Dark mode** | Removed. One committed light identity. |
+| **Dark mode** | **Removed, permanently.** One committed light identity, so the site looks the same to every viewer regardless of their OS setting. Not to be re-added. |
 | **Typefaces** | Instrument Serif + Instrument Sans — two families, one foundry. |
 | **Ratings** | 5-star display stays, rebuilt as SVG. |
 | **Friend identity** | Named contributors on collapsed rows — "*Ashton* + 2 friends". |

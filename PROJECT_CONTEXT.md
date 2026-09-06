@@ -89,18 +89,14 @@ Built and working:
     lists with hours/links.
   - "Show me different plans" reshuffles (increments a seed, regenerates).
   - "Adjust my answers" goes back to the form.
-- **One light theme.** On `main`, dark mode is still present and swaps via
-  `prefers-color-scheme`. On the redesign branch it has been **deliberately
-  removed** and both token blocks deleted, so the site looks identical to
-  every viewer regardless of their OS setting — which is what a portfolio
-  share needs. This was re-confirmed explicitly before it was done; see §9
-  and §14 for why that history matters.
+- **One light theme, and only one.** Dark mode has been removed: both token
+  blocks are deleted and there is no `prefers-color-scheme` swap. The site
+  looks identical to every viewer regardless of their OS setting, which is
+  what a portfolio share needs. **This is settled — do not re-add it**, and
+  do not treat §9 as evidence that it should come back.
 - Responsive layout: collapses to a single column under 880px.
 
 ## 4. How the current page works (structure)
-
-**This describes the redesign branch (`redesign/field-guide`). On `main` the
-layout is still the original `main.split` two-column grid** — see §14.
 
 - `header.masthead` → a band on the chrome ground holding the wordmark,
   tagline, Toronto city stamp, nav (Why this exists / Contribute a place) and
@@ -217,7 +213,7 @@ No AI/LLM generates the plans — it's a scored, weighted-random selection:
   reworked marker/tooltip code). Flag this explicitly to the owner before
   assuming it's wanted.
 
-## 8. Current functionality status (of `main`)
+## 8. Current functionality status
 
 Everything in §3 is built and working as of this handoff. The **live,
 current state of `index.html` and `data/` matches what's on GitHub**
@@ -252,21 +248,25 @@ entire attempt was reverted back to the last GitHub-saved commit (the state
 described in §3–§8), and that reverted version is what's currently live
 everywhere (workspace, GitHub, artifact).
 
-**Update (2026-09):** a second redesign is now underway and going well —
-see §14. It revisited two of these three ideas with the owner's explicit
-approval: dark mode *was* removed, and the layout *was* restructured around
-the map. What made the difference was not the ideas but the process — small
-staged commits with a screenshot review gate after each one, instead of one
-end-to-end rewrite reviewed only at the finish.
+**Update (2026-09) — this section is history, not guidance.** A second
+redesign has since shipped to `main` (see §14) and it did two of these three
+things with the owner's explicit approval: **dark mode was removed** and the
+layout **was** restructured around the map. What made the difference was not
+the ideas but the process — small staged commits with a screenshot review
+gate after each one, instead of one end-to-end rewrite reviewed only at the
+finish.
 
-**Implication for whoever continues this project**: the owner has already
-seen and rejected this specific direction once. If asked to revisit map
-layout, palette, or dark-mode, don't just re-propose the same combination —
-find out specifically what didn't land (this wasn't diagnosed in detail
-before the revert; the owner's exact objection to *which part* of the
-redesign is unknown — it could be the palette, the layout restructure, the
-type sizing, or the combination of all three at once). Worth asking rather
-than assuming.
+So read the rest of this section as a lesson about *how* to work, not as a
+list of forbidden ideas. In particular, **the light-only palette is now a
+settled decision** and is not up for revisiting.
+
+**Implication for whoever continues this project**: the failure here was
+never diagnosed — the owner's objection to *which part* of that attempt was
+never established, because it was reviewed only as a finished whole. That is
+the mistake to avoid: show work in small stages and find out what is not
+landing while it is still cheap to change. The 2026-09 redesign did exactly
+that and shipped. Dark mode is not an open question in either direction: it
+is gone, by decision, and stays gone.
 
 ## 10. Unfinished features
 
@@ -289,8 +289,9 @@ than assuming.
 ## 11. Features discussed but not committed to
 
 - Nothing else concrete was discussed beyond the contribute form and the
-  (rejected) redesign in §9. If the owner brings up dark-mode removal, a
-  palette refresh, or a map-as-hero layout again, see §9 first.
+  (rejected) redesign in §9 — but note that the ideas in §9 have since
+  shipped successfully, so §9 is a lesson about process rather than a veto.
+  Dark mode is settled: it is gone and stays gone.
 
 ## 12. Git / GitHub / deployment notes
 
