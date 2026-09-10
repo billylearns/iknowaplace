@@ -3,13 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A map of Toronto built entirely from places real friends recommended - who suggested each one, how they rated it, and what they said about it.">
+<meta name="theme-color" content="#F3EDDF">
 <title>I Know a Place</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/app.css">
 </head>
-<body>
+<body class="booting">
+
+<a class="skip-link" href="#listHeading">Skip to the index</a>
 
 <div class="app">
   <header class="masthead">
@@ -30,7 +34,13 @@
     </div>
   </header>
 
-  <main class="stage">
+  <main class="stage" data-view="list">
+    <!-- Below 880px the map and the index stop sharing the screen and take
+         turns. Hidden entirely on desktop, where both are visible at once. -->
+    <div class="viewswitch" role="group" aria-label="Show the index or the map">
+      <button type="button" class="vs-btn on" id="viewIndex" aria-pressed="true">Index</button>
+      <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
+    </div>
     <div class="mapfield">
       <svg class="atlas" id="atlas" xmlns="http://www.w3.org/2000/svg" aria-label="Map of recommended places in Toronto"></svg>
       <div class="map-tooltip" id="mapTooltip"></div>
@@ -40,7 +50,7 @@
 
     <aside class="panel" aria-label="Recommendations">
       <div class="panel-head">
-        <h2 id="listHeading">39 places</h2>
+        <h2 id="listHeading" tabindex="-1">39 places</h2>
         <div class="filter-cats" id="filterBar"></div>
         <div class="refine" id="refineBar"></div>
         <div class="searchline">
@@ -56,6 +66,10 @@
         </div>
       </div>
     </aside>
+
+    <!-- The peek card: on mobile a tapped pin can't scroll a list that isn't
+         on screen, so it answers where it was tapped. -->
+    <div class="peek" id="peekCard" hidden></div>
   </main>
 
   <hr class="rule-route" aria-hidden="true">
@@ -120,6 +134,32 @@
       <button class="modal-close" id="closeStory" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
+      <!-- The one editorial moment on the page besides the footer marquee.
+           It is drawn rather than photographed on purpose: a stock photo of
+           a city would be someone else's Toronto, and the plan rules stock
+           photography out. This is the site's own map vocabulary - the
+           coast, the route dash, three pins and a bearing - used once, at
+           the head of the piece of writing that explains all of it. -->
+      <div class="story-plate" aria-hidden="true">
+        <svg viewBox="0 0 640 150" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
+          <g class="plate-grat">
+            <path d="M80 0v112M160 0v112M240 0v112M320 0v112M400 0v112M480 0v112M560 0v112"/>
+            <path d="M0 28h640M0 56h640M0 84h640"/>
+          </g>
+          <path class="plate-water" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118 L640 150 L0 150 Z"/>
+          <path class="plate-shore" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118"/>
+          <path class="plate-route" d="M74 82 C 150 34 214 96 288 52 S 430 26 512 62"/>
+          <g class="plate-pin"><circle cx="74" cy="82" r="13" fill="var(--cat-coffee)"/></g>
+          <g class="plate-pin"><circle cx="288" cy="52" r="13" fill="var(--cat-food)"/></g>
+          <g class="plate-pin"><circle cx="512" cy="62" r="13" fill="var(--cat-outdoors)"/></g>
+          <g class="plate-rose">
+            <circle cx="590" cy="40" r="19"/>
+            <path d="M590 21v38M571 40h38"/>
+            <path d="M590 18l4.4 9h-8.8z" fill="var(--ochre)" stroke="none"/>
+          </g>
+        </svg>
+        <span class="plate-caption">Plate I &mdash; the pilot city</span>
+      </div>
       <div class="story-body">
         <p>During my time backpacking through Southeast Asia, I received many recommendations from friends and family. They were scattered across texts, Instagram DMs, Google Docs, my Notes app and probably a few other places I've already forgotten about. The recommendations are valuable, but unorganized. Also, there wasn't a consistent way to see which ones fit the time, budget and energy I had on a particular day. I wanted to see what I could do about it while learning how to vibe code something from scratch in the process.</p>
         <p><strong>I Know a Place</strong> brings those recommendations together. Each entry includes what someone thought, how they rated it and approximately how much time, money and energy it requires. When you'd rather not piece together the day yourself, Plan my trip uses those recommendations to suggest a few options that fits what you feel like doing.</p>
@@ -143,7 +183,7 @@
     <div class="modal-head">
       <div>
         <h2 id="plannerTitle">Plan my trip</h2>
-        <p>Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.</p>
+        <p id="plannerLede">Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.</p>
       </div>
       <button class="modal-close" id="closePlanner" aria-label="Close">✕</button>
     </div>
@@ -532,10 +572,16 @@
     const overlap = wide ? (box.right - panel.getBoundingClientRect().left) + 24 : 0;
     const freeW = Math.max(260, box.width - Math.max(0, overlap));
 
-    const k = Math.min(K_MAX, Math.max(K_MIN, Math.min(freeW/cw, box.height/ch)));
+    // Frame against the part of the map that is on screen, not the part that
+    // exists. In the mobile map view the band is taller than the fold, and
+    // centring the pins in the whole band buries them below it.
+    const visTop = Math.max(0, -box.top);
+    const visH = Math.max(160, Math.min(box.height, window.innerHeight - box.top) - visTop);
+
+    const k = Math.min(K_MAX, Math.max(K_MIN, Math.min(freeW/cw, visH/ch)));
     const vbW = box.width / k, vbH = box.height / k;
     const x = (c.x0 + cw/2) - (freeW/2) / k;
-    const y = (c.y0 + ch/2) - vbH/2;
+    const y = (c.y0 + ch/2) - (visTop + visH/2) / k;
 
     atlas.setAttribute("viewBox", x+" "+y+" "+vbW+" "+vbH);
     atlas.setAttribute("preserveAspectRatio", "xMidYMid meet");
@@ -565,9 +611,11 @@
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitMapToViewport);
 
   let markerEls = {};
+  let firstMarkerPaint = true;
   function renderMarkers(visibleKeys){
     Object.values(markerEls).forEach(g=>g.remove());
     markerEls = {};
+    let landed = 0;
     places.forEach(p=>{
       const visible = visibleKeys.has(p.key);
       const colour = CATS[p.category].color;
@@ -612,9 +660,17 @@
       g.addEventListener("click", ()=> selectPlace(p.key, true));
       g.addEventListener("mouseenter", ()=> showTooltip(p));
       g.addEventListener("mouseleave", hideTooltip);
+      // Only the first render is an arrival. Every render after this one is
+      // the result of a filter, and a pin re-landing on every keystroke would
+      // be motion reporting nothing.
+      if(firstMarkerPaint){
+        g.classList.add("arrive");
+        g.style.animationDelay = (landed++ * 11) + "ms";
+      }
       atlas.appendChild(g);
       markerEls[p.key] = g;
     });
+    firstMarkerPaint = false;
     renderLegend();
   }
 
@@ -745,10 +801,87 @@
   // aimed at off the top of the screen. Scroll the index itself and leave the
   // page where it is. Below 880px the index isn't its own scroller, and there
   // the page scroll is the right one to move.
+  /* ---------------- Mobile: the map and the index take turns ----------------
+     Below 880px there is no room to show a map and a 39-row index at once, and
+     stacking them means the index is always a scroll away from the pin you
+     just tapped. So they take turns, and a tapped pin answers where it was
+     tapped: a peek card at the bottom of the map, with a way through to the
+     full entry. The index is the default - the map is the beautiful part, but
+     the list is the useful one on a phone. */
+  const stage = document.querySelector(".stage");
+  const peek = document.getElementById("peekCard");
+  const NARROW = window.matchMedia("(max-width: 880px)");
+  const vsIndex = document.getElementById("viewIndex");
+  const vsMap = document.getElementById("viewMap");
+  let mobileView = "list";
+
+  function setView(v){
+    mobileView = v;
+    stage.dataset.view = v;
+    vsIndex.classList.toggle("on", v === "list");
+    vsMap.classList.toggle("on", v === "map");
+    vsIndex.setAttribute("aria-pressed", String(v === "list"));
+    vsMap.setAttribute("aria-pressed", String(v === "map"));
+    if(v === "list") hidePeek();
+    // The map band only has a size once it is the visible half.
+    if(v === "map") fitMapToViewport();
+    changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
+  }
+
+  // Restarting an animation means taking the class off, forcing a reflow and
+  // putting it back; without the reflow the browser never sees it leave.
+  function changeOver(el){
+    if(!el) return;
+    el.classList.remove("view-in");
+    void el.offsetWidth;
+    el.classList.add("view-in");
+  }
+  vsIndex.addEventListener("click", ()=> setView("list"));
+  vsMap.addEventListener("click", ()=> setView("map"));
+  // Leaving mobile drops the whole idea: on desktop both are on screen.
+  NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); fitMapToViewport(); });
+
+  function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; }
+
+  function renderPeek(){
+    if(!NARROW.matches || mobileView !== "map" || !state.selectedKey) return hidePeek();
+    const p = placesByKey[state.selectedKey];
+    if(!p) return hidePeek();
+    peek.innerHTML = `
+      <button class="peek-close" type="button" aria-label="Close">&#10005;</button>
+      <div class="peek-top">
+        <span class="row-mark" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='15' height='15' aria-hidden='true'")}</span>
+        <div class="peek-main">
+          <p class="peek-title">${escapeHtml(p.name)}</p>
+          <p class="peek-where">${escapeHtml(p.category)} <span class="sep">&middot;</span> ${escapeHtml(p.neighbourhood)}</p>
+        </div>
+        <span class="peek-stars">${starsHtml(p.avgRating,"0.8em")}</span>
+      </div>
+      <p class="peek-who">${contributorLine(p)}</p>
+      <div class="peek-actions">
+        <button class="peek-open" type="button">Read what they said</button>
+        <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
+      </div>`;
+    peek.hidden = false;
+    peek.querySelector(".peek-close").addEventListener("click", ()=>{
+      state.selectedKey = null; refresh(); hidePeek();
+    });
+    peek.querySelector(".peek-open").addEventListener("click", ()=>{
+      const key = state.selectedKey;
+      setView("list");
+      const card = document.getElementById("card-"+key);
+      if(card) card.scrollIntoView({behavior:scrollEase(), block:"center"});
+    });
+  }
+
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   const scrollEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? "auto" : "smooth";
 
   function scrollRowIntoIndex(card){
+    // In the mobile map view the index isn't on screen at all, and the peek
+    // card is what answers the tap - scrolling to a hidden row would only
+    // move the page out from under the map.
+    if(NARROW.matches && mobileView === "map") return;
     const box = card.closest(".panel-scroll");
     if(!box || box.scrollHeight <= box.clientHeight + 1){
       card.scrollIntoView({behavior:scrollEase(), block:"center"});
@@ -768,6 +901,7 @@
       const marker = markerEls[state.selectedKey];
       if(marker) atlas.appendChild(marker);
     }
+    renderPeek();
   }
 
   /* ---------------- Planner (Help me choose) ---------------- */
@@ -819,10 +953,17 @@
       else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", modalKeydownHandler);
-    requestAnimationFrame(()=>{
+    // Focus moves as soon as the dialog is on screen. This used to wait for a
+    // frame, and in testing the frame came and the focus did not - which
+    // leaves a keyboard user tabbing through the page behind an open dialog.
+    // The retry is belt and braces for the case where a body the browser has
+    // not laid out yet refuses the focus outright.
+    const takeFocus = ()=>{
       const focusable = getFocusable(modalEl);
       (focusable[0] || modalEl).focus();
-    });
+    };
+    takeFocus();
+    if(!modalEl.contains(document.activeElement)) requestAnimationFrame(takeFocus);
   }
 
   function closeScrim(scrimEl){
@@ -862,7 +1003,12 @@
   document.getElementById("closeStory").addEventListener("click", ()=> closeScrim(storyScrim));
   storyScrim.addEventListener("click",(e)=>{ if(e.target===storyScrim) closeScrim(storyScrim); });
 
+  const plannerLede = document.getElementById("plannerLede");
+  const FORM_LEDE = "Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.";
+  const RESULTS_LEDE = "Three ways to spend it, assembled from what my friends actually recommended.";
+
   function renderForm(){
+    plannerLede.textContent = FORM_LEDE;
     body.innerHTML = `
       <div class="field-group">
         <span class="field-label">Activity</span>
@@ -1091,6 +1237,7 @@
   }
 
   function renderResults(){
+    plannerLede.textContent = RESULTS_LEDE;
     const timeOpt = TIME_OPTIONS.find(t=>t.id===plannerState.timeId);
     const cats = plannerState.categories;
     let candidates = places.filter(p=>{
@@ -1140,10 +1287,15 @@
         ${plan.days.length>1 ? `<div class="day-label">Day ${di+1}</div>` : ""}
         ${day.map(p=>`
           <div class="plan-item">
-            <div class="pi-icon" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='13' height='13'")}</div>
+            <div class="pi-icon" style="background:${CATS[p.category].color}">${iconUse(CATS[p.category].icon,"width='14' height='14'")}</div>
             <div class="pi-main">
               <div class="pi-name">${escapeHtml(p.name)}</div>
-              <div class="pi-meta">${escapeHtml(p.category)} · ${escapeHtml(p.neighbourhood)} · ${hoursLabel(p.hours)} · ${p.priceLabel} · ${starsHtml(p.avgRating,"0.85em")}</div>
+              <div class="pi-where">${escapeHtml(p.category)} <span class="sep">·</span> ${escapeHtml(p.neighbourhood)}</div>
+              <div class="pi-facts">
+                <span>${hoursLabel(p.hours)}</span>
+                <span>${escapeHtml(p.priceLabel)}</span>
+                <span>${starsHtml(p.avgRating,"0.85em")}</span>
+              </div>
             </div>
             <a class="pi-link" href="${p.mapsUrl}" target="_blank" rel="noopener" aria-label="Open ${escapeHtml(p.name)} in Google Maps">↗</a>
           </div>
@@ -1153,7 +1305,8 @@
     return `
       <div class="plan-card">
         <div class="plan-head">
-          <h3 class="plan-title">Plan ${label} — ${planTitle(plan.days)}</h3>
+          <span class="plan-letter" aria-hidden="true">${label}</span>
+          <h3 class="plan-title"><span class="visually-hidden">Plan ${label}: </span>${planTitle(plan.days)}</h3>
         </div>
         <div class="plan-blurb">${planBlurb(plan.days)}</div>
         <div class="plan-stats">
@@ -1161,7 +1314,7 @@
           <span><b>${plan.stops}</b> stop${plan.stops===1?"":"s"}</span>
           <span><b>${plan.days.length}</b> day${plan.days.length===1?"":"s"}</span>
         </div>
-        ${dayHtml || "<p style='font-size:0.85rem;color:var(--ink-soft)'>Nothing fit these constraints.</p>"}
+        ${dayHtml || "<p class='plan-blurb'>Nothing fit these constraints.</p>"}
         ${short ? `<div class="plan-note">Couldn't quite fill ${hoursLabel(timeOpt.days>1?timeOpt.cap:timeOpt.cap)} with matching places — here's the best fit we found.</div>` : ""}
       </div>
     `;
@@ -1188,6 +1341,10 @@
   renderFilterBar();
   renderRefineBar();
   refresh();
+
+  // The load moment is over once it has played. Taking the class off means
+  // nothing later in the session re-runs it.
+  setTimeout(()=>document.body.classList.remove("booting"), 1500);
 })();
 </script>
 </body>
