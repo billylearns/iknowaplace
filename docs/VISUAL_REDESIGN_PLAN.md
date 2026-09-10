@@ -1,8 +1,8 @@
 # I Know a Place — Visual Redesign Plan
 
-**Status:** stages 1–4a are **merged into `main` and live**. Stage 4b next,
-continuing on `redesign/field-guide`.
-**Last updated:** 2026-09-06
+**Status:** stages 1–4a are **merged into `main` and live**. Stage 4b is
+committed on `redesign/field-guide` and approved; stage 4c next.
+**Last updated:** 2026-09-10
 
 This is the living plan for the visual redesign. It supersedes the original
 plan written at the start of the phase, which was revised mid-flight after a
@@ -125,7 +125,9 @@ rule is what keeps it disciplined. Ratios measured against `--paper`.
 | `--ochre` | `#B8863B` | stamps, marquee — **decorative only** | 3.0:1 |
 | `--ochre-ink` | `#96662A` | text-safe ochre | **4.7:1** |
 | `--star` | `#A8761F` | star fill | 3.7:1 |
-| `--water-fill` / `--water-line` | `#A9C6D4` / `#4A7A90` | water reads unmistakably blue | — |
+| `--water-fill` | `#A9C6D4` | the lake | — |
+| `--water-line` | `#4A7A90` | the coast stroke | 3.5:1 on `--water-fill` |
+| `--water-ink` | `#2A4E60` | text on the water | **5.0:1 on `--water-fill`** |
 
 **Categories:** Food `#A8412C` · Coffee `#8A5A22` · Culture `#1F6F63` ·
 Entertainment `#35508F` · Nightlife `#6E3A86` · Outdoors `#5C8A2E` ·
@@ -169,11 +171,52 @@ Hairline-separated, no cards. The toggle is a real `<button>` with
 `aria-expanded`. Expanded rows show friend stamps (rotated 0.9° ochre hairline
 tags) with each friend's own rating and their words in serif italic.
 
+### The field
+The map is a drawing, not a widget, so it is drawn like one:
+
+- **The coast** is projected from Toronto's real waterfront latitude (43.6355)
+  rather than sitting at a guessed fraction of the canvas, and it carries the
+  **only solid stroke on the map**. Everything else is the dashed route rule.
+- **District names** sit at each neighbourhood's centroid in letterspaced caps.
+  Neighbourhoods with more than one place earn a label, biggest first; any
+  label with no clear air around it is **dropped rather than crowded in**, so
+  the densest part of the core stays unlabelled. Hidden below 880px.
+- **Toronto Islands** is genuinely out in the lake, and at true scale it sits
+  300 units south of everything else and squeezes the other 38 pins into the
+  top third. A separate pass, run after `project()` exactly the way the
+  relaxation pass is, **compresses distance offshore**. `project()` itself is
+  untouched. The map says "not to scale" and means it.
+- The ground is drawn well past the pins in every direction, because the
+  visible window moves (below).
+
+### The window on the field
+`fitMapToViewport()` gives the viewBox the **stage's own aspect ratio**, so map
+units land one-to-one on the element, then positions it so the pin cluster is
+framed inside the part of the stage that is **actually free** — the index panel
+floats over the right of the map, so the pins centre in what is left of it.
+Below `K_MIN` the map stops shrinking and starts **cropping** instead: 39 pins
+at 11px across is a texture, not a map.
+
+It is measured from the element, so it is re-measured on webfont load and
+through a `ResizeObserver`, not only on window resize.
+
 ### Markers
 Colour **plus** the category glyph inside the disc, so category is never
 communicated by colour alone. Recommendation count is a badge beside the disc.
-States: default · hover (halo + label) · selected (ink ring, row scrolls into
-view) · filtered out (16% opacity, pointer-events off).
+Each disc carries a **paper rim**, so two overlapping pins read as two objects
+and a pin over the lake keeps its edge.
+
+States: default · hover (halo + lift + paper tag) · selected (ink ring, lift,
+row scrolls into view) · **filtered out — a small survey dot, not a ghosted
+disc.** Ghosting left thirty grey blobs still competing for attention; a dot
+reads as ground, so the matches are the only things with weight on the field.
+
+### The key
+The legend is the map's key and follows the map's state: filter to one activity
+and the rest of the key steps back rather than advertising colours that are no
+longer on the field. Serif italic heading, hairline block, ochre dashed top
+rule. The tooltip is a **paper tag** — the place in the display face, what and
+where underneath — not a black chip.
 
 ### Ephemera budget
 City stamp · dashed route rules · friend stamps · map legend block ·
@@ -192,8 +235,10 @@ never stickers.**
   `calc(100vh - 156px)`, index panel floating right.
 - **Mobile (≤880px):** the stage unwinds — map becomes a band (52vh), legend
   and index run underneath on the page. Masthead wraps to its own lines.
-- `fitMapToViewport()` crops the map viewBox to the pin cluster below 880px.
-  Scaling the wide desktop canvas down left markers ~5px across.
+- `fitMapToViewport()` frames the pins for whatever viewport it is given (see
+  §4). Below 880px there is no panel to work around, so the whole width is
+  free — but 375px is not enough for 39 readable pins, and the fit hits its
+  clamp and crops. **The mobile map is cramped until stage 4c.**
 - Touch targets ≥44px on nav links, primary button and the Maps link.
 
 ---
@@ -207,8 +252,8 @@ never stickers.**
 | 2 | Masthead, paper grain, footer + marquee, Contribute + City modals | ✅ `5c91310` |
 | 3 | Cards → hairline index rows, named contributors, SVG stars, friend stamps | ✅ `fc04b55` |
 | **4a** | **Recompose around the map (A3)** | ✅ `0c3647b` |
-| 4b | Map plate polish — hover/selected states, marker density, legend | ▢ next |
-| 4c | Mobile Map/List toggle + peek card ("A-lite") | ▢ |
+| 4b | Map plate polish — viewport-aware framing, coast, districts, marker states, key | ✅ `8c50b51` |
+| **4c** | **Mobile Map/List toggle + peek card ("A-lite")** | ▢ next |
 | 5 | Modals restyled onto the system | ▢ |
 | 6 | Motion pass — one load moment, state transitions only | ▢ |
 | 7 | QA — contrast, keyboard, 375px + landscape, reduced-motion, Lighthouse | ▢ |
@@ -259,7 +304,9 @@ It remains a strong choice for a future project with forms and dashboards.
 - Planner algorithm: `scoreOf`, `seededRandom`, `weightedPick`, `kmeansCluster`,
   `fillBucket`, `buildPlan` and its Nightlife / back-to-back-Food special cases.
 - `project()` and the collision-relaxation maths (constants may be retuned; the
-  algorithm may not).
+  algorithm may not). The offshore-compression pass added in 4b sits *after*
+  `project()` as its own named step for exactly this reason — new passes are
+  fine, rewriting the projection is not.
 - `escapeHtml()` and every call site.
 - `starsHtml(value, size)` signature, its 0–10 → 5-star mapping, its `aria-label`.
 - The "Why this exists" essay copy, signature and LinkedIn URL.
