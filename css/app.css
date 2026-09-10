@@ -35,7 +35,8 @@
 
     /* --- Water: stays unmistakably blue ----------------------- */
     --water-fill:#A9C6D4;
-    --water-line:#4A7A90;
+    --water-line:#4A7A90;    /* the coast: a line, 3.5:1 on --water-fill */
+    --water-ink:#2A4E60;     /* text on the water        5.0:1          */
 
     /* --- Category colours -------------------------------------
        The only other colour in the interface. Outdoors sits well
@@ -199,32 +200,92 @@
     font-family:var(--font-display); font-style:italic;
     font-size:.95rem; color:var(--ink-3);
   }
+  /* The key, not a widget. It sits on the field in the map's own
+     drawing language and answers the map's question. */
   .map-legend{
     position:absolute; left:var(--s-6); bottom:var(--s-5); z-index:2;
-    display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-4);
-    max-width:42ch;
+    display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-2) var(--s-4);
+    max-width:44ch;
     font-size:.75rem; color:var(--ink-2);
-    background:color-mix(in srgb, var(--paper) 84%, transparent);
+    background:color-mix(in srgb, var(--paper) 88%, transparent);
     border:1px solid var(--green-line);
-    padding:10px 14px;
+    border-top:1px dashed var(--ochre);
+    padding:10px 14px 11px;
   }
-  .map-legend span{display:flex; align-items:center; gap:6px;}
+  .map-legend .key-title{
+    flex:1 0 100%;
+    font-family:var(--font-display); font-style:italic;
+    font-size:.9375rem; color:var(--ink-3); line-height:1;
+  }
+  .map-legend .key-item{
+    display:flex; align-items:center; gap:6px;
+    transition:opacity .15s ease;
+  }
+  .map-legend .key-item.off{opacity:.32;}
   .map-legend .swatch{width:9px; height:9px; border-radius:var(--r-pill);}
 
+  /* ---------- The field itself -------------------------------- */
+  .ground .grat{
+    stroke:var(--green-line); stroke-width:1;
+    stroke-dasharray:2 7; opacity:.75;
+  }
+  .ground .water{fill:var(--water-fill);}
+  /* The coast is the one drawn edge on the map, so it gets the only
+     solid stroke in the whole drawing. */
+  .ground .shoreline{
+    fill:none; stroke:var(--water-line); stroke-width:2; opacity:.8;
+  }
+  .ground .water-label{
+    font-family:var(--font-display); font-style:italic; font-size:26px;
+    fill:var(--water-ink);
+  }
+  .ground .district{
+    font-family:var(--font-body); font-size:14px; font-weight:600;
+    letter-spacing:.16em; text-transform:uppercase;
+    fill:var(--ink-3);
+    pointer-events:none; user-select:none;
+  }
+  .ground .district.offshore{fill:var(--water-ink);}
+
+  /* ---------- Markers ----------------------------------------- */
   .marker{cursor:pointer;}
   .marker circle.halo{opacity:0; transition:opacity .15s ease;}
-  .marker:hover circle.halo, .marker.selected circle.halo{opacity:.26;}
-  .marker circle.dot{transition:r .12s ease;}
-  .marker.selected circle.dot{stroke:var(--ink); stroke-width:2.5;}
+  .marker:hover circle.halo, .marker.selected circle.halo{opacity:.22;}
+  /* Paper rim: two overlapping pins still read as two objects, and a pin
+     out over the lake keeps its edge against the water. */
+  .marker circle.dot{
+    stroke:var(--paper); stroke-width:2;
+    transition:r .14s ease, stroke-width .14s ease;
+  }
+  .marker:hover circle.dot{r:17;}
+  .marker.selected circle.dot{stroke:var(--ink); stroke-width:2.5; r:17;}
   .marker .glyph{pointer-events:none; color:#fff;}
-  .marker .badge-count{font-family:var(--font-body); font-weight:700; pointer-events:none;}
+  .marker .badge-count{
+    font-family:var(--font-body); font-weight:700;
+    pointer-events:none; user-select:none;
+  }
+  /* Filtered out: a survey dot, not a ghosted marker. */
+  .marker.out{pointer-events:none;}
+  .marker.out .speck{opacity:.3;}
+
+  /* A paper tag, not a black chip. */
   .map-tooltip{
     position:absolute; pointer-events:none; z-index:5;
-    background:var(--ink); color:var(--paper);
-    padding:5px 9px; border-radius:var(--r-flat);
-    font-size:.75rem; font-weight:600; white-space:nowrap;
-    transform:translate(-50%,-190%);
-    opacity:0; transition:opacity .1s ease;
+    display:flex; flex-direction:column; gap:2px;
+    background:var(--paper); color:var(--ink);
+    border:1px solid var(--ink);
+    padding:6px 10px 7px; border-radius:var(--r-flat);
+    white-space:nowrap; text-align:left;
+    transform:translate(-50%,-165%);
+    opacity:0; transition:opacity .12s ease;
+  }
+  .map-tooltip b{
+    font-family:var(--font-display); font-weight:400;
+    font-size:1.0625rem; line-height:1.1; letter-spacing:-.01em;
+  }
+  .map-tooltip span{
+    font-size:.625rem; font-weight:600; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-3);
   }
   .map-tooltip.show{opacity:1;}
 
@@ -675,9 +736,16 @@
     .mapfield{position:relative; inset:auto; height:52vh; min-height:340px;
               border-bottom:1px solid var(--green-line);}
     .schematic{display:none;}
+    /* District names need room the band hasn't got, and the crop cuts
+       them mid-word - so at this width the map keeps only its pins. */
+    .ground .district{display:none;}
+    .ground .water-label{font-size:30px;}
     .map-legend{position:static; max-width:none; border:none;
                 border-bottom:1px dashed var(--green-line);
-                background:none; padding:var(--s-3) var(--s-4);}
+                display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
+                gap:var(--s-2) var(--s-3);
+                background:none; padding:var(--s-3) var(--s-4) var(--s-4);}
+    .map-legend .key-title{grid-column:1 / -1; margin-bottom:-2px;}
     .panel{position:static; width:auto; border:none; box-shadow:none;}
     .panel-head{padding:var(--s-4) var(--s-4) var(--s-3);}
     .panel-scroll{overflow:visible; padding:0 var(--s-4) var(--s-5);}

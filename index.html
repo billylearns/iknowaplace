@@ -363,6 +363,24 @@
   }
   places.forEach(p=>{ const {x,y}=project(p.lat,p.lng); p.mx=x; p.my=y; });
 
+  /* ---------------- The shore, and the offshore pass ----------------
+     Toronto's waterfront runs at about 43.6355, so the lake edge is
+     projected from a real latitude rather than drawn at a guessed
+     fraction of the canvas. That alone gives the field a coast.
+
+     One place - Toronto Islands - is genuinely out in the lake, and at
+     true scale it sits 300 units south of everything else, which
+     squeezes the other 38 pins into the top third of the drawing. So
+     anything south of the shore keeps its bearing and its order but has
+     its distance offshore compressed. project() is untouched: this is a
+     separate pass run after it, exactly like the relaxation pass below.
+     The map says "not to scale" and means it. */
+  const SHORE_Y = project(43.6355, minLng).y;
+  const OFFSHORE_SQUASH = 0.35;
+  places.forEach(p=>{
+    if(p.my > SHORE_Y) p.my = SHORE_Y + (p.my - SHORE_Y) * OFFSHORE_SQUASH;
+  });
+
   // simple collision relaxation so close-together pins don't fully overlap
   for(let iter=0; iter<60; iter++){
     for(let i=0;i<places.length;i++){
@@ -370,7 +388,7 @@
         const a=places[i], b=places[j];
         const dx=b.mx-a.mx, dy=b.my-a.my;
         const dist=Math.hypot(dx,dy) || 0.001;
-        const minDist = 30;
+        const minDist = 40;
         if(dist < minDist){
           const push = (minDist-dist)/2;
           const ux=dx/dist, uy=dy/dist;
@@ -381,7 +399,8 @@
     }
   }
 
-  function radiusFor(p){ return 14; }
+  const R = 15;
+  function radiusFor(p){ return R; }
 
   /* ---------------- Render map ---------------- */
   const atlas = document.getElementById("atlas");
@@ -391,56 +410,159 @@
     Object.entries(attrs||{}).forEach(([k,v])=>el.setAttribute(k,v));
     return el;
   }
+  // The visible window pans and zooms with the viewport (see
+  // fitMapToViewport), so the ground has to be drawn well past the pins in
+  // every direction or its edge shows up as a hard line across the field.
+  const WORLD = { x0:-1800, x1:3400, y0:-1400, y1:2800 };
+  let lakeLabel = null;
+
   function renderAtlasChrome(){
-    const waterTop = PAD + (maxLat-minLat)*scale*0.94;
-    atlas.setAttribute("viewBox", "0 0 "+VB_W+" "+VB_H);
-    atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    const ground = svgEl("g", {class:"ground", "aria-hidden":"true"});
 
     // Dashed graticule rather than solid rules: the same route-dash language
     // the page dividers use, so the map reads as part of the same drawing.
-    for(let gx=0; gx<=VB_W; gx+=Math.round(VB_W/11)){
-      atlas.appendChild(svgEl("line",{x1:gx,y1:0,x2:gx,y2:waterTop,
-        stroke:"var(--green-line)","stroke-width":"1","stroke-dasharray":"2 7",opacity:"0.8"}));
+    const step = 96;
+    for(let gx=Math.ceil(WORLD.x0/step)*step; gx<=WORLD.x1; gx+=step){
+      ground.appendChild(svgEl("line",{class:"grat",x1:gx,y1:WORLD.y0,x2:gx,y2:SHORE_Y}));
     }
-    for(let gy=Math.max(10,PAD-60); gy<waterTop; gy+=Math.round(VB_H/9)){
-      atlas.appendChild(svgEl("line",{x1:0,y1:gy,x2:VB_W,y2:gy,
-        stroke:"var(--green-line)","stroke-width":"1","stroke-dasharray":"2 7",opacity:"0.8"}));
+    for(let gy=Math.ceil(WORLD.y0/step)*step; gy<SHORE_Y; gy+=step){
+      ground.appendChild(svgEl("line",{class:"grat",x1:WORLD.x0,y1:gy,x2:WORLD.x1,y2:gy}));
     }
 
-    atlas.appendChild(svgEl("path", {
-      d:`M0,${waterTop} C ${VB_W*0.2},${waterTop-18} ${VB_W*0.37},${waterTop+22} ${VB_W*0.57},${waterTop}`+
-        ` S ${VB_W*0.87},${waterTop-26} ${VB_W},${waterTop+10} L${VB_W},${VB_H} L0,${VB_H} Z`,
-      fill:"var(--water-fill)"
-    }));
-    const lbl = svgEl("text", {x:VB_W*0.42, y:waterTop+52, "font-family":"Instrument Serif, Georgia, serif",
-      "font-style":"italic", "font-size":"20", fill:"var(--water-line)", opacity:"0.9"});
-    lbl.textContent = "Lake Ontario";
-    atlas.appendChild(lbl);
+    // The lake. A coast needs a line, not just a change of fill - the shore
+    // is the one drawn edge on the map, so it gets the only solid stroke.
+    const w = WORLD.x1 - WORLD.x0;
+    const shore =
+      `M${WORLD.x0},${SHORE_Y+8}`+
+      ` C ${WORLD.x0+w*0.17},${SHORE_Y-22} ${WORLD.x0+w*0.33},${SHORE_Y+30} ${WORLD.x0+w*0.51},${SHORE_Y+6}`+
+      ` S ${WORLD.x0+w*0.82},${SHORE_Y-30} ${WORLD.x1},${SHORE_Y+18}`;
+    ground.appendChild(svgEl("path",{class:"water",
+      d:shore+` L${WORLD.x1},${WORLD.y1} L${WORLD.x0},${WORLD.y1} Z`}));
+    ground.appendChild(svgEl("path",{class:"shoreline", d:shore}));
+
+    // The window on the field moves with the viewport, so the lake is named
+    // where the lake is actually on screen - see fitMapToViewport.
+    lakeLabel = svgEl("text",{class:"water-label", y:SHORE_Y+46});
+    lakeLabel.textContent = "Lake Ontario";
+    ground.appendChild(lakeLabel);
+
+    renderDistricts(ground);
+    atlas.appendChild(ground);
   }
 
-  // The canvas is sized for a wide desktop stage. On a narrow screen, scaling
-  // the whole thing down makes the markers unreadable, so crop the viewBox to
-  // the pin cluster (plus a little water) instead of shrinking everything.
+  // District names are the field guide's own cartography: without them the
+  // pins are confetti on a grid, and with them the cluster reads as a city.
+  // Only neighbourhoods with more than one place earn a label - plus Toronto
+  // Islands, which is alone out in the lake and otherwise looks like a bug.
+  // Biggest first, and any label that would land on a pin or on a label
+  // already placed is dropped rather than crowded in.
+  function renderDistricts(ground){
+    const groups = {};
+    places.forEach(p=>{ (groups[p.neighbourhood] ||= []).push(p); });
+    const named = Object.entries(groups)
+      .filter(([name, list]) => list.length > 1 || name === "Toronto Islands")
+      .sort((a,b)=> b[1].length - a[1].length);
+
+    const placed = [];
+    const free = (box)=>
+      !placed.some(b =>
+        Math.abs(b.x-box.x) < (b.w+box.w)/2 + 12 &&
+        Math.abs(b.y-box.y) < (b.h+box.h)/2 + 8) &&
+      !places.some(p =>
+        Math.abs(p.mx-box.x) < box.w/2 + R + 2 &&
+        Math.abs(p.my-box.y) < box.h/2 + R);
+
+    named.forEach(([name, list])=>{
+      const xs = list.map(p=>p.mx), ys = list.map(p=>p.my);
+      const cx = xs.reduce((a,v)=>a+v,0)/xs.length;
+      const cy = ys.reduce((a,v)=>a+v,0)/ys.length;
+      const top = Math.min(...ys), bottom = Math.max(...ys);
+      const left = Math.min(...xs), right = Math.max(...xs);
+      const isle = name === "Toronto Islands";
+      const box = { w: name.length * 9.2 + 10, h: 18, x:cx, y:0 };
+
+      // Try each shoulder of the group in turn, and only give up on a label
+      // if the district has no clear air anywhere around it. Toronto Islands
+      // is labelled below its pin so the name sits out in the water with it,
+      // rather than on the mainland it is nowhere near.
+      const spots = isle
+        ? [[cx, bottom + R + 26]]
+        : [[cx, top - R - 20], [cx, bottom + R + 28],
+           [left - box.w/2 - R - 18, cy + 5], [right + box.w/2 + R + 18, cy + 5],
+           [cx, top - R - 46], [cx, bottom + R + 54]];
+
+      const spot = spots.find(([x,y])=>{ box.x=x; box.y=y; return free(box); });
+      if(!spot) return;
+      box.x = spot[0]; box.y = spot[1];
+      placed.push({...box});
+      const t = svgEl("text", {class:"district"+(isle?" offshore":""),
+        x:spot[0], y:spot[1], "text-anchor":"middle"});
+      t.textContent = name;
+      ground.appendChild(t);
+    });
+  }
+
+  /* ---------------- The window on the field ----------------
+     The map used to be a fixed 1500x900 canvas that the browser cropped to
+     fill whatever shape the stage happened to be, which left the pins small
+     and adrift in a mostly empty field on desktop and squeezed on mobile.
+
+     Instead the viewBox is computed for the viewport: it is given the stage's
+     own aspect ratio, so map units map one-to-one onto the element, and it is
+     then positioned so the pin cluster is framed inside the part of the stage
+     that is actually free - on desktop the index panel floats over the right
+     of the map, so the cluster centres in what is left of it.
+
+     Below K_MIN the map stops shrinking and starts cropping instead: 39 pins
+     at 11px across is a texture, not a map. */
+  const K_MIN = 0.62, K_MAX = 1.2, FRAME_PAD = R + 34;
   function fitMapToViewport(){
-    if(window.innerWidth > 880){
-      atlas.setAttribute("viewBox", "0 0 "+VB_W+" "+VB_H);
-      atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
-      return;
-    }
+    const box = atlas.getBoundingClientRect();
+    if(!box.width || !box.height) return;
+
     const xs = places.map(p=>p.mx), ys = places.map(p=>p.my);
-    const pad = 70;
-    const x0 = Math.max(0, Math.min(...xs) - pad);
-    const x1 = Math.min(VB_W, Math.max(...xs) + pad);
-    const y0 = Math.max(0, Math.min(...ys) - pad);
-    const y1 = Math.min(VB_H, Math.max(...ys) + pad * 2.2);
-    atlas.setAttribute("viewBox", x0+" "+y0+" "+(x1-x0)+" "+(y1-y0));
-    atlas.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    const c = {
+      x0: Math.min(...xs) - FRAME_PAD, x1: Math.max(...xs) + FRAME_PAD,
+      y0: Math.min(...ys) - FRAME_PAD, y1: Math.max(...ys) + FRAME_PAD
+    };
+    const cw = c.x1 - c.x0, ch = c.y1 - c.y0;
+
+    const panel = document.querySelector(".panel");
+    const wide = window.innerWidth > 880 && panel;
+    const overlap = wide ? (box.right - panel.getBoundingClientRect().left) + 24 : 0;
+    const freeW = Math.max(260, box.width - Math.max(0, overlap));
+
+    const k = Math.min(K_MAX, Math.max(K_MIN, Math.min(freeW/cw, box.height/ch)));
+    const vbW = box.width / k, vbH = box.height / k;
+    const x = (c.x0 + cw/2) - (freeW/2) / k;
+    const y = (c.y0 + ch/2) - vbH/2;
+
+    atlas.setAttribute("viewBox", x+" "+y+" "+vbW+" "+vbH);
+    atlas.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    // Named against the visible window rather than at a fixed spot on the
+    // canvas, and tucked just under the coast so it shares no lane with the
+    // Toronto Islands label. It hugs whichever end of the water is free: the
+    // right on desktop, where the key block sits over the bottom-left corner,
+    // and the left on mobile, where the key has moved off the map entirely.
+    if(lakeLabel){
+      lakeLabel.setAttribute("text-anchor", wide ? "end" : "start");
+      lakeLabel.setAttribute("x", x + (wide ? freeW - 28 : 28) / k);
+    }
   }
   let fitTimer = null;
   window.addEventListener("resize", ()=>{
     clearTimeout(fitTimer);
     fitTimer = setTimeout(fitMapToViewport, 150);
   });
+  // The fit is measured from the element, so it has to be re-measured whenever
+  // the element's size can have changed - which is more often than a window
+  // resize: the masthead is taller once the display face lands, and the map
+  // can be laid out at zero height while the tab it is in is still hidden.
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>fitMapToViewport()).observe(atlas);
+  }
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitMapToViewport);
 
   let markerEls = {};
   function renderMarkers(visibleKeys){
@@ -448,28 +570,42 @@
     markerEls = {};
     places.forEach(p=>{
       const visible = visibleKeys.has(p.key);
-      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""),
-        opacity: visible? "1":"0.16", "data-key":p.key});
-      if(!visible) g.style.pointerEvents = "none";
-      const r = radiusFor(p);
       const colour = CATS[p.category].color;
-      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+9, fill:colour}));
+
+      // A filtered-out place doesn't vanish - the city would lose its shape -
+      // but it stops being a marker and becomes a survey dot. Ghosting a full
+      // disc left thirty grey blobs still competing for attention; a dot reads
+      // as ground, so the matches are the only things with weight on the field.
+      if(!visible){
+        const out = svgEl("g", {class:"marker out", "data-key":p.key});
+        out.appendChild(svgEl("circle", {class:"speck", cx:p.mx, cy:p.my, r:3.6, fill:colour}));
+        atlas.appendChild(out);
+        markerEls[p.key] = out;
+        return;
+      }
+
+      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""),
+        "data-key":p.key});
+      const r = radiusFor(p);
+      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+11, fill:colour}));
+      // The disc carries a paper-coloured rim so that two overlapping pins
+      // still read as two objects, and so a pin over the lake keeps its edge.
       g.appendChild(svgEl("circle", {class:"dot", cx:p.mx, cy:p.my, r:r, fill:colour}));
 
       // Category is carried by the glyph as well as the colour, so the marker
       // still says what it is without relying on colour alone.
       const use = document.createElementNS("http://www.w3.org/2000/svg","use");
       use.setAttribute("href", "#ic-"+CATS[p.category].icon);
-      use.setAttribute("x", p.mx-7); use.setAttribute("y", p.my-7);
-      use.setAttribute("width", 14); use.setAttribute("height", 14);
+      use.setAttribute("x", p.mx-7.5); use.setAttribute("y", p.my-7.5);
+      use.setAttribute("width", 15); use.setAttribute("height", 15);
       use.setAttribute("class", "glyph");
       g.appendChild(use);
 
       if(p.recCount>1){
-        g.appendChild(svgEl("circle", {class:"count-ring", cx:p.mx+11, cy:p.my-11, r:8,
+        g.appendChild(svgEl("circle", {class:"count-ring", cx:p.mx+12, cy:p.my-12, r:8.5,
           fill:"var(--paper)", stroke:colour, "stroke-width":"1.5"}));
-        const t = svgEl("text", {x:p.mx+11, y:p.my-7.6, "text-anchor":"middle",
-          class:"badge-count", fill:colour, "font-size":"9.5"});
+        const t = svgEl("text", {x:p.mx+12, y:p.my-8.4, "text-anchor":"middle",
+          class:"badge-count", fill:colour, "font-size":"10"});
         t.textContent = p.recCount;
         g.appendChild(t);
       }
@@ -479,10 +615,14 @@
       atlas.appendChild(g);
       markerEls[p.key] = g;
     });
+    renderLegend();
   }
 
+  // The tooltip was a black chip borrowed from nowhere in particular. It is a
+  // paper tag now: the place in the display face, what and where underneath.
   function showTooltip(p){
-    tooltip.textContent = p.name + " · " + p.neighbourhood;
+    tooltip.innerHTML =
+      `<b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.category)} &middot; ${escapeHtml(p.neighbourhood)}</span>`;
     const marker = markerEls[p.key];
     if(!marker) return;
     const m = marker.getBoundingClientRect();
@@ -493,9 +633,16 @@
   }
   function hideTooltip(){ tooltip.classList.remove("show"); }
 
+  // The legend is the map's key, so it answers the map's question and follows
+  // the map's state: filter to one activity and the rest of the key steps back
+  // rather than continuing to advertise colours that are no longer on the field.
   function renderLegend(){
     const el = document.getElementById("mapLegend");
-    el.innerHTML = CAT_ORDER.map(c=>`<span><span class="swatch" style="background:${CATS[c].color}"></span>${c}</span>`).join("");
+    const only = state.filterCat;
+    el.innerHTML = '<span class="key-title">Key</span>' + CAT_ORDER.map(c=>
+      `<span class="key-item${only!=="All" && only!==c ? " off":""}">`+
+      `<span class="swatch" style="background:${CATS[c].color}"></span>${escapeHtml(c)}</span>`
+    ).join("");
   }
 
   /* ---------------- Render list ---------------- */
@@ -593,12 +740,31 @@
     }
   }
 
+  // scrollIntoView walks every scrollable ancestor, so clicking a marker used
+  // to scroll the window as well as the index - taking the map the click was
+  // aimed at off the top of the screen. Scroll the index itself and leave the
+  // page where it is. Below 880px the index isn't its own scroller, and there
+  // the page scroll is the right one to move.
+  const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+  const scrollEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? "auto" : "smooth";
+
+  function scrollRowIntoIndex(card){
+    const box = card.closest(".panel-scroll");
+    if(!box || box.scrollHeight <= box.clientHeight + 1){
+      card.scrollIntoView({behavior:scrollEase(), block:"center"});
+      return;
+    }
+    const cb = card.getBoundingClientRect(), bb = box.getBoundingClientRect();
+    const top = box.scrollTop + (cb.top - bb.top) - (bb.height - cb.height)/2;
+    box.scrollTo({top:Math.max(0, top), behavior:scrollEase()});
+  }
+
   function selectPlace(key, scrollMap){
     state.selectedKey = (state.selectedKey===key) ? null : key;
     refresh();
     if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
-      if(card) card.scrollIntoView({behavior:"smooth", block:"center"});
+      if(card) scrollRowIntoIndex(card);
       const marker = markerEls[state.selectedKey];
       if(marker) atlas.appendChild(marker);
     }
