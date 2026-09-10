@@ -94,7 +94,11 @@ Built and working:
   looks identical to every viewer regardless of their OS setting, which is
   what a portfolio share needs. **This is settled — do not re-add it**, and
   do not treat §9 as evidence that it should come back.
-- Responsive layout: collapses to a single column under 880px.
+- **Mobile (≤880px): the map and the index take turns.** A sticky two-word
+  switch under the masthead chooses between them; the index is the default.
+  In map view a tapped pin raises a **peek card** at the bottom of the map
+  with the place, its rating, who recommended it, a way through to the full
+  entry in the index, and a Maps link.
 
 ## 4. How the current page works (structure)
 
@@ -109,8 +113,9 @@ Built and working:
   - `.panel` — a paper panel pinned right, containing `#listHeading`,
     `#filterBar` (category as a row of words), `#refineBar` (price / rating /
     sort as underlined selects), the search line, `#list` and `#emptyState`
-  - Under 880px the stage unwinds: the map becomes a band and the panel runs
-    underneath it on the page.
+  - Under 880px `main.stage` carries a `data-view` of `list` or `map` and the
+    two halves take turns; `#peekCard` answers a tapped pin. See
+    `docs/DESIGN_SYSTEM.md` §6.
 - `#filterBar` and `#refineBar` are both rendered by JS
   (`renderFilterBar()` / `renderRefineBar()`), not static HTML.
 - Four modals (`.modal-scrim` pattern, hidden by default, toggled via a
@@ -279,12 +284,10 @@ is gone, by decision, and stays gone.
   endpoint. Estimated ~20 minutes of build time. Worth double-checking
   Formspree's current free-tier limits before wiring it up (pricing/limits
   can change).
-- **Live URL** — README has a placeholder: `**Live site:** _(add your
-  Vercel URL here once deployed)_`. The owner was walked through deploying
-  to Vercel (import the GitHub repo, no build command needed since it's
-  static HTML) but as of this handoff it's unconfirmed whether that was
-  completed. Check the README/ask the owner, and fill in the real URL once
-  known.
+- ~~**Live URL**~~ — **done.** The site is deployed at
+  `iknowaplace-eta.vercel.app` and the README links it. Vercel builds from
+  `main`, with no build command (it is static HTML), so a push to `main` is a
+  deploy.
 
 ## 11. Features discussed but not committed to
 
@@ -351,7 +354,21 @@ is gone, by decision, and stays gone.
 - Nothing needs hand-syncing, but there are now three places to edit rather
   than one: `index.html` for markup and behaviour, `css/app.css` for anything
   visual, and `data/*.json` for content. (`template.html` was deleted when the
-  data moved into `data/` — see §5.)
+  data moved into `data/` — see §5.) Anything visual should be checked
+  against `docs/DESIGN_SYSTEM.md` first — most "what colour should this be"
+  questions are already answered there.
+- **Visual QA method that worked, and is worth reusing.** Headless Chrome is
+  already on the machine (`chrome --headless=new --screenshot`). Windows
+  clamps the window width to ~500px, so **375px shots have to be rendered
+  through a fixed-width iframe wrapper** or they come back misleadingly
+  clipped. For anything that needs interaction — open a modal, click a
+  marker, apply a filter — put a small harness page **in the project folder**
+  so it is same-origin with the site, drive the page from it, and read the
+  result with `--dump-dom`. A `file://` wrapper cannot reach into an
+  `http://localhost` iframe. One caveat that cost time: under
+  `--virtual-time-budget`, `requestAnimationFrame` is unreliable, so anything
+  that depends on a frame needs `--run-all-compositor-stages-before-draw` and
+  a screenshot rather than a DOM dump.
 - When testing changes, this session used headless Playwright/Chromium
   (`file://` URL on the local `index.html`) to screenshot before/after
   states rather than guessing — recommended to continue that habit, since
@@ -368,16 +385,23 @@ is gone, by decision, and stays gone.
   viewing the page locally, not a project dependency: nothing is installed
   into the repo and the deployed site still needs no build.
 
-## 14. The visual redesign (in progress, 2026-09)
+## 14. The visual redesign (complete, 2026-09)
 
-An active redesign lives on the branch **`redesign/field-guide`**, pushed to
-GitHub. `main` is untouched, so what is deployed to Vercel is unaffected.
+The redesign is **done and merged to `main`**. Stages 0–9 all shipped; the
+branch `redesign/field-guide` and `main` are level.
 
-**The full plan is in [`docs/VISUAL_REDESIGN_PLAN.md`](docs/VISUAL_REDESIGN_PLAN.md)** —
-read that before touching anything visual. It carries the direction, the design
-system as actually built (tokens with measured contrast ratios, type rules,
-row and marker anatomy), the stage table, the do-not-touch list, and the
-verification checklist.
+**Two documents carry it, and they are the first thing to read before
+touching anything visual:**
+
+- **[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)** — the system *as
+  built*: tokens with measured contrast ratios, type rules, the map's
+  cartography, row and marker anatomy, the mobile stage, motion rules, the
+  ephemera budget, and what was verified for accessibility.
+- **[`docs/VISUAL_REDESIGN_PLAN.md`](docs/VISUAL_REDESIGN_PLAN.md)** — the
+  living plan: the direction and why, the course correction that saved it,
+  the stage table, the do-not-touch list, and the stack decisions
+  (Tailwind, shadcn/ui, MapLibre — all evaluated, all declined, with
+  reasons).
 
 The short version:
 
@@ -388,22 +412,33 @@ The short version:
 - **Palette:** warm off-white paper (`#FBF7ED`) with a nature green
   (`#2E5D3C`) brand and one ochre accent used only on decorative elements.
   Category colours are the only other colour in the interface.
-- **What shipped so far:** new tokens and typefaces, dark mode removed, CSS
-  moved to `css/app.css`, masthead with paper grain and a footer marquee,
-  Contribute and Toronto entry points, cards replaced by hairline index rows
-  that name the friend who recommended each place ("*Ashton* + 2 friends"),
-  stars rebuilt as SVG, and the whole page recomposed around the map.
-- **Still to do:** map plate polish, the mobile Map/List toggle, modals,
-  motion, QA, and docs.
+- **What shipped:** new tokens and typefaces, dark mode removed, CSS moved to
+  `css/app.css`, masthead with paper grain and a footer marquee, Contribute
+  and Toronto entry points, cards replaced by hairline index rows that name
+  the friend who recommended each place ("*Ashton* + 2 friends"), stars
+  rebuilt as SVG, the whole page recomposed around the map, a real coast and
+  district names on that map, the mobile Map/Index switch and peek card,
+  modals rebuilt onto the system, a motion pass, an accessibility pass, and
+  one drawn story plate.
 
-**Two process notes worth keeping.** First, there is a hard approval gate after
-every stage — desktop and 375px screenshots, then stop — precisely because of
-the history in §9. Second, an earlier version of the plan split the work by
-component, which meant no stage was ever allowed to change the page's skeleton;
-after three stages the site still looked like the prototype with new paint. If
-a stage only changes materials, it is not enough.
+**Three process notes worth keeping.**
+
+1. There was a hard approval gate after every stage — desktop and 375px
+   screenshots, then stop — precisely because of the history in §9.
+   Stages 1–4b ran through it. Stages 4c–9 were then run in one pass at
+   the owner's explicit instruction; the risk was stated first and
+   screenshots were still taken per stage. The gate is the right default and
+   that was a deliberate exception, not a drift.
+2. An earlier version of the plan split the work by component, which meant no
+   stage was ever allowed to change the page's skeleton; after three stages
+   the site still looked like the prototype with new paint. **If a stage only
+   changes materials, it is not enough.**
+3. The QA stage earns its place. It found a real focus-trap bug (modals were
+   not taking focus on open, leaving keyboard users tabbing the page behind
+   an open dialog) and three token values that cleared 4.5:1 on `--paper` but
+   failed on the other grounds the same text actually sits on.
 
 **Do not** modify `data/*.json`, the planner algorithm, or `refresh()` /
 `selectPlace()` control flow as part of visual work. And no Tailwind, no
-shadcn/ui, no React, no MapLibre yet — each of those was evaluated and
-declined for reasons recorded in the plan.
+shadcn/ui, no React, no MapLibre — each was evaluated and declined for
+reasons recorded in the plan.

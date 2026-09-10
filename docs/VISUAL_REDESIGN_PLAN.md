@@ -1,7 +1,7 @@
 # I Know a Place — Visual Redesign Plan
 
-**Status:** stages 1–4a are **merged into `main` and live**. Stage 4b is
-committed on `redesign/field-guide` and approved; stage 4c next.
+**Status:** **the redesign is complete.** Stages 0–9 are done; the design
+system as built is written up in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
 **Last updated:** 2026-09-10
 
 This is the living plan for the visual redesign. It supersedes the original
@@ -38,7 +38,7 @@ than their layouts.
 | **Map scale bar** | Cut. No implied precision on a schematic map. |
 | **Contribute + City** | Visible now, both opening honest "being built" modals. |
 | **Tailwind / shadcn** | **No.** See §7. |
-| **Imagery** | At most two optional editorial moments, both outside the map and list. |
+| **Imagery** | Two editorial moments, both outside the map and list, both **drawn**: the footer marquee and the story plate. No photography. |
 | **Process** | Hard approval gate after every stage: desktop + 375px screenshots, then stop. |
 
 ---
@@ -233,12 +233,16 @@ never stickers.**
 
 - **Desktop (>880px):** header band, full-bleed map stage
   `calc(100vh - 156px)`, index panel floating right.
-- **Mobile (≤880px):** the stage unwinds — map becomes a band (52vh), legend
-  and index run underneath on the page. Masthead wraps to its own lines.
+- **Mobile (≤880px):** the map and the index **take turns**, chosen by a
+  sticky two-word switch under the masthead; the index is the default. In
+  map view the band takes the screen and a tapped pin raises the peek card.
+  Masthead wraps to its own lines.
 - `fitMapToViewport()` frames the pins for whatever viewport it is given (see
-  §4). Below 880px there is no panel to work around, so the whole width is
-  free — but 375px is not enough for 39 readable pins, and the fit hits its
-  clamp and crops. **The mobile map is cramped until stage 4c.**
+  §4), and against the part of the map that is *on screen* rather than the
+  part that exists — otherwise the taller mobile map view buries its pins
+  below the fold. At 375px the fit hits its clamp and crops slightly: 39 pins
+  will not fit that width at a readable size, which is why the map and the
+  index take turns there rather than sharing.
 - Touch targets ≥44px on nav links, primary button and the Maps link.
 
 ---
@@ -253,16 +257,23 @@ never stickers.**
 | 3 | Cards → hairline index rows, named contributors, SVG stars, friend stamps | ✅ `fc04b55` |
 | **4a** | **Recompose around the map (A3)** | ✅ `0c3647b` |
 | 4b | Map plate polish — viewport-aware framing, coast, districts, marker states, key | ✅ `8c50b51` |
-| **4c** | **Mobile Map/List toggle + peek card ("A-lite")** | ▢ next |
-| 5 | Modals restyled onto the system | ▢ |
-| 6 | Motion pass — one load moment, state transitions only | ▢ |
-| 7 | QA — contrast, keyboard, 375px + landscape, reduced-motion, Lighthouse | ▢ |
-| 8 | *(optional)* Imagery: story modal image, then footer band | ▢ |
-| 9 | Docs: `DESIGN_SYSTEM.md`, update `PROJECT_CONTEXT.md`, refresh `screenshot.png` | ▢ |
+| 4c | Mobile Map/Index switch + peek card | ✅ |
+| 5 | Modals restyled onto the system; legacy token aliases retired | ✅ |
+| 6 | Motion pass — one load moment, state transitions only | ✅ |
+| 7 | QA — contrast, keyboard, 375px + landscape, reduced-motion, touch targets | ✅ |
+| 8 | Imagery — the story plate, **drawn, not photographed** | ✅ |
+| 9 | Docs: `DESIGN_SYSTEM.md`, `PROJECT_CONTEXT.md`, `screenshot.png` | ✅ |
 
 ### 🚦 Approval gate — after every stage
 1. Desktop screenshot 2. 375px mobile screenshot 3. What changed
 4. **Stop and wait for approval.** No rolling into the next stage.
+
+> **What actually happened.** Stages 1–4b ran through this gate. Stages
+> 4c–9 were then run in a single pass at the owner's explicit instruction,
+> with the risk stated first and screenshots taken per stage so a bad stage
+> could still be named rather than the whole thing rejected. Worth recording
+> honestly: the gate is the right default, and this was a deliberate,
+> informed exception to it, not a drift.
 
 `PROJECT_CONTEXT.md` §9 records a previous redesign built end-to-end, reviewed
 once at the finish and rejected wholesale with no diagnosis. The gate exists so

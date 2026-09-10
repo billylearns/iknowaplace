@@ -14,7 +14,7 @@ Full story is on the site itself (the "Why this exists" link), but in short: rec
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript — no framework, no build step, no backend, no dependencies. `index.html` is the whole site: markup, styles and logic in one file. It reads its content from two JSON files in `data/`, so any static host (this one runs on Vercel) can serve the folder as-is.
+Plain HTML, CSS, and JavaScript — no framework, no build step, no backend, no dependencies. `index.html` holds the markup and the logic, `css/app.css` holds the design system, and the content lives in two JSON files in `data/`. Nothing is compiled, so any static host (this one runs on Vercel) can serve the folder as-is.
 
 ## Run it locally
 
@@ -32,6 +32,15 @@ Sourced from a Google Form filled out by real friends, then cleaned and anonymiz
 - `data/recommendations.json` — the 56 recommendations (who suggested it, their rating, their note)
 
 The two are linked by `place_key`: every recommendation names the place it belongs to. Those keys are permanent — never renumber them.
+
+## Design
+
+The look has a written system behind it rather than a set of ad-hoc choices —
+palette with measured contrast ratios, two typefaces with one job each, how
+the map is drawn, and the rules the components follow:
+
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — the system as built
+- [`docs/VISUAL_REDESIGN_PLAN.md`](docs/VISUAL_REDESIGN_PLAN.md) — how it got there, and what was tried and rejected
 
 ## Status
 
