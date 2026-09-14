@@ -450,7 +450,9 @@
 
   /* ---------------- Render map ---------------- */
   const atlas = document.getElementById("atlas");
+  const mapField = document.querySelector(".mapfield");
   const tooltip = document.getElementById("mapTooltip");
+  const CAN_HOVER = window.matchMedia("(hover: hover)");
   function svgEl(tag, attrs){
     const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
     Object.entries(attrs||{}).forEach(([k,v])=>el.setAttribute(k,v));
@@ -682,14 +684,15 @@
   // The tooltip was a black chip borrowed from nowhere in particular. It is a
   // paper tag now: the place in the display face, what and where underneath.
   function showTooltip(p){
+    if(!map) return;
     tooltip.innerHTML =
       `<b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.category)} &middot; ${escapeHtml(p.neighbourhood)}</span>`;
-    const marker = markerObjs[p.key] && markerObjs[p.key].getElement();
-    if(!marker) return;
-    const m = marker.getBoundingClientRect();
-    const f = atlas.parentNode.getBoundingClientRect();
-    tooltip.style.left = (m.left + m.width/2 - f.left) + "px";
-    tooltip.style.top  = (m.top + m.height/2 - f.top) + "px";
+    // Asking the map where the place is, rather than measuring where the marker
+    // element happens to have landed. Same answer, and it cannot be caught
+    // mid-transition.
+    const pt = map.project([p.lng, p.lat]);
+    tooltip.style.left = pt.x + "px";
+    tooltip.style.top  = pt.y + "px";
     tooltip.classList.add("show");
   }
   function hideTooltip(){ tooltip.classList.remove("show"); }
@@ -755,6 +758,50 @@
   }
   function mapResize(){ if(map) map.resize(); }
 
+  // Camera moves are motion reporting a change of state, so they obey the same
+  // rule the scrolling already does.
+  const mapEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? 0 : 520;
+
+  // A marker is a fixed number of pixels, but a pixel is not a fixed number of
+  // metres. Framed on the whole city one pixel is about twelve metres, so a
+  // full-size disc covers a third of a kilometre and the downtown pins become
+  // one shape. The disc shrinks when the map is far out and grows back as the
+  // streets do - a band at a time, not a calculation per frame.
+  // The whole-city fit lands near zoom 13.6, so "far" is the view most people
+  // see first and the other bands are measured from it: one step down for
+  // pulling back off the city, two steps up for coming in to street level.
+  const ZOOM_BANDS = [[12.6, "wide"], [14.2, "far"], [15.4, "mid"]];
+  function applyZoomBand(){
+    if(!map || !mapField) return;
+    const z = map.getZoom();
+    const band = (ZOOM_BANDS.find(([max]) => z < max) || [, "near"])[1];
+    if(mapField.dataset.zoom !== band) mapField.dataset.zoom = band;
+  }
+
+  // Selecting a place should not yank the map about. If the pin is already
+  // somewhere you can see it, leave the view alone; only move when the pin is
+  // off screen or hidden under the index panel.
+  const REVEAL_MARGIN = 30;
+  function revealOnMap(key){
+    if(!mapReady || !map) return;
+    const p = placesByKey[key];
+    if(!p) return;
+    const pt = map.project([p.lng, p.lat]);
+    const box = map.getContainer().getBoundingClientRect();
+    const pad = mapPadding();
+    const seen =
+      pt.x > pad.left + REVEAL_MARGIN && pt.x < box.width  - pad.right  - REVEAL_MARGIN &&
+      pt.y > pad.top  + REVEAL_MARGIN && pt.y < box.height - pad.bottom - REVEAL_MARGIN;
+    if(seen) return;
+    // Centred in the part of the map that is free, not in the middle of the
+    // container - the same correction mapPadding() makes for the initial fit.
+    map.easeTo({
+      center: [p.lng, p.lat],
+      offset: [(pad.left - pad.right) / 2, (pad.top - pad.bottom) / 2],
+      duration: mapEase()
+    });
+  }
+
   function initMap(){
     map = new maplibregl.Map({
       container: "atlas",
@@ -773,8 +820,13 @@
     // so this only has to put it on screen, not restate it.
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
+    // A tag pinned to a pin has to leave when the pin does.
+    map.on("movestart", hideTooltip);
+    map.on("zoom", applyZoomBand);
+
     map.on("load", ()=>{
       mapReady = true;
+      applyZoomBand();
       buildMarkers();
       // Re-framed once the container has its final size: the masthead grows
       // when the display face lands, and the panel is only measurable now.
@@ -802,11 +854,25 @@
         (p.recCount > 1 ? '<span class="count">' + p.recCount + '</span>' : '') +
         '<span class="speck"></span>';
       el.addEventListener("click", (e)=>{ e.stopPropagation(); selectPlace(p.key, true); });
-      el.addEventListener("mouseenter", ()=> showTooltip(p));
-      el.addEventListener("mouseleave", hideTooltip);
+      // On a touch screen there is no hover to answer, and the tag would only
+      // flash on the way to the tap. The peek card is the answer there.
+      if(CAN_HOVER.matches){
+        el.addEventListener("mouseenter", ()=> showTooltip(p));
+        el.addEventListener("mouseleave", hideTooltip);
+      }
       markerObjs[p.key] = new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat([p.lng, p.lat])
         .addTo(map);
+    });
+
+    // The pins land once, staggered, as the city finishes drawing. Every render
+    // after this one is the result of a filter, and a pin re-landing on every
+    // keystroke would be motion reporting nothing.
+    let landed = 0;
+    places.forEach(p=>{
+      const el = markerObjs[p.key].getElement();
+      el.style.animationDelay = (landed++ * 11) + "ms";
+      el.classList.add("arrive");
     });
   }
 
@@ -893,6 +959,14 @@
       return catOk && priceOk && ratingOk && searchOk;
     });
     const visibleKeys = new Set(visible.map(p=>p.key));
+
+    // A selected place that a filter has just turned into a survey dot is a
+    // selection with nothing on screen to show for it. Let it go, and take the
+    // peek card with it.
+    if(state.selectedKey && !visibleKeys.has(state.selectedKey)){
+      state.selectedKey = null;
+      renderPeek();
+    }
 
     document.getElementById("listHeading").textContent =
       visible.length + " place" + (visible.length===1 ? "" : "s");
@@ -1019,6 +1093,7 @@
     if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
       if(card) scrollRowIntoIndex(card);
+      revealOnMap(state.selectedKey);
     }
     renderPeek();
   }

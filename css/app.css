@@ -262,13 +262,23 @@
      Note: no `position` is declared here. MapLibre sets position:absolute on
      the element itself and moves it with a transform - overriding that would
      drop all 39 markers back into normal flow. */
+  /* One size variable per zoom band, and every part of the marker is measured
+     from it - see applyZoomBand(). */
+  .mapfield{--m:30px;}
+  .mapfield[data-zoom="wide"]{--m:15px;}
+  .mapfield[data-zoom="far"]{--m:21px;}
+  .mapfield[data-zoom="mid"]{--m:26px;}
+  /* Pulled back past the city there is no room for a number beside a disc,
+     and the disc itself is the only thing still worth reading. */
+  .mapfield[data-zoom="wide"] .marker .count{display:none;}
+
   .marker{
-    width:30px; height:30px;
+    width:var(--m); height:var(--m);
     cursor:pointer;
-    --scale:1;
+    transition:width .2s ease, height .2s ease;
   }
   .marker .halo{
-    position:absolute; inset:-11px;
+    position:absolute; inset:calc(var(--m) * -0.37);
     border-radius:var(--r-pill); background:var(--cat);
     opacity:0; transition:opacity .15s ease;
   }
@@ -284,15 +294,20 @@
   }
   .marker:hover .dot{transform:scale(1.14);}
   .marker.selected .dot{transform:scale(1.14); box-shadow:0 0 0 2.5px var(--ink);}
-  .marker .glyph{width:15px; height:15px; pointer-events:none;}
+  .marker .glyph{
+    width:calc(var(--m) * 0.5); height:calc(var(--m) * 0.5);
+    pointer-events:none;
+  }
   .marker .count{
-    position:absolute; left:19px; top:-7px;
-    min-width:17px; height:17px; padding:0 3px;
-    box-sizing:border-box;
+    position:absolute;
+    left:calc(var(--m) * 0.63); top:calc(var(--m) * -0.23);
+    min-width:calc(var(--m) * 0.57); height:calc(var(--m) * 0.57);
+    padding:0 3px; box-sizing:border-box;
     border-radius:var(--r-pill);
     background:var(--paper); border:1.5px solid var(--cat); color:var(--cat);
-    font-family:var(--font-body); font-size:10px; font-weight:700;
-    line-height:14px; text-align:center;
+    font-family:var(--font-body); font-weight:700; text-align:center;
+    font-size:calc(var(--m) * 0.33);
+    line-height:calc(var(--m) * 0.57 - 3px);
     pointer-events:none; user-select:none;
   }
   /* A hovered or selected pin comes to the front of the pile. Everything else
@@ -926,7 +941,10 @@
 
   /* Pins land one after another rather than all at once. The stagger is
      capped in JS so the last pin is down well inside half a second - a
-     39-step queue would be a loading screen, not a flourish. */
+     39-step queue would be a loading screen, not a flourish.
+
+     Opacity only: MapLibre positions every marker with a transform, and an
+     arrival that animated transform would land the pin off its street. */
   .marker.arrive{animation:fade .34s ease both;}
 
   /* State, not decoration. */
