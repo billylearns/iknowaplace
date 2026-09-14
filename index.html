@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="A map of Toronto built entirely from places real friends recommended - who suggested each one, how they rated it, and what they said about it.">
 <meta name="theme-color" content="#F3EDDF">
 <title>I Know a Place</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<!-- MapLibre GL JS renders the map; OpenFreeMap serves the tiles. Pinned to an
+     exact version so the map can never change under the site on its own. v5 is
+     the last line with a UMD build (this page is one plain script, not a module)
+     and it still falls back to WebGL1 on older phones. -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <link rel="stylesheet" href="./css/app.css">
 </head>
 <body class="booting">
@@ -42,10 +48,9 @@
       <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
     </div>
     <div class="mapfield">
-      <svg class="atlas" id="atlas" xmlns="http://www.w3.org/2000/svg" aria-label="Map of recommended places in Toronto"></svg>
+      <div class="atlas" id="atlas" aria-label="Map of recommended places in Toronto"></div>
       <div class="map-tooltip" id="mapTooltip"></div>
     </div>
-    <p class="schematic">Schematic map, not to scale.</p>
     <div class="map-legend" id="mapLegend"></div>
 
     <aside class="panel" aria-label="Recommendations">
@@ -290,6 +295,7 @@
     key:p.place_key, name:p.place_name, category:p.category, neighbourhood:p.neighbourhood,
     lat:p.latitude, lng:p.longitude, mapsUrl:p.google_maps_url, address:p.address_or_location,
     recCount:p.recommendation_count, avgRating:p.average_rating,
+    confidence:p.location_confidence || "High", locationNote:p.location_note || "",
     energy:p.typical_energy_level, price:p.typical_price_level, time:p.typical_time_level,
     hours: DURATION_HOURS[p.typical_time_level] || 1.5,
     priceLabel:p.typical_price_label, energyLabel:p.typical_energy_label, timeLabel:p.typical_time_label
@@ -599,16 +605,15 @@
   let fitTimer = null;
   window.addEventListener("resize", ()=>{
     clearTimeout(fitTimer);
-    fitTimer = setTimeout(fitMapToViewport, 150);
+    fitTimer = setTimeout(mapResize, 150);
   });
   // The fit is measured from the element, so it has to be re-measured whenever
   // the element's size can have changed - which is more often than a window
   // resize: the masthead is taller once the display face lands, and the map
   // can be laid out at zero height while the tab it is in is still hidden.
   if(window.ResizeObserver){
-    new ResizeObserver(()=>fitMapToViewport()).observe(atlas);
+    new ResizeObserver(()=>mapResize()).observe(atlas);
   }
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitMapToViewport);
 
   let markerEls = {};
   let firstMarkerPaint = true;
@@ -679,7 +684,7 @@
   function showTooltip(p){
     tooltip.innerHTML =
       `<b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.category)} &middot; ${escapeHtml(p.neighbourhood)}</span>`;
-    const marker = markerEls[p.key];
+    const marker = markerObjs[p.key] && markerObjs[p.key].getElement();
     if(!marker) return;
     const m = marker.getBoundingClientRect();
     const f = atlas.parentNode.getBoundingClientRect();
@@ -699,6 +704,122 @@
       `<span class="key-item${only!=="All" && only!==c ? " off":""}">`+
       `<span class="swatch" style="background:${CATS[c].color}"></span>${escapeHtml(c)}</span>`
     ).join("");
+  }
+
+
+  /* ---------------- The real map ----------------
+     MapLibre GL JS drawing OpenFreeMap's public vector tiles. The 39 places sit
+     at their true coordinates now, so the projection, the offshore squash and
+     the collision-relaxation pass above have no job left - they are retired in
+     a later stage rather than deleted mid-migration.
+
+     Nothing is self-hosted and there is no API key: OpenFreeMap's public
+     instance is free and unmetered. Positron is the quietest of its five
+     styles and already ships without POI clutter, which is the right starting
+     point when 39 coloured discs are meant to be the subject. */
+  const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+  // Breathing room around the pin cluster, in pixels. A fixed 64 spent a third
+  // of a phone screen on margin and left the city as a smudge, so it scales
+  // with the viewport and only reaches its full value on a desktop map.
+  const mapPad = ()=> Math.max(22, Math.min(64, Math.round(window.innerWidth * 0.055)));
+
+  let map = null;
+  let markerObjs = {};
+  let mapReady = false;
+
+  function placeBounds(){
+    const b = new maplibregl.LngLatBounds();
+    places.forEach(p => b.extend([p.lng, p.lat]));
+    return b;
+  }
+
+  // On desktop the index panel floats over the right of the map, so the middle
+  // of the container is not the middle of what you can see. Padding the camera
+  // by the panel is the same correction the old fitMapToViewport() made by
+  // hand, handed to MapLibre instead.
+  function mapPadding(){
+    const P = mapPad();
+    const pad = { top:P, bottom:P, left:P, right:P };
+    const field = document.querySelector(".mapfield");
+    const panel = document.querySelector(".panel");
+    if(field && panel && window.innerWidth > 880){
+      const f = field.getBoundingClientRect(), p = panel.getBoundingClientRect();
+      if(p.width) pad.right = Math.max(P, f.right - p.left + 24);
+    }
+    return pad;
+  }
+
+  function fitPlaces(opts){
+    if(!map) return;
+    map.fitBounds(placeBounds(), Object.assign({ padding: mapPadding(), duration: 0 }, opts));
+  }
+  function mapResize(){ if(map) map.resize(); }
+
+  function initMap(){
+    map = new maplibregl.Map({
+      container: "atlas",
+      style: MAP_STYLE,
+      bounds: placeBounds(),
+      fitBoundsOptions: { padding: mapPadding() },
+      // A north-up city map. Rotating it only makes the street labels harder to
+      // read, so the gesture is taken away rather than corrected for.
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      attributionControl: false
+    });
+    map.touchZoomRotate.disableRotation();
+    // The style already carries OpenFreeMap, OpenMapTiles and OpenStreetMap,
+    // so this only has to put it on screen, not restate it.
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+    map.on("load", ()=>{
+      mapReady = true;
+      buildMarkers();
+      // Re-framed once the container has its final size: the masthead grows
+      // when the display face lands, and the panel is only measurable now.
+      fitPlaces();
+      refresh();
+    });
+  }
+
+  // Built once, at boot. Filtering only ever toggles a class from here on - the
+  // old renderer tore down and rebuilt all 39 pins on every keystroke.
+  function buildMarkers(){
+    // North first, so southern pins end up later in the DOM and therefore on
+    // top: the usual cartographic convention, and it makes the downtown
+    // overlaps read the same way every time.
+    [...places].sort((a,b)=> b.lat - a.lat).forEach(p=>{
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.dataset.key = p.key;
+      el.style.setProperty("--cat", CATS[p.category].color);
+      el.innerHTML =
+        '<span class="halo"></span>' +
+        '<span class="dot">' +
+          iconUse(CATS[p.category].icon, 'class="glyph" viewBox="0 0 24 24" aria-hidden="true"') +
+        '</span>' +
+        (p.recCount > 1 ? '<span class="count">' + p.recCount + '</span>' : '') +
+        '<span class="speck"></span>';
+      el.addEventListener("click", (e)=>{ e.stopPropagation(); selectPlace(p.key, true); });
+      el.addEventListener("mouseenter", ()=> showTooltip(p));
+      el.addEventListener("mouseleave", hideTooltip);
+      markerObjs[p.key] = new maplibregl.Marker({ element: el, anchor: "center" })
+        .setLngLat([p.lng, p.lat])
+        .addTo(map);
+    });
+  }
+
+  function updateMarkers(visibleKeys){
+    if(!mapReady) return;
+    places.forEach(p=>{
+      const m = markerObjs[p.key];
+      if(!m) return;
+      const el = m.getElement();
+      el.classList.toggle("out", !visibleKeys.has(p.key));
+      el.classList.toggle("selected", state.selectedKey === p.key);
+    });
+    renderLegend();
   }
 
   /* ---------------- Render list ---------------- */
@@ -776,7 +897,7 @@
     document.getElementById("listHeading").textContent =
       visible.length + " place" + (visible.length===1 ? "" : "s");
 
-    renderMarkers(visibleKeys);
+    updateMarkers(visibleKeys);
 
     if(visible.length===0){
       listEl.style.display="none";
@@ -824,7 +945,7 @@
     vsMap.setAttribute("aria-pressed", String(v === "map"));
     if(v === "list") hidePeek();
     // The map band only has a size once it is the visible half.
-    if(v === "map") fitMapToViewport();
+    if(v === "map") mapResize();
     changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
   }
 
@@ -839,7 +960,7 @@
   vsIndex.addEventListener("click", ()=> setView("list"));
   vsMap.addEventListener("click", ()=> setView("map"));
   // Leaving mobile drops the whole idea: on desktop both are on screen.
-  NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); fitMapToViewport(); });
+  NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); mapResize(); });
 
   function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; }
 
@@ -898,8 +1019,6 @@
     if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
       if(card) scrollRowIntoIndex(card);
-      const marker = markerEls[state.selectedKey];
-      if(marker) atlas.appendChild(marker);
     }
     renderPeek();
   }
@@ -1335,8 +1454,7 @@
 
   /* ---------------- Init ---------------- */
   renderFooter();
-  renderAtlasChrome();
-  fitMapToViewport();
+  initMap();
   renderLegend();
   renderFilterBar();
   renderRefineBar();

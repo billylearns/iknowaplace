@@ -199,12 +199,12 @@
   .peek{display:none;}
 
   .mapfield{position:absolute; inset:0; z-index:0;}
-  svg.atlas{display:block; width:100%; height:100%;}
-  .schematic{
-    position:absolute; left:var(--s-6); top:var(--s-5); z-index:2;
-    font-family:var(--font-display); font-style:italic;
-    font-size:.95rem; color:var(--ink-3);
-  }
+  /* Fills .mapfield rather than positioning itself: MapLibre puts its own
+     position:relative on the container, and fighting that is not worth a rule. */
+  .atlas{display:block; width:100%; height:100%;}
+  /* MapLibre paints its own background before the style loads; make that
+     moment paper rather than the library's grey. */
+  .atlas, .maplibregl-canvas-container, .maplibregl-canvas{background:var(--paper);}
   /* The key, not a widget. It sits on the field in the map's own
      drawing language and answers the map's question. */
   .map-legend{
@@ -252,26 +252,67 @@
   }
   .ground .district.offshore{fill:var(--water-ink);}
 
-  /* ---------- Markers ----------------------------------------- */
-  .marker{cursor:pointer;}
-  .marker circle.halo{opacity:0; transition:opacity .15s ease;}
-  .marker:hover circle.halo, .marker.selected circle.halo{opacity:.22;}
-  /* Paper rim: two overlapping pins still read as two objects, and a pin
-     out over the lake keeps its edge against the water. */
-  .marker circle.dot{
-    stroke:var(--paper); stroke-width:2;
-    transition:r .14s ease, stroke-width .14s ease;
+  /* ---------- Markers -----------------------------------------
+     Markers are ordinary HTML now, positioned by MapLibre. That is what keeps
+     the design language: colour, glyph, paper rim and count badge are all still
+     CSS, where a sprite-based map layer would have baked every state into an
+     image. One custom property per marker (--cat) carries the category colour
+     to the disc, the halo, the badge and the survey dot.
+
+     Note: no `position` is declared here. MapLibre sets position:absolute on
+     the element itself and moves it with a transform - overriding that would
+     drop all 39 markers back into normal flow. */
+  .marker{
+    width:30px; height:30px;
+    cursor:pointer;
+    --scale:1;
   }
-  .marker:hover circle.dot{r:17;}
-  .marker.selected circle.dot{stroke:var(--ink); stroke-width:2.5; r:17;}
-  .marker .glyph{pointer-events:none; color:#fff;}
-  .marker .badge-count{
-    font-family:var(--font-body); font-weight:700;
+  .marker .halo{
+    position:absolute; inset:-11px;
+    border-radius:var(--r-pill); background:var(--cat);
+    opacity:0; transition:opacity .15s ease;
+  }
+  .marker:hover .halo, .marker.selected .halo{opacity:.22;}
+  /* Paper rim: two overlapping pins still read as two objects, and a pin out
+     over the lake keeps its edge against the water. */
+  .marker .dot{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:var(--r-pill); background:var(--cat); color:#fff;
+    box-shadow:0 0 0 2px var(--paper);
+    transition:transform .14s ease, box-shadow .14s ease;
+  }
+  .marker:hover .dot{transform:scale(1.14);}
+  .marker.selected .dot{transform:scale(1.14); box-shadow:0 0 0 2.5px var(--ink);}
+  .marker .glyph{width:15px; height:15px; pointer-events:none;}
+  .marker .count{
+    position:absolute; left:19px; top:-7px;
+    min-width:17px; height:17px; padding:0 3px;
+    box-sizing:border-box;
+    border-radius:var(--r-pill);
+    background:var(--paper); border:1.5px solid var(--cat); color:var(--cat);
+    font-family:var(--font-body); font-size:10px; font-weight:700;
+    line-height:14px; text-align:center;
     pointer-events:none; user-select:none;
   }
-  /* Filtered out: a survey dot, not a ghosted marker. */
-  .marker.out{pointer-events:none;}
-  .marker.out .speck{opacity:.3;}
+  /* A hovered or selected pin comes to the front of the pile. Everything else
+     stacks by latitude, which is the order they are added to the map in. */
+  .marker:hover{z-index:2;}
+  .marker.selected{z-index:3;}
+
+  /* Filtered out: a survey dot, not a ghosted marker. Ghosting a full disc
+     left thirty grey blobs still competing for attention; a dot reads as
+     ground, so the matches are the only things with weight on the field. */
+  .marker.out{pointer-events:none; z-index:0;}
+  .marker.out .halo,
+  .marker.out .dot,
+  .marker.out .count{display:none;}
+  .marker .speck{display:none;}
+  .marker.out .speck{
+    display:block; position:absolute; left:50%; top:50%;
+    width:7px; height:7px; margin:-3.5px 0 0 -3.5px;
+    border-radius:var(--r-pill); background:var(--cat); opacity:.3;
+  }
 
   /* A paper tag, not a black chip. */
   .map-tooltip{
@@ -991,7 +1032,6 @@
       color:var(--green);
       border-bottom:1.5px solid var(--line-control);
     }
-    .schematic{display:none;}
     /* District names need room the band hasn't got, and the crop cuts
        them mid-word - so at this width the map keeps only its pins. */
     .ground .district{display:none;}
