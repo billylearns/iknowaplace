@@ -6,7 +6,9 @@ against it. Where a decision has a reason, the reason is here — that is the
 point of the document.
 
 For *why the redesign happened* and what shipped in which stage, see
-[`VISUAL_REDESIGN_PLAN.md`](VISUAL_REDESIGN_PLAN.md).
+[`VISUAL_REDESIGN_PLAN.md`](VISUAL_REDESIGN_PLAN.md). For the later move from
+a drawn schematic map to a real street map, see
+[`REAL_MAP_PLAN.md`](REAL_MAP_PLAN.md).
 
 ---
 
@@ -40,7 +42,7 @@ whatever their OS is set to.
 
 | Token | Hex | Role |
 |---|---|---|
-| `--paper` | `#FBF7ED` | content plates, the map ground |
+| `--paper` | `#FBF7ED` | content plates, the map's ground before tiles arrive |
 | `--paper-2` | `#F3EDDF` | chrome: masthead, footer, the mobile switch |
 | `--paper-3` | `#EFE8D7` | recessed: insets, notes, the story plate |
 | `--card` | `#FFFCF5` | raised: modals and the mobile peek card only |
@@ -137,45 +139,117 @@ Scale — base 16px:
 
 ## 5. The map
 
-The map is a drawing, so it is drawn like one.
+A real street map, so it has to be a *quiet* one: the recommendations are the
+subject and the city is the ground they stand on.
 
-- **The coast** is projected from Toronto's real waterfront latitude
-  (43.6355) rather than sitting at a guessed fraction of the canvas, and it
-  carries the **only solid stroke on the map**. Everything else is dashed.
-- **District names** sit at each neighbourhood's centroid in letterspaced
-  caps. Neighbourhoods with more than one place earn a label, biggest first,
-  and any label with no clear air around it is **dropped rather than crowded
-  in** — so the densest part of the core stays unlabelled, which is honest.
-  Hidden below 880px, where the crop would cut them mid-word.
-- **Toronto Islands** is genuinely out in the lake, and at true scale it sits
-  300 units south of everything else and squeezes the other 38 pins into the
-  top third. A pass run *after* `project()` — the same way the collision
-  relaxation pass is — compresses distance offshore. The projection function
-  itself is untouched. The map says "not to scale" and means it.
-- **The window on the field** is computed per viewport: the viewBox takes the
-  stage's own aspect ratio, so map units land one-to-one on the element, and
-  it is then positioned so the pin cluster is framed inside the part of the
-  stage that is *actually free* — and, on a band taller than the fold, inside
-  the part that is *actually on screen*. Below `K_MIN` it stops shrinking and
-  starts cropping: 39 pins at 11px across is a texture, not a map.
+- **Rendering and data.** MapLibre GL JS (v5, pinned, one `<script>` tag)
+  drawing OpenFreeMap's public vector tiles. No API key, nothing self-hosted,
+  no build step. Every place sits at its true coordinates — nothing is
+  projected, squashed or nudged apart.
+- **The style is ours.** [`map/ikap-atlas.json`](../map/ikap-atlas.json) is
+  OpenFreeMap Positron, forked and owned. It still draws OpenFreeMap's tiles,
+  fonts and sprites; only the look lives in the repo. Its provenance is in
+  the style's own `metadata`. Edit it directly or open it in Maputnik — do
+  not re-fetch upstream over it.
+- **Nothing on the base map is `--green`.** A park must never read as the
+  brand or as an Outdoors marker.
+- **Quiet at city zoom, detailed at street level.** Side streets and building
+  footprints sit barely above the land when the whole city is on screen and
+  come up as you zoom in. Arterials stay readable throughout.
+- **Removed from the base map:** boundaries, road shields, country and
+  province labels, footpath names, and the city's own name once the city
+  fills the screen (it sat right on top of the downtown pins).
+- **Neighbourhood names** are letterspaced capitals, as the drawn map's
+  district labels were, and now appear on mobile too.
+- **North is up, always.** Rotation and pitch are disabled — rotating a city
+  map only makes its street names harder to read.
+- **Labels are Noto Sans**, OpenFreeMap's glyph set. The Instrument faces
+  would need self-hosted glyph files; map labels are cartography, not brand
+  type, and a neutral sans is right there.
+
+### Map palette
+
+Derived from the tokens in §2; the hex values live in the style file.
+
+| Layer | Colour | Note |
+|---|---|---|
+| Land | `#F2ECDF` | a shade under `--paper`, so warm-white streets read against it |
+| Water | `#A9C6D4` | `--water-fill` — visibly blue |
+| Parks | `#DDE3CD` | pale sage, well clear of `--green` |
+| Arterials | `#FFFCF5` on `#DDD2BC` | `--card` with a warm casing |
+| Motorways | `#FAF1DC` on `#CDBD9C` | a faint ochre, so the Gardiner is findable |
+| Street names | `#636B5C` | `--ink-3` — **4.7:1** on land |
+| Neighbourhoods | `#55604F` | `--ink-2` — **5.6:1** on land, 5.0:1 on park |
+| Water names | `#2A4E60` | `--water-ink` — **5.0:1** on water |
+
+### Framing and the camera
+
+- **The whole city is framed in the part of the map you can see.** On
+  desktop the index panel covers the right of the map and the camera is
+  padded by it; on a phone the peek card counts the same way.
+- **Selecting a place moves the camera only if it has to.** If the pin is
+  already somewhere visible — not under the panel, not under the card — the
+  map stays still. Otherwise it eases the pin into the free area.
+- **Once someone has moved the map, it is theirs.** No automatic re-framing
+  takes it back.
+- **Controls are deliberately few:** zoom, where-am-I, and a *Recentre* word
+  that returns to all 39 places. No compass (there is no rotation to undo)
+  and no scale bar. They are paper and hairline, not MapLibre's white chips:
+  top-left on desktop, where the panel isn't; the right edge at 44px on a
+  phone.
+- **Attribution is always readable.** On desktop it sits just left of the
+  index panel; on a phone it rises above the peek card while one is open.
 
 ### Markers
+
+Ordinary HTML positioned by MapLibre, not a sprite layer — so colour, glyph,
+rim and badge stay in CSS where this system can reach them. One custom
+property per marker (`--cat`) carries the category colour to every part.
 
 Colour **plus** the category glyph inside the disc, so category is never
 carried by colour alone. Recommendation count is a badge beside the disc.
 Each disc has a **paper rim**, so two overlapping pins read as two objects
 and a pin over the lake keeps its edge.
 
+**Size follows zoom, a band at a time.** A pixel is not a fixed number of
+metres: framed on the whole city one pixel is about twelve metres, so a
+full-size disc would cover a third of a kilometre and downtown would be one
+shape. Every part of the marker is measured from one size variable:
+
+| Band | Zoom | Disc | |
+|---|---|---|---|
+| `wide` | < 12.6 | 15px | pulled back past the city; count badge hidden |
+| `far` | 12.6–14.2 | 21px | **the whole-city fit — what people see first** |
+| `mid` | 14.2–15.4 | 26px | |
+| `near` | ≥ 15.4 | 30px | street level |
+
+**Overlap is not hidden.** Places ten metres apart share a spot on the map
+until you zoom in, because that is the truth. Pins stack south-over-north;
+hovered and selected pins come to the front. There is no clustering: at 39
+places a cluster bubble would hide more than it reveals.
+
 | State | |
 |---|---|
 | Default | disc + glyph + count badge |
 | Hover | halo, disc lifts, paper tag with the name |
-| Selected | ink ring, halo, lifts, brought to the front, row scrolls into the index |
+| Selected | ink ring, halo, lifts, brought to the front, row scrolls into the index, camera reveals it if hidden |
 | Filtered out | **a small survey dot** — not a ghosted disc |
 
 That last one matters. Ghosting left thirty grey blobs still competing for
 attention; a dot reads as ground, so the matches are the only things on the
-field with any weight, and the city keeps its shape.
+map with any weight, and the city keeps its shape. **A selection that a
+filter hides is released**, rather than surviving invisibly.
+
+### When the map can't be a map
+
+The index has never depended on the map, and no failure changes that.
+
+| What failed | What you see |
+|---|---|
+| Still loading | "Drawing Toronto…" in the display face; after ten seconds, a line saying the index works now |
+| OpenFreeMap tiles | The pins stay, on paper, in the right places relative to each other, under a note: *The street map didn't load* |
+| MapLibre, our style file, or WebGL | The map is withdrawn with a short note pointing at the index; on a phone the switch goes too, since there is no second half to switch to |
+| The place data | *No places to map*, beside the existing data-error message |
 
 ### The key
 
@@ -235,10 +309,18 @@ scroll away from the pin you just tapped. A sticky two-word switch chooses.
 **The index is the default** — the map is the beautiful part, the list is the
 useful one on a phone.
 
+Tapping **Map** brings the switch to the top of the screen, and the map
+takes exactly the rest of it — measured from the switch, not guessed. The key
+follows a short scroll below.
+
 A tapped pin raises the **peek card**: name, category, neighbourhood, rating,
 who recommended it, a way through to the full entry and a Maps link. It is
 the one raised surface on the page besides the modals, because it is
-answering a tap and has to read as sitting on top of the map.
+answering a tap and has to read as sitting on top of the map. A pin low on
+the screen is lifted clear of the card. In a short landscape screen the card
+runs down the right side instead of across the bottom, and the controls move
+to the left. Everything at the map's edges keeps clear of notches and the
+home indicator.
 
 ---
 
@@ -249,11 +331,16 @@ state.** Nothing loops, nothing drifts, nothing moves that the reader did not
 ask to move.
 
 - **Load** — the page arrives in the order you read it: masthead, then the
-  field, then the pins landing on it, staggered 11ms apart so the last pin is
+  map, then the pins landing on it, staggered 11ms apart so the last pin is
   down inside half a second. A 39-step queue would be a loading screen.
   Only the first render is an arrival; a pin re-landing on every keystroke
-  would be motion reporting nothing.
-- **State** — row expand, modal open, peek card, the mobile change-over.
+  would be motion reporting nothing. **The arrival is opacity only** —
+  MapLibre positions each pin with a transform, so an arrival that animated
+  transform would land the pin off its street.
+- **State** — row expand, modal open, peek card, the mobile change-over,
+  and the camera easing to a selected place when it has to.
+- Camera moves use the same rule as scrolling: **instant under reduced
+  motion.**
 - Everything is neutralised by a single `prefers-reduced-motion: reduce`
   block at the top of `css/app.css`, and the marquee stops there outright.
 
@@ -279,6 +366,10 @@ piece of writing on the site.
 
 - Every text/background pair in §2 is **≥ 4.5:1**; every graphic that carries
   meaning is **≥ 3:1**.
+- **The map meets the same bar.** Street names 4.7:1, neighbourhood names
+  5.6:1, water names 5.0:1. Every marker colour is ≥ 3:1 on land, park and
+  water alike — the lowest is Wellness on water at 3.06:1. (Land, water and
+  park fills against each other are ground, not meaning; water is named.)
 - A skip link jumps past the map to the index — a map is a lot of page to tab
   through to reach the thing you came for.
 - Modals trap focus, close on Escape and return focus to the trigger. Focus
@@ -289,20 +380,29 @@ piece of writing on the site.
 - Tap targets are ≥ 34px on desktop and ≥ 40px on mobile, ≥ 44px on nav
   links, primary buttons, Maps links and the mobile switch.
 - No horizontal overflow at 375, 812 (landscape), 1024 or 1440.
-- Markers are not in the tab order by design — 39 stops before reaching the
-  index would be worse than the alternative, and every place on the map is
-  reachable as a row with the same behaviour.
+- **Markers are not in the tab order and are hidden from screen readers**, by
+  design — 39 stops before reaching the index would be worse than the
+  alternative, and every place on the map is reachable as a row with
+  everything said about it. The map itself is a labelled, focusable canvas:
+  arrow keys pan, plus and minus zoom. Its controls are real buttons.
+- Map controls are 36px on desktop and 44px on a phone.
 
 ---
 
 ## 10. Rules that are settled
 
 - **No dark mode.** Removed on purpose; not an open question.
-- **No new runtime dependencies.** No framework, no build step, no CDN
-  libraries beyond the Google Fonts stylesheet.
-- **No Tailwind, no shadcn/ui, no React, no MapLibre.** Each was evaluated
-  and declined; the reasons are in the plan.
+- **One runtime library: MapLibre GL JS**, loaded from a pinned version, for
+  the map. Tiles from OpenFreeMap's public instance. No Mapbox, no Google
+  Maps base map, no API keys, no self-hosting. Otherwise: no framework, no
+  build step, no CDN libraries beyond the Google Fonts stylesheet.
+- **No Tailwind, no shadcn/ui, no React.** Each was evaluated and declined;
+  the reasons are in the redesign plan. (MapLibre was declined during the
+  redesign too — for a *drawn* map. When the map became a real one it was the
+  right tool, and the reasons are in [`REAL_MAP_PLAN.md`](REAL_MAP_PLAN.md).)
+- **The map's look lives in `map/ikap-atlas.json`, not in JavaScript.** No
+  runtime `setPaintProperty` restyling.
 - **No stock photography.**
-- Data, the planner algorithm, `project()`, `escapeHtml()`, `starsHtml()`,
-  the essay copy and the Google Maps URL construction are not visual
-  territory. See §8 of the plan.
+- Data, the planner algorithm, `escapeHtml()`, `starsHtml()`, the essay copy
+  and the Google Maps URL construction are not visual territory. Coordinates
+  are never changed without the owner's approval.

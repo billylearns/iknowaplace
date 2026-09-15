@@ -50,7 +50,8 @@ it should look intentional and finished, not like an in-progress prototype.
 ## 3. Everything already built
 
 Single page, `index.html` — plain HTML/CSS/JS, no framework, no build step,
-no backend, no dependencies. The data is **not** in the page any more: it is
+no backend. **One runtime library: MapLibre GL JS**, for the map (see the map
+bullet below). The data is **not** in the page any more: it is
 fetched at load time from `data/places.json` and `data/recommendations.json`
 (see §5), and since the redesign the **styles live in `css/app.css`**, linked
 from the page. Still no build step — it is one `<link>` — but the design
@@ -63,19 +64,28 @@ Built and working:
 - **Filter bar** — three dropdowns: Activity/category, Price, Rating
   (labelled "All activities" / "All prices" / "All ratings" as their default
   option — see §7 for why this exact wording matters).
-- **Map** — a hand-drawn *schematic* SVG map (not a real map tile provider,
-  no Mapbox/Google Maps JS API). Places are projected from real lat/lng onto
-  an SVG grid via a custom `project()` function, with a collision-relaxation
-  pass so overlapping pins nudge apart. A decorative bottom band represents
-  Lake Ontario. Markers are colored by category; a numeric badge on a marker
-  is that **place's recommendation count** (not a map cluster count — only
-  one place per marker).
+- **Map** — a real, pannable street map of Toronto (since 2026-09-14; it was
+  a drawn schematic SVG before that — see §7). **MapLibre GL JS v5.24.0**,
+  pinned and loaded from unpkg with one `<script>` tag, drawing
+  **OpenFreeMap**'s public vector tiles: no API key, no account, nothing
+  self-hosted, no Mapbox, no Google Maps base map. The look is our own style
+  file, **`map/ikap-atlas.json`**, forked from OpenFreeMap Positron. Every
+  place sits at its true coordinates. Markers are HTML elements coloured by
+  category with a glyph; a numeric badge is that **place's recommendation
+  count** (not a cluster count — one place per marker). Markers resize by
+  zoom band. Controls: zoom, where-am-I, Recentre. Full detail in
+  `docs/DESIGN_SYSTEM.md` §5 and `docs/REAL_MAP_PLAN.md`.
 - **List** — sortable (highest/lowest rating, most recommended,
   neighbourhood), searchable by name, expandable cards showing every
   recommendation's alias, rating, and note, plus a "Open in Google Maps"
   link built from the place's address.
 - **Map ↔ list sync** — clicking a marker selects the place, opens/expands
-  its card, and scrolls the list to it (and vice versa via card click).
+  its card, and scrolls the list to it; clicking a card selects its marker,
+  and the map eases to it **only if it isn't already visible**. A filter that
+  hides the selected place releases the selection.
+- **If the map can't load** (tiles down, MapLibre blocked, no WebGL) the page
+  says so over the map and the index keeps working; on a phone the Map/Index
+  switch disappears.
 - **"Why this exists" modal** — the personal essay described in §2, ending
   in a signature and a "Connect on LinkedIn" button (real link to
   billyhliu's profile).
@@ -96,9 +106,10 @@ Built and working:
   do not treat §9 as evidence that it should come back.
 - **Mobile (≤880px): the map and the index take turns.** A sticky two-word
   switch under the masthead chooses between them; the index is the default.
-  In map view a tapped pin raises a **peek card** at the bottom of the map
-  with the place, its rating, who recommended it, a way through to the full
-  entry in the index, and a Maps link.
+  In map view the map fills the screen under the switch, and a tapped pin
+  raises a **peek card** at the bottom of the map with the place, its rating,
+  who recommended it, a way through to the full entry in the index, and a
+  Maps link. A pin low on screen is lifted clear of the card.
 
 ## 4. How the current page works (structure)
 
@@ -108,8 +119,9 @@ Built and working:
   the type never competes with the pin cluster.
 - `main.stage` → the map is **full-bleed**, no border and no box, filling the
   viewport below the masthead. The index floats over it:
-  - `.mapfield` — the SVG map, plus `#mapLegend` and the "schematic map, not
-    to scale" note positioned over the field
+  - `.mapfield` — holds `#atlas` (the MapLibre map), the hover tag
+    `#mapTooltip`, and `#mapNote` (loading / failure messages). `#mapLegend`
+    sits over the map beside it.
   - `.panel` — a paper panel pinned right, containing `#listHeading`,
     `#filterBar` (category as a row of words), `#refineBar` (price / rating /
     sort as underlined selects), the search line, `#list` and `#emptyState`
@@ -127,8 +139,10 @@ Built and working:
   `#citiesScrim` — which say the feature is being built rather than
   pretending to work. Neither has a form or a backend behind it.
 - All rendering is imperative JS (no framework): `refresh()` is the central
-  function that re-filters/re-sorts/re-renders both the map markers and the
-  list whenever a filter, search, or sort changes.
+  function that re-filters/re-sorts/re-renders the list and updates the map
+  markers whenever a filter, search, or sort changes. Markers are built once
+  when the map loads (`buildMarkers()`); `refresh()` only toggles their
+  classes (`updateMarkers()`).
 - Icons are inline SVG `<symbol>` defs built at runtime into `#iconDefs` and
   referenced via `<use>` (see `ICONS` dict + `iconUse()` helper).
 
@@ -146,6 +160,12 @@ Built and working:
 - The two files are linked by `place_key` (`PLC001`…`PLC039`); each
   recommendation also has its own `recommendation_key` (`REC001`…`REC056`).
   **These keys are permanent — never renumber or reuse them.**
+- Each place also carries **`location_confidence`** (`"High"` / `"Medium"`)
+  and **`location_note`**, copied verbatim from the retired workbook when the
+  real map arrived: 29 High, 10 Medium. Medium means the recommendation named
+  a business without saying which branch, so the pin is a reasonable guess;
+  those ten show "Approximate location" in the index row and peek card.
+  **Never change a coordinate without the owner's approval.**
 - `recommendation_count` and `average_rating` are stored on each place even
   though they're derivable from the recommendations, because the sorting,
   filtering, map badges and planner scoring read them directly. If you edit
@@ -209,14 +229,16 @@ No AI/LLM generates the plans — it's a scored, weighted-random selection:
   background + `var(--accent-ink)` text, matching the pill pattern.
 - **Story section stats row (39 places / 56 recs / 22 friends as a
   standalone stat row) was intentionally removed** from the "Why this
-  exists" modal per owner request — the numbers still exist elsewhere (map
-  caption, list heading), just not as a dedicated block inside the essay.
-- **The map is deliberately a stylized/schematic SVG, not a real map
-  provider.** This has been treated as a feature, not a placeholder — no
-  request has been made to swap in Mapbox/Google Maps, and doing so would
-  be a substantial change (would need a real API key, tile provider, and
-  reworked marker/tooltip code). Flag this explicitly to the owner before
-  assuming it's wanted.
+  exists" modal per owner request — the numbers still exist elsewhere (list
+  heading, footer colophon), just not as a dedicated block inside the essay.
+- **The map is now a real street map (MapLibre + OpenFreeMap).** Until
+  2026-09-14 it was deliberately a schematic SVG drawing and this section
+  said to flag any swap to a real provider before doing it. The owner then
+  asked for exactly that swap; it was planned, approved and built in four
+  gated stages — see `docs/REAL_MAP_PLAN.md`. The settled constraints now are:
+  no Mapbox, no Google Maps base map, no API keys, no self-hosting, and the
+  map's look lives in `map/ikap-atlas.json` (edit it or open it in Maputnik),
+  not in JavaScript.
 
 ## 8. Current functionality status
 
@@ -357,31 +379,46 @@ is gone, by decision, and stays gone.
   data moved into `data/` — see §5.) Anything visual should be checked
   against `docs/DESIGN_SYSTEM.md` first — most "what colour should this be"
   questions are already answered there.
-- **Visual QA method that worked, and is worth reusing.** Headless Chrome is
-  already on the machine (`chrome --headless=new --screenshot`). Windows
-  clamps the window width to ~500px, so **375px shots have to be rendered
-  through a fixed-width iframe wrapper** or they come back misleadingly
-  clipped. For anything that needs interaction — open a modal, click a
-  marker, apply a filter — put a small harness page **in the project folder**
-  so it is same-origin with the site, drive the page from it, and read the
-  result with `--dump-dom`. A `file://` wrapper cannot reach into an
-  `http://localhost` iframe. One caveat that cost time: under
-  `--virtual-time-budget`, `requestAnimationFrame` is unreliable, so anything
-  that depends on a frame needs `--run-all-compositor-stages-before-draw` and
-  a screenshot rather than a DOM dump.
+- **Visual QA method — changed with the real map.** The old approach
+  (`chrome --headless=new --screenshot --virtual-time-budget`, iframe
+  wrappers for 375px) **cannot photograph the map**: under virtual time
+  `requestAnimationFrame` never runs, so MapLibre never paints. The Claude
+  desktop app's in-app browser preview has the same problem — the page
+  loads but the map stays blank. What works:
+  - Launch headless Chrome with `--remote-debugging-port`, software WebGL
+    (`--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`)
+    and a throwaway `--user-data-dir`, and drive it over the **Chrome DevTools
+    Protocol** from a small Node script (Node 24 has `fetch` and `WebSocket`
+    built in — no npm install).
+  - Set the viewport with `Emulation.setDeviceMetricsOverride` — this gives
+    true 375px shots with no iframe wrapper.
+  - Wait for a real condition (e.g. 39 `.marker` elements) rather than a
+    timer, then `Page.captureScreenshot`. Allow a few seconds for tiles at
+    street level.
+  - Click with `Input.dispatchMouseEvent` / `dispatchTouchEvent` for gestures;
+    simulate outages with `Network.setBlockedURLs`, no WebGL with
+    `--disable-webgl --disable-3d-apis`, reduced motion with
+    `Emulation.setEmulatedMedia`. Capture `Runtime.consoleAPICalled` and
+    `Log.entryAdded` to check the console.
+  - `Runtime.evaluate` shares one global scope across calls: declaring the
+    same `const` twice throws silently. Wrap probes in an IIFE.
+  These scripts were kept local (like the old `check*.py`), not committed.
 - When testing changes, this session used headless Playwright/Chromium
   (`file://` URL on the local `index.html`) to screenshot before/after
   states rather than guessing — recommended to continue that habit, since
   the map/planner have enough generated-JS behavior that visual bugs aren't
   always obvious from reading the code alone.
-- The site intentionally has **no external JS dependencies** (no npm, no
-  CDN libraries) beyond the Google Fonts stylesheet link. On `main` that is Fraunces, Work
+- The site has **exactly one external JS dependency: MapLibre GL JS**, pinned
+  to 5.24.0 on unpkg (about 275 KB over the wire, plus 10 KB of CSS), added
+  deliberately for the real map. v5 rather than v6 because v6 is ESM-only and
+  requires WebGL2. Apart from that there is no npm and no other CDN library
+  beyond the Google Fonts stylesheet link. On `main` that is Fraunces, Work
   Sans and IBM Plex Mono; on the redesign branch it is **Instrument Serif and
   Instrument Sans** — two families from one foundry, one job each. Instrument
   Serif ships Regular only, so never ask for a heavier weight or the browser
   will synthesise a faux bold. Keep it that way unless there's a strong reason not
   to — it's part of the stated design (README: "no framework, no build step,
-  no backend, no dependencies"). `npx serve` is a dev-time convenience for
+  no backend"). `npx serve` is a dev-time convenience for
   viewing the page locally, not a project dependency: nothing is installed
   into the repo and the deployed site still needs no build.
 
@@ -417,7 +454,7 @@ The short version:
   and Toronto entry points, cards replaced by hairline index rows that name
   the friend who recommended each place ("*Ashton* + 2 friends"), stars
   rebuilt as SVG, the whole page recomposed around the map, a real coast and
-  district names on that map, the mobile Map/Index switch and peek card,
+  district names on that (then drawn) map, the mobile Map/Index switch and peek card,
   modals rebuilt onto the system, a motion pass, an accessibility pass, and
   one drawn story plate.
 
@@ -440,5 +477,26 @@ The short version:
 
 **Do not** modify `data/*.json`, the planner algorithm, or `refresh()` /
 `selectPlace()` control flow as part of visual work. And no Tailwind, no
-shadcn/ui, no React, no MapLibre — each was evaluated and declined for
-reasons recorded in the plan.
+shadcn/ui, no React — each was evaluated and declined for reasons recorded in
+the plan. (MapLibre was declined then too, for a *drawn* map; it arrived
+later with the real map — see §15.)
+
+## 15. The real map (complete, 2026-09-14)
+
+The schematic SVG map was replaced by a real street map in four gated stages
+on `redesign/field-guide`. **[`docs/REAL_MAP_PLAN.md`](docs/REAL_MAP_PLAN.md)**
+records the decisions, the stage commits, what changed from the plan and why,
+and what was verified. The short version:
+
+- **MapLibre GL JS v5.24.0 + OpenFreeMap tiles**, our own style
+  `map/ikap-atlas.json` forked from Positron — warm paper land, blue water,
+  sage parks, nothing in the brand green, quiet at city zoom.
+- **Markers stayed in the design language** as HTML: category colour, glyph,
+  paper rim, count badge, hover / selected / filtered-out states, sized by
+  zoom band. No clustering; places ten metres apart overlap until you zoom.
+- **The product around it is intact**: selection both ways, filters, search,
+  sort, Google Maps links, the mobile switch and peek card.
+- **Location confidence** from the workbook is now in the data and shown as
+  "Approximate location" on the ten Medium places.
+- **Every failure leaves the index working**, and says so.
+- **Later:** a Maputnik pass on the style file.

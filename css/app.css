@@ -44,7 +44,7 @@
     /* --- Water: stays unmistakably blue ----------------------- */
     --water-fill:#A9C6D4;
     --water-line:#3C6A80;    /* the coast: a line, 3.3:1 on --water-fill */
-    --water-ink:#2A4E60;     /* text on the water        5.0:1          */
+    --water-ink:#2A4E60;     /* text on the water 5.0:1 - the map style's water labels */
 
     /* --- Category colours -------------------------------------
        The only other colour in the interface. Outdoors sits well
@@ -229,28 +229,35 @@
   .map-legend .key-item.off{opacity:.32;}
   .map-legend .swatch{width:9px; height:9px; border-radius:var(--r-pill);}
 
-  /* ---------- The field itself -------------------------------- */
-  .ground .grat{
-    stroke:var(--green-line); stroke-width:1;
-    stroke-dasharray:2 7; opacity:.75;
+  /* ---------- The map's note ----------------------------------
+     One line of the display face while the map draws, and a short plain
+     paragraph if it can't. Centred in the part of the map that is free - on
+     desktop the index panel covers the right of it. */
+  .map-note{
+    position:absolute; z-index:3; top:50%; left:calc((100% - 470px) / 2);
+    transform:translate(-50%, -50%);
+    max-width:min(34ch, 80%);
+    text-align:center; color:var(--ink-2); font-size:.875rem; line-height:1.5;
+    pointer-events:none;
   }
-  .ground .water{fill:var(--water-fill);}
-  /* The coast is the one drawn edge on the map, so it gets the only
-     solid stroke in the whole drawing. */
-  .ground .shoreline{
-    fill:none; stroke:var(--water-line); stroke-width:2; opacity:.8;
+  .map-note:empty{display:none;}
+  .map-note-title{
+    font-family:var(--font-display); font-style:italic;
+    font-size:1.375rem; line-height:1.2; color:var(--ink);
   }
-  .ground .water-label{
-    font-family:var(--font-display); font-style:italic; font-size:26px;
-    fill:var(--water-ink);
+  .map-note p + p{margin-top:var(--s-2);}
+  .mapfield:not(.is-loading):not(.is-unavailable):not(.is-degraded) .map-note{display:none;}
+  /* A failure note sits on paper so it reads over whatever is under it. */
+  .mapfield.is-unavailable .map-note,
+  .mapfield.is-degraded .map-note{
+    background:var(--paper);
+    border:1px solid var(--green-line); border-top:1px dashed var(--ochre);
+    padding:var(--s-4) var(--s-5);
+    box-shadow:0 18px 40px -24px rgba(30,40,25,.45);
   }
-  .ground .district{
-    font-family:var(--font-body); font-size:14px; font-weight:600;
-    letter-spacing:.16em; text-transform:uppercase;
-    fill:var(--ink-3);
-    pointer-events:none; user-select:none;
-  }
-  .ground .district.offshore{fill:var(--water-ink);}
+  /* No map at all: no controls, no key to a map that isn't there. */
+  .mapfield.is-unavailable .atlas{visibility:hidden;}
+  .stage.map-off .map-legend{display:none;}
 
   /* ---------- Markers -----------------------------------------
      Markers are ordinary HTML now, positioned by MapLibre. That is what keeps
@@ -772,6 +779,12 @@
   .note-text::before{content:"“";}
   .note-text::after{content:"”";}
 
+  /* Honesty, not a feature: meta size, no icon, no colour of its own. */
+  .location-approx{
+    margin-top:var(--s-3);
+    font-size:.8125rem; color:var(--ink-3);
+  }
+  .peek .location-approx{margin-top:2px;}
   .card-links{display:flex; gap:var(--s-3); align-items:center;}
   .maps-link{
     display:inline-flex; align-items:center; gap:6px;
@@ -1061,6 +1074,9 @@
       display:flex; flex-direction:column; align-items:flex-end;
     }
     .maplibregl-ctrl-group button{width:44px; height:44px;}
+    .map-note{left:50%;}
+    /* With no map there is no second half to switch to. */
+    .stage.map-off .viewswitch{display:none;}
     .map-recentre button{min-height:44px;}
     .maplibregl-ctrl-bottom-right{
       right:env(safe-area-inset-right);
@@ -1122,10 +1138,6 @@
       color:var(--green);
       border-bottom:1.5px solid var(--line-control);
     }
-    /* District names need room the band hasn't got, and the crop cuts
-       them mid-word - so at this width the map keeps only its pins. */
-    .ground .district{display:none;}
-    .ground .water-label{font-size:30px;}
     .map-legend{position:static; max-width:none; border:none;
                 border-bottom:1px dashed var(--green-line);
                 display:grid; grid-template-columns:repeat(2, minmax(0,1fr));

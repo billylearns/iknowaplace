@@ -6,6 +6,9 @@
 <meta name="description" content="A map of Toronto built entirely from places real friends recommended - who suggested each one, how they rated it, and what they said about it.">
 <meta name="theme-color" content="#F3EDDF">
 <title>I Know a Place</title>
+<!-- The wordmark's ochre full stop on the chrome ground. Inline, so it costs
+     no request and the console no longer reports a missing favicon.ico. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232E5D3C'/%3E%3Ccircle cx='16' cy='16' r='6.5' fill='%23B8863B'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -47,9 +50,13 @@
       <button type="button" class="vs-btn on" id="viewIndex" aria-pressed="true">Index</button>
       <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
     </div>
-    <div class="mapfield">
-      <div class="atlas" id="atlas" aria-label="Map of recommended places in Toronto"></div>
-      <div class="map-tooltip" id="mapTooltip"></div>
+    <div class="mapfield is-loading">
+      <div class="atlas" id="atlas"></div>
+      <div class="map-tooltip" id="mapTooltip" aria-hidden="true"></div>
+      <!-- Says "drawing" while the map loads, and says so plainly if it can't. -->
+      <div class="map-note" id="mapNote" role="status" aria-live="polite">
+        <p class="map-note-title">Drawing Toronto&hellip;</p>
+      </div>
     </div>
     <div class="map-legend" id="mapLegend"></div>
 
@@ -231,6 +238,11 @@
       "from your computer, run a local server in this folder (npx serve) and open the " +
       "address it prints instead.";
     document.getElementById("emptyState").style.display = "block";
+    // With no places there is nothing to put on a map; don't leave it drawing.
+    document.querySelector(".mapfield").classList.replace("is-loading", "is-unavailable");
+    document.querySelector(".stage").classList.add("map-off");
+    document.getElementById("mapNote").innerHTML =
+      '<p class="map-note-title">No places to map</p>';
     return;
   }
 
@@ -392,294 +404,13 @@
     refresh();
   });
 
-  /* ---------------- Map projection ---------------- */
-  const VB_W = 1500, VB_H = 900, PAD = 150;
-  const lats = places.map(p=>p.lat), lngs = places.map(p=>p.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const avgLatRad = (minLat+maxLat)/2 * Math.PI/180;
-  const lngCorrection = Math.cos(avgLatRad);
-  const spanX = (maxLng-minLng) * lngCorrection;
-  const spanY = (maxLat-minLat);
-  const scale = Math.min((VB_W-PAD*2)/spanX, (VB_H*0.82-PAD)/spanY);
-  function project(lat,lng){
-    const x = PAD + ((lng-minLng)*lngCorrection) * scale + (VB_W-PAD*2-spanX*scale)/2;
-    const y = PAD + ( (maxLat-lat) * scale );
-    return {x,y};
-  }
-  places.forEach(p=>{ const {x,y}=project(p.lat,p.lng); p.mx=x; p.my=y; });
-
-  /* ---------------- The shore, and the offshore pass ----------------
-     Toronto's waterfront runs at about 43.6355, so the lake edge is
-     projected from a real latitude rather than drawn at a guessed
-     fraction of the canvas. That alone gives the field a coast.
-
-     One place - Toronto Islands - is genuinely out in the lake, and at
-     true scale it sits 300 units south of everything else, which
-     squeezes the other 38 pins into the top third of the drawing. So
-     anything south of the shore keeps its bearing and its order but has
-     its distance offshore compressed. project() is untouched: this is a
-     separate pass run after it, exactly like the relaxation pass below.
-     The map says "not to scale" and means it. */
-  const SHORE_Y = project(43.6355, minLng).y;
-  const OFFSHORE_SQUASH = 0.35;
-  places.forEach(p=>{
-    if(p.my > SHORE_Y) p.my = SHORE_Y + (p.my - SHORE_Y) * OFFSHORE_SQUASH;
-  });
-
-  // simple collision relaxation so close-together pins don't fully overlap
-  for(let iter=0; iter<60; iter++){
-    for(let i=0;i<places.length;i++){
-      for(let j=i+1;j<places.length;j++){
-        const a=places[i], b=places[j];
-        const dx=b.mx-a.mx, dy=b.my-a.my;
-        const dist=Math.hypot(dx,dy) || 0.001;
-        const minDist = 40;
-        if(dist < minDist){
-          const push = (minDist-dist)/2;
-          const ux=dx/dist, uy=dy/dist;
-          a.mx -= ux*push; a.my -= uy*push;
-          b.mx += ux*push; b.my += uy*push;
-        }
-      }
-    }
-  }
-
-  const R = 15;
-  function radiusFor(p){ return R; }
-
-  /* ---------------- Render map ---------------- */
+  /* ---------------- The map's handles ----------------
+     The map itself - MapLibre, OpenFreeMap tiles, our own style - lives in
+     "The real map" below. These are the page elements it draws into. */
   const atlas = document.getElementById("atlas");
   const mapField = document.querySelector(".mapfield");
   const tooltip = document.getElementById("mapTooltip");
   const CAN_HOVER = window.matchMedia("(hover: hover)");
-  function svgEl(tag, attrs){
-    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-    Object.entries(attrs||{}).forEach(([k,v])=>el.setAttribute(k,v));
-    return el;
-  }
-  // The visible window pans and zooms with the viewport (see
-  // fitMapToViewport), so the ground has to be drawn well past the pins in
-  // every direction or its edge shows up as a hard line across the field.
-  const WORLD = { x0:-1800, x1:3400, y0:-1400, y1:2800 };
-  let lakeLabel = null;
-
-  function renderAtlasChrome(){
-    const ground = svgEl("g", {class:"ground", "aria-hidden":"true"});
-
-    // Dashed graticule rather than solid rules: the same route-dash language
-    // the page dividers use, so the map reads as part of the same drawing.
-    const step = 96;
-    for(let gx=Math.ceil(WORLD.x0/step)*step; gx<=WORLD.x1; gx+=step){
-      ground.appendChild(svgEl("line",{class:"grat",x1:gx,y1:WORLD.y0,x2:gx,y2:SHORE_Y}));
-    }
-    for(let gy=Math.ceil(WORLD.y0/step)*step; gy<SHORE_Y; gy+=step){
-      ground.appendChild(svgEl("line",{class:"grat",x1:WORLD.x0,y1:gy,x2:WORLD.x1,y2:gy}));
-    }
-
-    // The lake. A coast needs a line, not just a change of fill - the shore
-    // is the one drawn edge on the map, so it gets the only solid stroke.
-    const w = WORLD.x1 - WORLD.x0;
-    const shore =
-      `M${WORLD.x0},${SHORE_Y+8}`+
-      ` C ${WORLD.x0+w*0.17},${SHORE_Y-22} ${WORLD.x0+w*0.33},${SHORE_Y+30} ${WORLD.x0+w*0.51},${SHORE_Y+6}`+
-      ` S ${WORLD.x0+w*0.82},${SHORE_Y-30} ${WORLD.x1},${SHORE_Y+18}`;
-    ground.appendChild(svgEl("path",{class:"water",
-      d:shore+` L${WORLD.x1},${WORLD.y1} L${WORLD.x0},${WORLD.y1} Z`}));
-    ground.appendChild(svgEl("path",{class:"shoreline", d:shore}));
-
-    // The window on the field moves with the viewport, so the lake is named
-    // where the lake is actually on screen - see fitMapToViewport.
-    lakeLabel = svgEl("text",{class:"water-label", y:SHORE_Y+46});
-    lakeLabel.textContent = "Lake Ontario";
-    ground.appendChild(lakeLabel);
-
-    renderDistricts(ground);
-    atlas.appendChild(ground);
-  }
-
-  // District names are the field guide's own cartography: without them the
-  // pins are confetti on a grid, and with them the cluster reads as a city.
-  // Only neighbourhoods with more than one place earn a label - plus Toronto
-  // Islands, which is alone out in the lake and otherwise looks like a bug.
-  // Biggest first, and any label that would land on a pin or on a label
-  // already placed is dropped rather than crowded in.
-  function renderDistricts(ground){
-    const groups = {};
-    places.forEach(p=>{ (groups[p.neighbourhood] ||= []).push(p); });
-    const named = Object.entries(groups)
-      .filter(([name, list]) => list.length > 1 || name === "Toronto Islands")
-      .sort((a,b)=> b[1].length - a[1].length);
-
-    const placed = [];
-    const free = (box)=>
-      !placed.some(b =>
-        Math.abs(b.x-box.x) < (b.w+box.w)/2 + 12 &&
-        Math.abs(b.y-box.y) < (b.h+box.h)/2 + 8) &&
-      !places.some(p =>
-        Math.abs(p.mx-box.x) < box.w/2 + R + 2 &&
-        Math.abs(p.my-box.y) < box.h/2 + R);
-
-    named.forEach(([name, list])=>{
-      const xs = list.map(p=>p.mx), ys = list.map(p=>p.my);
-      const cx = xs.reduce((a,v)=>a+v,0)/xs.length;
-      const cy = ys.reduce((a,v)=>a+v,0)/ys.length;
-      const top = Math.min(...ys), bottom = Math.max(...ys);
-      const left = Math.min(...xs), right = Math.max(...xs);
-      const isle = name === "Toronto Islands";
-      const box = { w: name.length * 9.2 + 10, h: 18, x:cx, y:0 };
-
-      // Try each shoulder of the group in turn, and only give up on a label
-      // if the district has no clear air anywhere around it. Toronto Islands
-      // is labelled below its pin so the name sits out in the water with it,
-      // rather than on the mainland it is nowhere near.
-      const spots = isle
-        ? [[cx, bottom + R + 26]]
-        : [[cx, top - R - 20], [cx, bottom + R + 28],
-           [left - box.w/2 - R - 18, cy + 5], [right + box.w/2 + R + 18, cy + 5],
-           [cx, top - R - 46], [cx, bottom + R + 54]];
-
-      const spot = spots.find(([x,y])=>{ box.x=x; box.y=y; return free(box); });
-      if(!spot) return;
-      box.x = spot[0]; box.y = spot[1];
-      placed.push({...box});
-      const t = svgEl("text", {class:"district"+(isle?" offshore":""),
-        x:spot[0], y:spot[1], "text-anchor":"middle"});
-      t.textContent = name;
-      ground.appendChild(t);
-    });
-  }
-
-  /* ---------------- The window on the field ----------------
-     The map used to be a fixed 1500x900 canvas that the browser cropped to
-     fill whatever shape the stage happened to be, which left the pins small
-     and adrift in a mostly empty field on desktop and squeezed on mobile.
-
-     Instead the viewBox is computed for the viewport: it is given the stage's
-     own aspect ratio, so map units map one-to-one onto the element, and it is
-     then positioned so the pin cluster is framed inside the part of the stage
-     that is actually free - on desktop the index panel floats over the right
-     of the map, so the cluster centres in what is left of it.
-
-     Below K_MIN the map stops shrinking and starts cropping instead: 39 pins
-     at 11px across is a texture, not a map. */
-  const K_MIN = 0.62, K_MAX = 1.2, FRAME_PAD = R + 34;
-  function fitMapToViewport(){
-    const box = atlas.getBoundingClientRect();
-    if(!box.width || !box.height) return;
-
-    const xs = places.map(p=>p.mx), ys = places.map(p=>p.my);
-    const c = {
-      x0: Math.min(...xs) - FRAME_PAD, x1: Math.max(...xs) + FRAME_PAD,
-      y0: Math.min(...ys) - FRAME_PAD, y1: Math.max(...ys) + FRAME_PAD
-    };
-    const cw = c.x1 - c.x0, ch = c.y1 - c.y0;
-
-    const panel = document.querySelector(".panel");
-    const wide = window.innerWidth > 880 && panel;
-    const overlap = wide ? (box.right - panel.getBoundingClientRect().left) + 24 : 0;
-    const freeW = Math.max(260, box.width - Math.max(0, overlap));
-
-    // Frame against the part of the map that is on screen, not the part that
-    // exists. In the mobile map view the band is taller than the fold, and
-    // centring the pins in the whole band buries them below it.
-    const visTop = Math.max(0, -box.top);
-    const visH = Math.max(160, Math.min(box.height, window.innerHeight - box.top) - visTop);
-
-    const k = Math.min(K_MAX, Math.max(K_MIN, Math.min(freeW/cw, visH/ch)));
-    const vbW = box.width / k, vbH = box.height / k;
-    const x = (c.x0 + cw/2) - (freeW/2) / k;
-    const y = (c.y0 + ch/2) - (visTop + visH/2) / k;
-
-    atlas.setAttribute("viewBox", x+" "+y+" "+vbW+" "+vbH);
-    atlas.setAttribute("preserveAspectRatio", "xMidYMid meet");
-
-    // Named against the visible window rather than at a fixed spot on the
-    // canvas, and tucked just under the coast so it shares no lane with the
-    // Toronto Islands label. It hugs whichever end of the water is free: the
-    // right on desktop, where the key block sits over the bottom-left corner,
-    // and the left on mobile, where the key has moved off the map entirely.
-    if(lakeLabel){
-      lakeLabel.setAttribute("text-anchor", wide ? "end" : "start");
-      lakeLabel.setAttribute("x", x + (wide ? freeW - 28 : 28) / k);
-    }
-  }
-  let fitTimer = null;
-  window.addEventListener("resize", ()=>{
-    clearTimeout(fitTimer);
-    fitTimer = setTimeout(mapResize, 150);
-  });
-  // The fit is measured from the element, so it has to be re-measured whenever
-  // the element's size can have changed - which is more often than a window
-  // resize: the masthead is taller once the display face lands, and the map
-  // can be laid out at zero height while the tab it is in is still hidden.
-  if(window.ResizeObserver){
-    new ResizeObserver(()=>mapResize()).observe(atlas);
-  }
-
-  let markerEls = {};
-  let firstMarkerPaint = true;
-  function renderMarkers(visibleKeys){
-    Object.values(markerEls).forEach(g=>g.remove());
-    markerEls = {};
-    let landed = 0;
-    places.forEach(p=>{
-      const visible = visibleKeys.has(p.key);
-      const colour = CATS[p.category].color;
-
-      // A filtered-out place doesn't vanish - the city would lose its shape -
-      // but it stops being a marker and becomes a survey dot. Ghosting a full
-      // disc left thirty grey blobs still competing for attention; a dot reads
-      // as ground, so the matches are the only things with weight on the field.
-      if(!visible){
-        const out = svgEl("g", {class:"marker out", "data-key":p.key});
-        out.appendChild(svgEl("circle", {class:"speck", cx:p.mx, cy:p.my, r:3.6, fill:colour}));
-        atlas.appendChild(out);
-        markerEls[p.key] = out;
-        return;
-      }
-
-      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""),
-        "data-key":p.key});
-      const r = radiusFor(p);
-      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+11, fill:colour}));
-      // The disc carries a paper-coloured rim so that two overlapping pins
-      // still read as two objects, and so a pin over the lake keeps its edge.
-      g.appendChild(svgEl("circle", {class:"dot", cx:p.mx, cy:p.my, r:r, fill:colour}));
-
-      // Category is carried by the glyph as well as the colour, so the marker
-      // still says what it is without relying on colour alone.
-      const use = document.createElementNS("http://www.w3.org/2000/svg","use");
-      use.setAttribute("href", "#ic-"+CATS[p.category].icon);
-      use.setAttribute("x", p.mx-7.5); use.setAttribute("y", p.my-7.5);
-      use.setAttribute("width", 15); use.setAttribute("height", 15);
-      use.setAttribute("class", "glyph");
-      g.appendChild(use);
-
-      if(p.recCount>1){
-        g.appendChild(svgEl("circle", {class:"count-ring", cx:p.mx+12, cy:p.my-12, r:8.5,
-          fill:"var(--paper)", stroke:colour, "stroke-width":"1.5"}));
-        const t = svgEl("text", {x:p.mx+12, y:p.my-8.4, "text-anchor":"middle",
-          class:"badge-count", fill:colour, "font-size":"10"});
-        t.textContent = p.recCount;
-        g.appendChild(t);
-      }
-      g.addEventListener("click", ()=> selectPlace(p.key, true));
-      g.addEventListener("mouseenter", ()=> showTooltip(p));
-      g.addEventListener("mouseleave", hideTooltip);
-      // Only the first render is an arrival. Every render after this one is
-      // the result of a filter, and a pin re-landing on every keystroke would
-      // be motion reporting nothing.
-      if(firstMarkerPaint){
-        g.classList.add("arrive");
-        g.style.animationDelay = (landed++ * 11) + "ms";
-      }
-      atlas.appendChild(g);
-      markerEls[p.key] = g;
-    });
-    firstMarkerPaint = false;
-    renderLegend();
-  }
 
   // The tooltip was a black chip borrowed from nowhere in particular. It is a
   // paper tag now: the place in the display face, what and where underneath.
@@ -711,18 +442,16 @@
 
 
   /* ---------------- The real map ----------------
-     MapLibre GL JS drawing OpenFreeMap's public vector tiles. The 39 places sit
-     at their true coordinates now, so the projection, the offshore squash and
-     the collision-relaxation pass above have no job left - they are retired in
-     a later stage rather than deleted mid-migration.
+     MapLibre GL JS drawing OpenFreeMap's public vector tiles, with every place
+     at its true coordinates. This replaced a schematic SVG drawing whose pins
+     were projected, squashed and pushed apart so they would not overlap - a
+     nice drawing, but one that could not tell you where anything was.
 
      Nothing is self-hosted and there is no API key: OpenFreeMap's public
-     instance is free and unmetered. Positron is the quietest of its five
-     styles and already ships without POI clutter, which is the right starting
-     point when 39 coloured discs are meant to be the subject. */
-  // Our own style, forked from OpenFreeMap Positron and recoloured to the Field
-  // Guide. It still draws OpenFreeMap's tiles, fonts and sprites - only the
-  // look lives here. Edit map/ikap-atlas.json directly or in Maputnik.
+     instance is free and unmetered. The style is our own, forked from its
+     Positron and recoloured to the Field Guide. It still draws OpenFreeMap's
+     tiles, fonts and sprites - only the look lives in the repo. Edit
+     map/ikap-atlas.json directly or open it in Maputnik. */
   const MAP_STYLE = "./map/ikap-atlas.json";
   // Breathing room around the pin cluster, in pixels. A fixed 64 spent a third
   // of a phone screen on margin and left the city as a smudge, so it scales
@@ -741,8 +470,7 @@
 
   // On desktop the index panel floats over the right of the map, so the middle
   // of the container is not the middle of what you can see. Padding the camera
-  // by the panel is the same correction the old fitMapToViewport() made by
-  // hand, handed to MapLibre instead.
+  // by the panel frames the city in the part of the map that is free.
   function mapPadding(){
     const P = mapPad();
     const pad = { top:P, bottom:P, left:P, right:P };
@@ -782,6 +510,17 @@
       mapFramed = true;
     }
   }
+
+  // MapLibre only measures its container when told to. A window resize is the
+  // obvious case; the ResizeObserver catches the rest - the masthead growing
+  // when the display face lands, and the map being laid out at no size while
+  // the phone's index is showing.
+  let resizeTimer = null;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(mapResize, 150);
+  });
+  if(window.ResizeObserver) new ResizeObserver(()=>mapResize()).observe(atlas);
 
   // Camera moves are motion reporting a change of state, so they obey the same
   // rule the scrolling already does.
@@ -827,7 +566,76 @@
     });
   }
 
+  /* ---------------- When the map can't be a map ----------------
+     The index has never depended on the map, so every way the map can fail
+     ends the same way: say so plainly, point at the index, and on a phone take
+     the switch away rather than offer a view that has nothing in it.
+
+     "Unavailable" is for no map at all - the library didn't load, the device
+     has no WebGL, or our style file didn't arrive. "No streets" is for when the
+     map runs but OpenFreeMap's tiles don't: the pins still stand in the right
+     places relative to each other, so they stay, with a note over them. */
+  const mapNote = document.getElementById("mapNote");
+  const INDEX_LINE = "The index has every place, with who recommended it and what they said.";
+
+  function showMapNote(state, title){
+    mapField.classList.remove("is-loading", "is-unavailable", "is-degraded");
+    if(state) mapField.classList.add(state);
+    mapNote.innerHTML = title
+      ? `<p class="map-note-title">${escapeHtml(title)}</p><p>${escapeHtml(INDEX_LINE)}</p>`
+      : "";
+  }
+  function mapUnavailable(title){
+    showMapNote("is-unavailable", title);
+    stage.classList.add("map-off");
+    if(NARROW.matches && mobileView === "map") setView("list");
+  }
+
+  function webglAvailable(){
+    try {
+      const c = document.createElement("canvas");
+      return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch (e) { return false; }
+  }
+
+  // Tiles failing and tiles never having worked are different things: a
+  // single tile can fail on a flaky connection and the next pan fixes it.
+  let tilesSeen = false, streetsNoted = false;
+  function onMapError(e){
+    const err = e && e.error, url = (err && err.url) || "";
+    if(!mapReady && (url.includes("ikap-atlas.json") || (!e.sourceId && !url))){
+      console.warn("The map style could not be loaded.", err);
+      return mapUnavailable("The map isn't available right now");
+    }
+    if(url.includes("openfreemap.org") || e.sourceId === "openmaptiles"){
+      if(!tilesSeen && !streetsNoted){
+        streetsNoted = true;
+        console.warn("OpenFreeMap tiles are not loading; the pins are shown without streets.", err);
+        showMapNote("is-degraded", "The street map didn't load");
+      }
+      return;
+    }
+    console.warn("Map error", err);
+  }
+
   function initMap(){
+    if(typeof maplibregl === "undefined"){
+      console.warn("MapLibre GL JS did not load.");
+      return mapUnavailable("The map isn't available right now");
+    }
+    if(!webglAvailable()){
+      return mapUnavailable("This browser can't draw the map");
+    }
+    try {
+      startMap();
+    } catch (err) {
+      console.warn("The map could not start.", err);
+      map = null;
+      mapUnavailable("This browser can't draw the map");
+    }
+  }
+
+  function startMap(){
     map = new maplibregl.Map({
       container: "atlas",
       style: MAP_STYLE,
@@ -869,9 +677,32 @@
     // A tag pinned to a pin has to leave when the pin does.
     map.on("movestart", hideTooltip);
     map.on("zoom", applyZoomBand);
+    map.on("error", onMapError);
+    map.on("data", (e)=>{
+      if(e.dataType === "source" && e.sourceId === "openmaptiles" && e.tile && !tilesSeen){
+        tilesSeen = true;
+        if(streetsNoted) showMapNote(null);   // they came back after all
+      }
+    });
+    // Slow is not broken. If nothing has arrived after a while, say that the
+    // index works without waiting, but keep drawing.
+    setTimeout(()=>{
+      if(!mapReady && mapField.classList.contains("is-loading")){
+        mapNote.innerHTML = '<p class="map-note-title">Still drawing Toronto&hellip;</p>' +
+          `<p>${escapeHtml(INDEX_LINE)}</p>`;
+      }
+    }, 10000);
+
+    // The canvas is the one part of the map a keyboard can reach: arrow keys
+    // pan it and +/- zoom. The places themselves are reached through the index,
+    // which is the accessible way to every one of them.
+    map.getCanvas().setAttribute("aria-label",
+      "Street map of Toronto showing the recommended places. Arrow keys pan, plus and minus zoom. " +
+      "Every place is also listed in the index.");
 
     map.on("load", ()=>{
       mapReady = true;
+      if(mapField.classList.contains("is-loading")) showMapNote(null);
       applyZoomBand();
       buildMarkers();
       // Re-framed once the container has its final size: the masthead grows
@@ -898,8 +729,8 @@
     onRemove(){ this.el.remove(); }
   }
 
-  // Built once, at boot. Filtering only ever toggles a class from here on - the
-  // old renderer tore down and rebuilt all 39 pins on every keystroke.
+  // Built once, at boot. Filtering only ever toggles a class from here on, so a
+  // keystroke in the search box never rebuilds a pin.
   function buildMarkers(){
     // North first, so southern pins end up later in the DOM and therefore on
     // top: the usual cartographic convention, and it makes the downtown
@@ -908,6 +739,10 @@
       const el = document.createElement("div");
       el.className = "marker";
       el.dataset.key = p.key;
+      // Pins are a pointer shortcut to rows in the index, not a second copy of
+      // it: out of the tab order and out of the accessibility tree, so a screen
+      // reader meets each place once, in the list, with everything said about it.
+      el.setAttribute("aria-hidden", "true");
       el.style.setProperty("--cat", CATS[p.category].color);
       el.innerHTML =
         '<span class="halo"></span>' +
@@ -976,6 +811,18 @@
     return `${first} + ${others} friend${others > 1 ? "s" : ""}`;
   }
 
+  // Ten places were recommended by name without saying which branch, so their
+  // pin is a reasonable guess rather than the place itself. On a real map that
+  // is worth one quiet line. The workbook's own note is written for whoever
+  // cleaned the data ("the form did not specify..."), so it is not shown as-is.
+  function locationLine(p){
+    if(p.confidence !== "Medium") return "";
+    const why = /did not specify/i.test(p.locationNote) ? " — branch not specified"
+              : /moving|routes/i.test(p.locationNote) ? " — routes vary"
+              : "";
+    return `<p class="location-approx">Approximate location${why}</p>`;
+  }
+
   function cardHtml(p){
     const rlist = (recsByPlace[p.key]||[]);
     const notes = rlist.map(r=>`
@@ -1006,6 +853,7 @@
       <div class="row-detail" id="detail-${p.key}">
         ${statRow(p)}
         <div class="note-list">${notes}</div>
+        ${locationLine(p)}
         <div class="card-links">
           <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
         </div>
@@ -1131,6 +979,7 @@
         <span class="peek-stars">${starsHtml(p.avgRating,"0.8em")}</span>
       </div>
       <p class="peek-who">${contributorLine(p)}</p>
+      ${locationLine(p)}
       <div class="peek-actions">
         <button class="peek-open" type="button">Read what they said</button>
         <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
