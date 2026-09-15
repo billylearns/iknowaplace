@@ -720,7 +720,10 @@
      instance is free and unmetered. Positron is the quietest of its five
      styles and already ships without POI clutter, which is the right starting
      point when 39 coloured discs are meant to be the subject. */
-  const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
+  // Our own style, forked from OpenFreeMap Positron and recoloured to the Field
+  // Guide. It still draws OpenFreeMap's tiles, fonts and sprites - only the
+  // look lives here. Edit map/ikap-atlas.json directly or in Maputnik.
+  const MAP_STYLE = "./map/ikap-atlas.json";
   // Breathing room around the pin cluster, in pixels. A fixed 64 spent a third
   // of a phone screen on margin and left the city as a smudge, so it scales
   // with the viewport and only reaches its full value on a desktop map.
@@ -749,6 +752,16 @@
       const f = field.getBoundingClientRect(), p = panel.getBoundingClientRect();
       if(p.width) pad.right = Math.max(P, f.right - p.left + 24);
     }
+    // On a phone the peek card sits over the map in the same way the panel
+    // does on desktop. Across the bottom in portrait; down the right side in a
+    // short landscape screen, where across the bottom would bury the map.
+    if(field && !peek.hidden){
+      const f = field.getBoundingClientRect(), k = peek.getBoundingClientRect();
+      if(k.width && k.height){
+        if(k.width < f.width * 0.66) pad.right  = Math.max(pad.right,  f.right  - k.left + 12);
+        else                         pad.bottom = Math.max(pad.bottom, f.bottom - k.top  + 12);
+      }
+    }
     return pad;
   }
 
@@ -756,7 +769,19 @@
     if(!map) return;
     map.fitBounds(placeBounds(), Object.assign({ padding: mapPadding(), duration: 0 }, opts));
   }
-  function mapResize(){ if(map) map.resize(); }
+  // On a phone the map starts hidden behind the index, at no size at all, so
+  // the fit made at load is a fit of nothing. The first time it has a real
+  // size - and only if nobody has moved it yet - it is framed properly.
+  let mapFramed = false, mapTouched = false;
+  function mapResize(){
+    if(!map) return;
+    map.resize();
+    const c = map.getContainer();
+    if(mapReady && !mapFramed && !mapTouched && c.clientWidth && c.clientHeight){
+      fitPlaces();
+      mapFramed = true;
+    }
+  }
 
   // Camera moves are motion reporting a change of state, so they obey the same
   // rule the scrolling already does.
@@ -813,12 +838,33 @@
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
+      // Past this the pins are one dot and the map is a continent.
+      minZoom: 9,
+      maxZoom: 18,
       attributionControl: false
     });
     map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
+
+    // Deliberately few controls. Zoom, because pinch is not discoverable on a
+    // desktop; where-am-I, because "what's near me" is the most useful thing
+    // this map can answer on a phone; and a way home once you have panned
+    // away. No compass - there is no rotation to undo - and no scale bar.
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+      fitBoundsOptions: { maxZoom: 15 }
+    }), "top-left");
+    map.addControl(new RecentreControl(), "top-left");
     // The style already carries OpenFreeMap, OpenMapTiles and OpenStreetMap,
     // so this only has to put it on screen, not restate it.
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+    // Once someone has moved the map themselves, it is theirs: no automatic
+    // re-framing will take it back from them.
+    ["dragstart", "wheel", "touchstart"].forEach(t =>
+      map.on(t, ()=>{ mapTouched = true; }));
 
     // A tag pinned to a pin has to leave when the pin does.
     map.on("movestart", hideTooltip);
@@ -830,9 +876,26 @@
       buildMarkers();
       // Re-framed once the container has its final size: the masthead grows
       // when the display face lands, and the panel is only measurable now.
-      fitPlaces();
+      const c = map.getContainer();
+      if(c.clientWidth && c.clientHeight){ fitPlaces(); mapFramed = true; }
       refresh();
     });
+  }
+
+  // "Recentre": the whole city again. A word, not an icon - there is no glyph
+  // for "all the places" that reads faster than saying so.
+  class RecentreControl {
+    onAdd(){
+      this.el = document.createElement("div");
+      this.el.className = "maplibregl-ctrl map-recentre";
+      this.el.innerHTML = '<button type="button">Recentre</button>';
+      this.el.firstChild.addEventListener("click", ()=>{
+        hideTooltip();
+        fitPlaces({ duration: mapEase() });
+      });
+      return this.el;
+    }
+    onRemove(){ this.el.remove(); }
   }
 
   // Built once, at boot. Filtering only ever toggles a class from here on - the
@@ -1021,6 +1084,15 @@
     // The map band only has a size once it is the visible half.
     if(v === "map") mapResize();
     changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
+    // The masthead is half a phone screen on its own. Either half starts at
+    // the switch, so the map you asked for is the map you get, and the index
+    // starts at its first row rather than wherever the map left the page.
+    if(NARROW.matches){
+      stage.style.setProperty("--switch-h", document.querySelector(".viewswitch").offsetHeight + "px");
+      if(v === "map") mapResize();
+      const top = stage.getBoundingClientRect().top + window.scrollY;
+      if(Math.abs(window.scrollY - top) > 1) window.scrollTo({ top, behavior: "auto" });
+    }
   }
 
   // Restarting an animation means taking the class off, forcing a reflow and
@@ -1036,7 +1108,13 @@
   // Leaving mobile drops the whole idea: on desktop both are on screen.
   NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); mapResize(); });
 
-  function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; }
+  // The attribution lives in the map's bottom corner, which is exactly where
+  // the peek card lands. The credit has to stay readable while a card is open,
+  // so the card tells the map how much room to leave under it.
+  function clearPeekSpace(){
+    mapField.style.setProperty("--peek-clear", peek.hidden ? "0px" : (peek.offsetHeight + 12) + "px");
+  }
+  function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; clearPeekSpace(); }
 
   function renderPeek(){
     if(!NARROW.matches || mobileView !== "map" || !state.selectedKey) return hidePeek();
@@ -1058,6 +1136,7 @@
         <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
       </div>`;
     peek.hidden = false;
+    clearPeekSpace();
     peek.querySelector(".peek-close").addEventListener("click", ()=>{
       state.selectedKey = null; refresh(); hidePeek();
     });
@@ -1093,9 +1172,10 @@
     if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
       if(card) scrollRowIntoIndex(card);
-      revealOnMap(state.selectedKey);
     }
+    // The peek card first, so the map can see how much of it the card covers.
     renderPeek();
+    if(state.selectedKey) revealOnMap(state.selectedKey);
   }
 
   /* ---------------- Planner (Help me choose) ---------------- */
