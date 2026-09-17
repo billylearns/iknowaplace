@@ -2,7 +2,7 @@
 
 **Status:** **complete.** Stages 1–4 are done. The map as built is written up
 in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) §5.
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-16
 
 This records the phase that replaced the drawn, schematic SVG map of Toronto
 with a real street map: what was decided, why, and what shipped in which
@@ -39,7 +39,7 @@ mobile Index/Map switch and the peek card.
 | List → map | **Ease only if needed** | The camera moves only when the selected pin is off screen or under the panel or card. |
 | Controls | Zoom, where-am-I, Recentre | No compass (no rotation), no scale bar, no fullscreen. |
 | Keyboard | Markers out of the tab order and hidden from screen readers | The index is the accessible path to every place; the canvas pans and zooms from the keyboard. |
-| Location confidence | Copied verbatim from the retired workbook | 29 High, 10 Medium. Nothing inferred. No coordinate changed. |
+| Location confidence | Copied verbatim from the retired workbook | 29 High, 10 Medium. Nothing inferred. One coordinate corrected afterwards, with approval - see §3. |
 
 ## 3. Data
 
@@ -52,8 +52,33 @@ mobile Index/Map switch and the peek card.
 The ten Medium places are the ones where the original recommendation named a
 business without saying which branch (and Pedal Pub, which moves). Two High
 places carry notes about hours and pricing rather than location; they were
-copied as they were. The change was additions only, and every workbook
+copied as they were. That change was additions only, and every workbook
 coordinate matched the JSON to nine decimal places.
+
+### The Medium ten, audited (2026-09-16)
+
+Each of the ten was checked against OpenStreetMap - what building the pin
+lands on, and where every branch of that business actually is - and, where
+OSM had no name at the point, against the business's own listings.
+
+**Nine were already on the right building and were left alone.** Where a
+business has several branches, the pin is on the one that matches the
+neighbourhood recorded for the place: Bagels on Fire on Queen West (the other
+is in the Beaches), Dark Horse on John Street, Neo Coffee Bar at 161
+Frederick, Evviva on Lower Simcoe, Columbus Café in the PATH. Jaybird looks
+wrong at first glance - OpenStreetMap names its pin "Jimmy's Coffee" - but
+the studio is the second floor of that same building, so the ambiguity is
+vertical and a pin cannot express it. Koh Lipe, Mizzica and Othership
+Adelaide turned out to have no branch to be unsure about; they are still
+marked Medium because that is what the workbook said.
+
+**One was wrong and was corrected, with the owner's approval.** Pedal Pub
+Toronto was pinned at Stackt Market, 28 Bathurst Street. The operator departs
+from Chefs Hall, 121 Richmond Street West, Unit 101 - about 1.6km east, and
+confirmed on Google Maps. Moving the pin also meant changing that place's
+`address_or_location`, its Google Maps URL (built from name + address) and
+its neighbourhood, which was "Bathurst Quay" and is now Financial District.
+It stays **Medium**: the departure point is knowable, but the tour moves.
 
 **In the interface** the ten Medium places carry one quiet line in the
 expanded index row and the peek card: *Approximate location — branch not
