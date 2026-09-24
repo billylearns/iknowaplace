@@ -383,9 +383,9 @@
   }
   .stage.map-full{grid-template-columns:minmax(0,1fr) 0px; padding-right:var(--s-4);}
   .stage.map-full .panel{visibility:hidden;}
-  /* The map/index switch and the peek card belong to the mobile stage only.
-     On desktop both halves are on screen, so neither has a job. */
-  .viewswitch{display:none;}
+  /* The control row, the sheet's handle, the Map pill and the peek card
+     belong to the phone layout only. */
+  .controlbar, .sheet-handle, .map-pill{display:none;}
   .peek{display:none;}
 
   .mapfield{
@@ -1179,7 +1179,9 @@
   .row.expanded .row-detail{animation:detail-in .2s ease both;}
 
   @keyframes peek-in{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
-  .view-in{animation:fade .24s ease both;}
+  /* On a phone the sheet's position is a transform, so it arrives by
+     fading rather than rising. */
+  @media (max-width: 880px){ .booting .panel{animation:fade .5s .12s ease both;} }
 
   /* The story on a phone: the photos become a short fanned row over the
      text, and the text scrolls with the sheet. */
@@ -1198,9 +1200,10 @@
      The stage stops being a stage: the map becomes a band you meet
      first, and the index runs underneath it on the page. */
   @media (max-width: 880px){
-    /* Until the bottom sheet arrives the phone page still scrolls, so the
-       shell grows with it rather than holding the window's height. */
-    .app{height:auto; min-height:100vh; min-height:100dvh;}
+    /* An app on a phone too: nothing scrolls but the list. The strip, the
+       masthead and the control row sit at the top; the stage takes the rest
+       of the screen, with the map filling it and the list as a sheet. */
+    html, body{overflow:hidden; overscroll-behavior:none;}
     .desk-only{display:none !important;}
     .mob-only{display:inline-flex !important;}
 
@@ -1209,8 +1212,9 @@
        was, so the map starts much higher up the screen. */
     .masthead{
       flex-direction:column; align-items:center; gap:var(--s-2);
-      padding:var(--s-3) var(--s-4) var(--s-3);
+      padding:var(--s-3) var(--s-3) var(--s-3);
       text-align:center;
+      border-bottom:none;
     }
     .mast-id{flex-direction:column; align-items:center; gap:3px;}
     .mast-sub{padding-left:0; border-left:none; align-items:center;}
@@ -1218,39 +1222,20 @@
     .kicker{font-size:.8125rem; white-space:normal;}
     .mast-right{
       flex-wrap:wrap; justify-content:center; align-items:center;
-      gap:2px 2px;
+      gap:2px 0;
     }
-    .masthead{padding-left:var(--s-3); padding-right:var(--s-3);}
-    .mast-right{column-gap:0;}
     .nav-link{font-size:.8125rem; padding:0 7px; min-height:36px; letter-spacing:-.005em;}
     .nav-dot{align-items:center; font-size:.8125rem;}
     .btn-plan{min-height:34px; padding:6px 13px; font-size:.8125rem; margin-left:3px;}
-    .stage{flex:none; height:auto; min-height:0; overflow:visible; display:flex; flex-direction:column;
-           padding:0; background:var(--paper); transition:none;}
-    .mapfield{border-radius:0; box-shadow:none; isolation:auto;}
 
-    /* ---- The switch: two words on a rule, not a pill toggle ----
-       It is the first thing under the masthead and it stays there while
-       the page scrolls, so the way back to the other half is never more
-       than a glance away. */
-    .viewswitch{
-      display:flex; align-items:center; gap:var(--s-5);
-      position:sticky; top:0; z-index:6;
-      padding:var(--s-3) var(--s-4);
+    /* ---- The control row: the city and the filters, always in reach ---- */
+    .controlbar{
+      flex:0 0 auto;
+      display:flex; align-items:center; justify-content:space-between; gap:var(--s-2);
+      padding:0 var(--s-3) var(--s-2);
       background:var(--paper-2);
       border-bottom:1px solid var(--line-soft);
     }
-    .vs-btn{
-      background:none; border:none; padding:4px 0;
-      font-family:var(--font-body); font-size:.9375rem; font-weight:500;
-      color:var(--ink-3);
-      border-bottom:1.5px solid transparent;
-      min-height:44px;
-    }
-    .vs-btn.on{color:var(--green-deep); border-bottom-color:var(--green);}
-    .viewswitch .city-btn{margin-left:auto;}
-    .viewswitch{gap:var(--s-4);}
-    .viewswitch .city-btn + .filters-btn{margin-left:calc(var(--s-2) - var(--s-4));}
     .filters-btn-sm{min-height:36px; padding:0 12px 0 10px; box-shadow:none; border:1px solid var(--line-soft); font-size:.875rem;}
 
     /* The filter panel is a sheet from the bottom on a phone, with the
@@ -1265,50 +1250,97 @@
     }
     .fp-head{padding-top:var(--s-5);}
 
-    /* ---- Taking turns ---- */
-    .stage[data-view="list"] .mapfield{display:none;}
-    .stage[data-view="map"] .panel{display:none;}
-
-    .mapfield{position:relative; inset:auto; height:52vh; min-height:340px;
-              border-bottom:1px solid var(--green-line);}
-    /* In its own view the map gets the screen, not a band of it: exactly the
-       screen below the switch, measured from the switch itself (setView sets
-       --switch-h) rather than a guessed 128px that left the footer showing.
-       The key follows below the fold, a short scroll away. */
-    .stage[data-view="map"] .mapfield{
-      height:calc(100vh - var(--switch-h, 69px));
-      height:calc(100dvh - var(--switch-h, 69px));
-      min-height:300px; border-bottom:none;
+    /* ---- The stage: the map fills it, the list sheet rides over it ---- */
+    .stage{
+      flex:1 1 auto; min-height:0;
+      display:block; padding:0;
+      background:var(--paper);
+      transition:none;
     }
+    .mapfield{position:absolute; inset:0; border-radius:0; box-shadow:none; isolation:auto;}
+
+    .panel{
+      position:absolute; left:0; right:0; top:0; height:100%;
+      z-index:6;
+      transform:translateY(var(--sheet-y, 0px));
+      background:var(--paper);
+      border-radius:var(--r-lg) var(--r-lg) 0 0;
+      box-shadow:0 -1px 0 var(--line-soft), 0 -8px 24px -6px rgba(30,36,28,.16);
+      will-change:transform;
+    }
+    .panel.sheet-animate{transition:transform .36s cubic-bezier(.2,.8,.2,1);}
+    /* The head is where the sheet is taken hold of. */
+    .panel-head{
+      flex:0 0 auto;
+      padding:0 var(--s-4) var(--s-3);
+      text-align:center;
+      touch-action:none; user-select:none; -webkit-user-select:none;
+      cursor:grab;
+    }
+    .panel.sheet-dragging .panel-head{cursor:grabbing;}
+    .sheet-handle{
+      display:block; width:100%; height:26px;
+      background:none; border:none; padding:0; margin:0;
+      cursor:inherit;
+    }
+    .sheet-handle span{
+      display:block; width:38px; height:5px; margin:10px auto 0;
+      border-radius:var(--r-pill); background:#CFC6B4;
+    }
+    .sheet-handle:focus-visible{outline-offset:-4px;}
+    .panel-head h2{font-size:1rem; text-align:center; white-space:normal;}
+    /* The list only scrolls once the sheet is all the way up; before that a
+       drag on it is a drag of the sheet. Room at the foot for the Map pill. */
+    .panel-scroll{
+      overflow:hidden;
+      padding:2px var(--s-3) calc(96px + env(safe-area-inset-bottom));
+    }
+    .stage[data-sheet="full"] .panel-scroll{overflow-y:auto;}
+    .stage.map-off .sheet-handle{visibility:hidden; height:12px;}
+    .stage.map-off .panel-head{cursor:default;}
+
+    /* ---- The Map pill: the way back from the list ---- */
+    .map-pill{
+      position:absolute; z-index:8;
+      left:50%; bottom:calc(var(--s-5) + env(safe-area-inset-bottom));
+      display:inline-flex; align-items:center; gap:8px;
+      min-height:46px; padding:0 20px;
+      background:var(--green-deep); color:var(--paper);
+      border:none; border-radius:var(--r-pill);
+      box-shadow:0 6px 20px -6px rgba(20,30,22,.55);
+      font-family:var(--font-body); font-size:.9375rem; font-weight:600;
+      opacity:0; pointer-events:none;
+      transform:translate(-50%, 12px);
+      transition:opacity .2s ease, transform .2s ease;
+    }
+    .map-pill svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round;}
+    .stage[data-sheet="full"]:not(.map-off) .map-pill{opacity:1; pointer-events:auto; transform:translate(-50%, 0);}
 
     /* ---- Map chrome on a phone ----
-       Controls move to the right-hand edge, where a thumb is, and grow to the
-       44px the rest of the mobile page uses. Everything at the edges of the map
-       keeps clear of notches and the home indicator. */
+       No zoom buttons - pinch does that, as in every map app. Where-am-I and
+       Recentre stay, on the right where a thumb is. The note and the credit
+       keep to the part of the map the sheet leaves showing. */
+    .maplibregl-ctrl-group:has(.maplibregl-ctrl-zoom-in){display:none;}
     .maplibregl-ctrl-top-right{
       top:var(--s-3); right:calc(var(--s-3) + env(safe-area-inset-right));
     }
     .maplibregl-ctrl-group button{width:44px; height:44px;}
-    .map-note{left:50%;}
-    /* With no map there is no second half to switch to. */
-    .stage.map-off .viewswitch{display:none;}
     .map-recentre button{min-height:44px;}
+    .map-note{top:calc(var(--sheet-y, 100%) / 2);}
     .maplibregl-ctrl-bottom-right{
       right:env(safe-area-inset-right);
-      bottom:calc(env(safe-area-inset-bottom) + var(--peek-clear, 0px));
+      bottom:calc(100% - var(--sheet-y, 100%) + var(--peek-clear, 0px));
     }
+    .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 var(--s-2) var(--s-2) 0;}
 
     /* ---- The peek card ----
-       The one raised surface on the page besides the modals: it is
-       answering a tap, so it has to read as sitting on top of the map. */
+       Floats just above the stepped-down sheet, answering the pin. */
     .peek{
       display:block;
-      position:sticky; z-index:7;
-      bottom:calc(var(--s-3) + env(safe-area-inset-bottom));
-      margin:calc(var(--s-4) * -1 - 6px)
-             calc(var(--s-3) + env(safe-area-inset-right))
-             var(--s-3)
-             calc(var(--s-3) + env(safe-area-inset-left));
+      position:absolute; z-index:7;
+      left:calc(var(--s-3) + env(safe-area-inset-left));
+      right:calc(var(--s-3) + env(safe-area-inset-right));
+      bottom:calc(100% - var(--sheet-y, 100%) + var(--s-3));
       background:var(--card);
       border:none;
       border-radius:var(--r-md);
@@ -1318,38 +1350,46 @@
     }
     .peek[hidden]{display:none;}
     @media (orientation: landscape) and (max-height: 500px){
-      .peek{margin-left:auto; width:min(340px, 52%);}
+      /* A landscape phone is short: the masthead folds to one row with no
+         tagline, and the card hangs from the top right instead of standing
+         on the sheet, scrolling inside itself if it has to. */
+      .masthead{flex-direction:row; justify-content:space-between; padding:var(--s-2) var(--s-3);}
+      .mast-sub{display:none;}
+      .word{font-size:1.5rem;}
+      .controlbar{padding-top:0;}
+      .peek{
+        left:auto; width:min(360px, 55%);
+        top:var(--s-2); bottom:auto;
+        max-height:calc(var(--sheet-y, 100%) - var(--s-4));
+        overflow:auto; padding:var(--s-3);
+      }
       /* The card now owns the right edge, so the controls take the left. */
       .maplibregl-ctrl-top-right{right:auto; left:calc(var(--s-3) + env(safe-area-inset-left)); align-items:flex-start;}
     }
     .peek-close{
       position:absolute; top:6px; right:6px;
-      width:34px; height:34px; border:none; background:none;
+      width:36px; height:36px; border:none; background:none;
       color:var(--ink-3); font-size:.8125rem; line-height:1;
     }
-    .peek-top{display:flex; align-items:flex-start; gap:var(--s-3); padding-right:var(--s-5);}
+    .peek-top{display:flex; align-items:center; gap:var(--s-3); padding-right:var(--s-6);}
+    .peek-top .row-mark{align-self:center;}
     .peek-main{flex:1; min-width:0;}
-    .peek-title{font-size:1.125rem; font-weight:600; letter-spacing:-.01em; color:var(--ink);}
+    .peek-title{font-size:1.0625rem; font-weight:600; letter-spacing:-.01em; line-height:1.25; color:var(--ink);}
     .peek-where{margin-top:1px; font-family:var(--font-display); font-style:italic; font-size:.9375rem; color:var(--ink-2);}
     .peek-where .sep{opacity:.55; padding:0 2px;}
-    .peek-stars{flex:0 0 auto; line-height:1; margin-top:3px;}
+    .peek-stars{flex:0 0 auto; line-height:1;}
     .peek-who{
-      margin-top:var(--s-2);
+      margin:var(--s-2) 0 var(--s-3) calc(30px + var(--s-3));
       font-size:.875rem; color:var(--ink-3);
     }
+    .peek .stat-row{margin:0 0 0 calc(30px + var(--s-3));}
+    .peek .location-approx{margin:var(--s-2) 0 0 calc(30px + var(--s-3));}
     .peek-actions{
       display:flex; align-items:center; justify-content:space-between;
       gap:var(--s-3); flex-wrap:wrap;
-      margin-top:var(--s-2);
-      border-top:1px solid var(--line-soft); padding-top:var(--s-1);
+      margin-top:var(--s-4);
     }
-    .peek-open{
-      background:none; border:none; min-height:44px; padding:0;
-      font-family:var(--font-body); font-size:.875rem; font-weight:600;
-      color:var(--green);
-      border-bottom:1.5px solid var(--line-control);
-    }
-    .panel{position:static; width:auto; border:none; box-shadow:none; border-radius:0; overflow:visible; background:var(--paper);}
-    .panel-head{padding:var(--s-4) var(--s-4) var(--s-3);}
-    .panel-scroll{overflow:visible; padding:0 var(--s-3) var(--s-5);}
+    .peek-actions{flex-wrap:nowrap; gap:var(--s-2);}
+    .peek-open{min-height:42px; padding:8px 16px; font-size:.875rem; white-space:nowrap;}
+    .peek .maps-link{font-size:.8125rem; white-space:nowrap;}
   }

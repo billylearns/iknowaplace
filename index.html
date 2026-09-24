@@ -47,12 +47,9 @@
     </nav>
   </header>
 
-  <main class="stage" data-view="list">
-    <!-- Below 880px the map and the index stop sharing the screen and take
-         turns. Hidden entirely on desktop, where both are visible at once. -->
-    <div class="viewswitch" role="group" aria-label="Show the index or the map">
-      <button type="button" class="vs-btn on" id="viewIndex" aria-pressed="true">Index</button>
-      <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
+  <!-- Phones: the city and the filters in a fixed row between the masthead
+       and the map, reachable whatever the list sheet is doing. -->
+  <div class="controlbar">
       <button type="button" class="city-btn city-btn-sm" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
         Toronto
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
@@ -60,7 +57,9 @@
       <button type="button" class="filters-btn filters-btn-sm" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
       </button>
-    </div>
+  </div>
+
+  <main class="stage">
     <div class="mapfield is-loading">
       <div class="atlas" id="atlas"></div>
       <!-- Expand the map over the list, and back. Desktop only. -->
@@ -87,6 +86,9 @@
 
     <aside class="panel" aria-label="Recommendations">
       <div class="panel-head">
+        <!-- Phones: the list is a sheet over the map. The head is where it is
+             dragged from; the handle is the same thing as a button. -->
+        <button type="button" class="sheet-handle" id="sheetHandle" aria-label="Show more of the list"><span></span></button>
         <h2 id="listHeading" tabindex="-1" aria-live="polite">39 places</h2>
       </div>
       <div class="panel-scroll">
@@ -99,9 +101,15 @@
       </div>
     </aside>
 
-    <!-- The peek card: on mobile a tapped pin can't scroll a list that isn't
-         on screen, so it answers where it was tapped. -->
+    <!-- The peek card: on a phone a tapped pin answers where it was tapped,
+         with the summary, and a way through to what friends said. -->
     <div class="peek" id="peekCard" hidden></div>
+
+    <!-- Phones, with the list pulled all the way up: the way back to the map. -->
+    <button type="button" class="map-pill" id="mapPill" tabindex="-1" aria-hidden="true">
+      Map
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/></svg>
+    </button>
   </main>
 </div>
 
@@ -527,6 +535,11 @@
     const pad = { top:P, bottom:P, left:P, right:P };
     const field = document.querySelector(".mapfield");
     if(!NARROW.matches) pad.top = Math.max(P, 64);
+    // On a phone the list sheet covers the bottom of the map; frame above it.
+    else if(field && sheetY > 80){
+      const cover = field.getBoundingClientRect().height - sheetY;
+      if(cover > 0) pad.bottom = Math.max(pad.bottom, cover + Math.round(P / 2));
+    }
     // On a phone the peek card sits over the map in the same way the panel
     // does on desktop. Across the bottom in portrait; down the right side in a
     // short landscape screen, where across the bottom would bury the map.
@@ -635,7 +648,8 @@
   function mapUnavailable(title){
     showMapNote("is-unavailable", title);
     stage.classList.add("map-off");
-    if(NARROW.matches && mobileView === "map") setView("list");
+    // No map to pull the list off: on a phone the list simply is the page.
+    if(NARROW.matches) snapSheet("full", { instant:true });
   }
 
   function webglAvailable(){
@@ -727,6 +741,10 @@
     // The list is the map's other view: when the map settles somewhere new,
     // the list shows what is on it. Debounced, so a fling is one update.
     map.on("moveend", scheduleListUpdate);
+    // On a phone, tapping the map away from any pin puts the card away.
+    map.on("click", ()=>{
+      if(NARROW.matches && !peek.hidden){ state.selectedKey = null; refresh(); hidePeek(); }
+    });
     map.on("zoom", applyZoomBand);
     map.on("error", onMapError);
     map.on("data", (e)=>{
@@ -753,6 +771,12 @@
 
     map.on("load", ()=>{
       mapReady = true;
+      // A phone has no room for the credit spelled out over the map; it
+      // stays folded to its (i) until asked for.
+      if(NARROW.matches){
+        const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
+        if(attrib){ attrib.classList.remove("maplibregl-compact-show"); attrib.removeAttribute("open"); }
+      }
       if(mapField.classList.contains("is-loading")) showMapNote(null);
       applyZoomBand();
       buildMarkers();
@@ -940,14 +964,17 @@
     // peek card with it.
     if(state.selectedKey && !keys.has(state.selectedKey)){
       state.selectedKey = null;
-      renderPeek();
+      hidePeek();
     }
     updateMarkers(keys);
   }
 
-  // The part of the map the reader can see, in container pixels. All of it
-  // today; the phone's bottom sheet will take its share off the bottom.
-  function visibleMapRect(w, h){ return { left:0, top:0, right:w, bottom:h }; }
+  // The part of the map the reader can see, in container pixels: all of it
+  // on desktop; on a phone, what is above the list sheet.
+  function visibleMapRect(w, h){
+    const bottom = NARROW.matches ? Math.min(h, sheetY) : h;
+    return { left:0, top:0, right:w, bottom };
+  }
 
   function mapViewBounds(){
     if(!mapReady || !map || mapField.classList.contains("is-unavailable")) return null;
@@ -962,7 +989,13 @@
 
   function renderList(opts){
     opts = opts || {};
-    const bounds = mapViewBounds();
+    let bounds = mapViewBounds();
+    // With the sheet pulled all the way up there is no map showing, but the
+    // list is still the list of the area you were looking at.
+    if(NARROW.matches && mapReady){
+      if(bounds) lastSheetBounds = bounds;
+      else if(sheetState === "full") bounds = lastSheetBounds;
+    }
     const inView = bounds ? filtered.filter(p=> bounds.contains([p.lng, p.lat])) : filtered;
     const shown = inView.slice();
     const sel = state.selectedKey && filtered.find(p=> p.key === state.selectedKey);
@@ -1035,60 +1068,192 @@
     if(top) selectPlace(top.closest(".row").dataset.key, false);
   });
 
-  // scrollIntoView walks every scrollable ancestor, so clicking a marker used
-  // to scroll the window as well as the index - taking the map the click was
-  // aimed at off the top of the screen. Scroll the index itself and leave the
-  // page where it is. Below 880px the index isn't its own scroller, and there
-  // the page scroll is the right one to move.
-  /* ---------------- Mobile: the map and the index take turns ----------------
-     Below 880px there is no room to show a map and a 39-row index at once, and
-     stacking them means the index is always a scroll away from the pin you
-     just tapped. So they take turns, and a tapped pin answers where it was
-     tapped: a peek card at the bottom of the map, with a way through to the
-     full entry. The index is the default - the map is the beautiful part, but
-     the list is the useful one on a phone. */
+  /* ---------------- Phones: the list is a sheet over the map ----------------
+     Below 880px the map fills the stage and the recommendations are a sheet
+     pulled up over it, the way a map-and-list app works rather than a page
+     that scrolls. Three resting places:
+
+       collapsed  the map, with the sheet's head (handle and count) at the foot
+       mid        the default: map above, the top of the list below
+       full       the list, over the whole map; a floating "Map" pill goes back
+
+     The sheet is always the stage's full height and only ever translated, so
+     dragging it never resizes the map underneath. Short landscape screens skip
+     the middle stop - half of 350px is not a view of anything. */
   const stage = document.querySelector(".stage");
+  const panel = document.querySelector(".panel");
   const peek = document.getElementById("peekCard");
   const NARROW = window.matchMedia("(max-width: 880px)");
-  const vsIndex = document.getElementById("viewIndex");
-  const vsMap = document.getElementById("viewMap");
-  let mobileView = "list";
+  const SHORT = window.matchMedia("(max-height: 500px)");
+  const sheetHandle = document.getElementById("sheetHandle");
+  const mapPill = document.getElementById("mapPill");
+  const SHEET_MID = 0.44;       // share of the stage the map keeps in the middle
+  let sheetState = "mid";
+  let sheetY = 0;
+  let sheetSnaps = { full:0, mid:0, collapsed:0 };
+  let lastSheetBounds = null;
+  let sheetSettleTimer = null;
 
-  function setView(v){
-    mobileView = v;
-    stage.dataset.view = v;
-    vsIndex.classList.toggle("on", v === "list");
-    vsMap.classList.toggle("on", v === "map");
-    vsIndex.setAttribute("aria-pressed", String(v === "list"));
-    vsMap.setAttribute("aria-pressed", String(v === "map"));
-    if(v === "list"){ hidePeek(); renderList(); }
-    // The map band only has a size once it is the visible half.
-    if(v === "map") mapResize();
-    changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
-    // The masthead is half a phone screen on its own. Either half starts at
-    // the switch, so the map you asked for is the map you get, and the index
-    // starts at its first row rather than wherever the map left the page.
-    if(NARROW.matches){
-      stage.style.setProperty("--switch-h", document.querySelector(".viewswitch").offsetHeight + "px");
-      if(v === "map") mapResize();
-      const top = stage.getBoundingClientRect().top + window.scrollY;
-      if(Math.abs(window.scrollY - top) > 1) window.scrollTo({ top, behavior: "auto" });
+  const sheetStops = ()=> SHORT.matches ? ["full","collapsed"] : ["full","mid","collapsed"];
+
+  // Down, the sheet shows exactly its head - the handle and the count - and
+  // not a sliver of the first card under it.
+  function measureSheet(){
+    const H = stage.clientHeight;
+    const peekH = panel.querySelector(".panel-head").offsetHeight + 4;
+    sheetSnaps = { full:0, mid: Math.round(H * SHEET_MID), collapsed: Math.max(0, H - peekH) };
+  }
+  function setSheetY(y){
+    sheetY = y;
+    stage.style.setProperty("--sheet-y", Math.round(y) + "px");
+  }
+
+  function snapSheet(to, opts){
+    if(!NARROW.matches) return;
+    opts = opts || {};
+    if(stage.classList.contains("map-off")) to = "full";
+    if(!sheetStops().includes(to)) to = "collapsed";
+    measureSheet();
+    const was = sheetState;
+    sheetState = to;
+    stage.dataset.sheet = to;
+    panel.classList.toggle("sheet-animate", !opts.instant);
+    setSheetY(sheetSnaps[to]);
+    if(to !== "collapsed") hidePeek();
+    syncSheetControls();
+    // Once it has settled, the list catches up with the part of the map that
+    // is now showing.
+    if(to !== was || opts.force){
+      clearTimeout(sheetSettleTimer);
+      sheetSettleTimer = setTimeout(()=> renderList({ fromMap:true }), opts.instant ? 0 : 360);
     }
   }
 
-  // Restarting an animation means taking the class off, forcing a reflow and
-  // putting it back; without the reflow the browser never sees it leave.
-  function changeOver(el){
-    if(!el) return;
-    el.classList.remove("view-in");
-    void el.offsetWidth;
-    el.classList.add("view-in");
+  function syncSheetControls(){
+    const full = sheetState === "full";
+    sheetHandle.setAttribute("aria-label", full ? "Show the map" : "Show more of the list");
+    mapPill.tabIndex = full ? 0 : -1;
+    mapPill.setAttribute("aria-hidden", String(!full));
   }
-  vsIndex.addEventListener("click", ()=> setView("list"));
-  vsMap.addEventListener("click", ()=> setView("map"));
-  // Leaving mobile drops the whole idea: on desktop both are on screen.
+
+  sheetHandle.addEventListener("click", ()=>{
+    if(suppressSheetClick()) return;
+    snapSheet(sheetState === "full" ? (SHORT.matches ? "collapsed" : "mid") : "full");
+  });
+  mapPill.addEventListener("click", ()=> snapSheet("collapsed"));
+  // Keyboard focus that reaches the list pulls the list up to meet it.
+  panel.addEventListener("focusin", (e)=>{
+    if(NARROW.matches && sheetState !== "full" && panelScroll.contains(e.target)) snapSheet("full");
+  });
+
+  /* ---- Dragging ----
+     Touch first (that is where a sheet lives), with the mouse as a courtesy
+     on the handle for a narrow desktop window. Anywhere on the sheet drags it
+     while it is down; once it is full the list scrolls, and only a pull down
+     from the very top of the list takes the sheet with it. A flick carries:
+     where the sheet would have got to decides where it rests. */
+  const DRAG_SLOP = 6;
+  let drag = null;
+  let clickBlockedUntil = 0;
+  const suppressSheetClick = ()=> performance.now() < clickBlockedUntil;
+
+  function dragStart(y, inList){
+    if(!NARROW.matches || stage.classList.contains("map-off")) return;
+    drag = { y0:y, sheet0:sheetY, lastY:y, lastT:performance.now(), v:0, moved:false, inList };
+  }
+  // Returns true when the move is the sheet's, so the caller can stop the
+  // browser doing anything else with it.
+  function dragMove(y){
+    if(!drag) return false;
+    const dy = y - drag.y0;
+    if(!drag.moved){
+      if(drag.inList && sheetState === "full"){
+        // A full sheet's list is a scroller. Up, or down from anywhere but
+        // the top, is a scroll and none of the sheet's business.
+        if(dy < 0 || panelScroll.scrollTop > 0){ drag = null; return false; }
+        if(dy === 0) return false;
+      } else if(Math.abs(dy) < DRAG_SLOP){
+        return true;
+      }
+      drag.moved = true;
+      drag.y0 = y; drag.sheet0 = sheetY;
+      panel.classList.remove("sheet-animate");
+      panel.classList.add("sheet-dragging");
+      hidePeek(); hideTooltip();
+    }
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.lastT);
+    drag.v = 0.8 * ((y - drag.lastY) / dt) + 0.2 * drag.v;
+    drag.lastY = y; drag.lastT = now;
+    let ny = drag.sheet0 + (y - drag.y0);
+    const max = sheetSnaps.collapsed;
+    if(ny < 0) ny *= 0.25;                          // resist past the top
+    if(ny > max) ny = max + (ny - max) * 0.25;      // and past the bottom
+    setSheetY(ny);
+    return true;
+  }
+  function dragEnd(){
+    if(!drag) return;
+    const d = drag; drag = null;
+    if(!d.moved) return;
+    panel.classList.remove("sheet-dragging");
+    clickBlockedUntil = performance.now() + 350;
+    // Stale velocity (the finger stopped before lifting) counts for nothing.
+    const v = (performance.now() - d.lastT) > 90 ? 0 : d.v;
+    const projected = sheetY + v * 200;
+    const to = sheetStops().reduce((best, s)=>
+      Math.abs(sheetSnaps[s] - projected) < Math.abs(sheetSnaps[best] - projected) ? s : best);
+    snapSheet(to, { force:true });
+  }
+
+  panel.addEventListener("touchstart", (e)=>{
+    if(e.touches.length !== 1) { drag = null; return; }
+    dragStart(e.touches[0].clientY, panelScroll.contains(e.target));
+  }, { passive:true });
+  panel.addEventListener("touchmove", (e)=>{
+    if(drag && dragMove(e.touches[0].clientY) && e.cancelable) e.preventDefault();
+  }, { passive:false });
+  panel.addEventListener("touchend", dragEnd);
+  panel.addEventListener("touchcancel", dragEnd);
+  const panelHead = panel.querySelector(".panel-head");
+  panelHead.addEventListener("pointerdown", (e)=>{
+    if(e.pointerType !== "mouse" || e.button !== 0) return;
+    dragStart(e.clientY, false);
+    panelHead.setPointerCapture(e.pointerId);
+  });
+  panelHead.addEventListener("pointermove", (e)=>{ if(e.pointerType === "mouse") dragMove(e.clientY); });
+  panelHead.addEventListener("pointerup", (e)=>{ if(e.pointerType === "mouse") dragEnd(); });
+  // A drag that ended over a row must not also open it.
+  panel.addEventListener("click", (e)=>{
+    if(suppressSheetClick()){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  // The stage changes height with the phone's toolbars and rotation; the
+  // sheet keeps its place, re-measured.
+  function relayoutSheet(){
+    if(!NARROW.matches) return;
+    measureSheet();
+    if(!sheetStops().includes(sheetState)) sheetState = "collapsed";
+    stage.dataset.sheet = sheetState;
+    panel.classList.remove("sheet-animate");
+    setSheetY(sheetSnaps[sheetState]);
+    clearPeekSpace();
+  }
+  if(window.ResizeObserver) new ResizeObserver(()=> relayoutSheet()).observe(stage);
+  SHORT.addEventListener("change", relayoutSheet);
+
+  // Crossing the breakpoint swaps one layout for the other entirely.
   NARROW.addEventListener("change", e=>{
-    if(!e.matches) hidePeek(); else setMapFull(false);
+    hidePeek();
+    if(e.matches){
+      setMapFull(false);
+      snapSheet(SHORT.matches ? "collapsed" : "mid", { instant:true, force:true });
+    } else {
+      stage.style.removeProperty("--sheet-y");
+      delete stage.dataset.sheet;
+      panel.classList.remove("sheet-animate", "sheet-dragging");
+      renderList({ force:true });
+    }
     mapResize();
   });
 
@@ -1113,20 +1278,29 @@
        !document.querySelector(".modal-scrim.open")) setMapFull(false);
   });
   // The skip link lands on the list's heading, so the list has to be there.
-  document.getElementById("listHeading").addEventListener("focus", ()=> setMapFull(false));
+  document.getElementById("listHeading").addEventListener("focus", ()=>{
+    setMapFull(false);
+    if(NARROW.matches && sheetState !== "full") snapSheet("full");
+  });
 
-  // The attribution lives in the map's bottom corner, which is exactly where
-  // the peek card lands. The credit has to stay readable while a card is open,
-  // so the card tells the map how much room to leave under it.
+  /* ---------------- The peek card (phones) ----------------
+     A tapped pin answers where it was tapped. The sheet steps down out of the
+     way and a card floats above it with what you need to decide: the place,
+     who recommended it, and price, time and energy. "Read what they said"
+     goes through to the full entry - the friends' own words - in the list. */
+  // The attribution sits just above the sheet, and above the card while one
+  // is open, so the credit is always readable.
   function clearPeekSpace(){
     mapField.style.setProperty("--peek-clear", peek.hidden ? "0px" : (peek.offsetHeight + 12) + "px");
   }
-  function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; clearPeekSpace(); }
+  function hidePeek(){
+    if(peek.hidden) return;
+    peek.hidden = true; peek.innerHTML = ""; clearPeekSpace();
+  }
 
-  function renderPeek(){
-    if(!NARROW.matches || mobileView !== "map" || !state.selectedKey) return hidePeek();
-    const p = placesByKey[state.selectedKey];
-    if(!p) return hidePeek();
+  function showPeek(){
+    const p = NARROW.matches && state.selectedKey && placesByKey[state.selectedKey];
+    if(!p){ hidePeek(); return; }
     peek.innerHTML = `
       <button class="peek-close" type="button" aria-label="Close">&#10005;</button>
       <div class="peek-top">
@@ -1135,12 +1309,13 @@
           <p class="peek-title">${escapeHtml(p.name)}</p>
           <p class="peek-where">${escapeHtml(p.category)} <span class="sep">&middot;</span> ${escapeHtml(p.neighbourhood)}</p>
         </div>
-        <span class="peek-stars">${starsHtml(p.avgRating,"0.9375rem")}</span>
+        <span class="peek-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"0.9375rem")}</span>
       </div>
       <p class="peek-who">${contributorLine(p)}</p>
+      ${statRow(p)}
       ${locationLine(p)}
       <div class="peek-actions">
-        <button class="peek-open" type="button">Read what they said</button>
+        <button class="btn-primary peek-open" type="button">Read what they said</button>
         <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
       </div>`;
     peek.hidden = false;
@@ -1150,40 +1325,51 @@
     });
     peek.querySelector(".peek-open").addEventListener("click", ()=>{
       const key = state.selectedKey;
-      setView("list");
+      hidePeek();
+      snapSheet("full");
       const card = document.getElementById("card-"+key);
-      if(card) card.scrollIntoView({behavior:scrollEase(), block:"center"});
+      if(card) scrollRowIntoIndex(card);
     });
   }
 
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   const scrollEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? "auto" : "smooth";
 
+  // scrollIntoView walks every scrollable ancestor, so it would move the page
+  // as well as the list. Scroll the list itself and leave the page alone.
   function scrollRowIntoIndex(card, instant){
-    // In the mobile map view the index isn't on screen at all, and the peek
-    // card is what answers the tap - scrolling to a hidden row would only
-    // move the page out from under the map.
-    if(NARROW.matches && mobileView === "map") return;
     const behavior = instant ? "auto" : scrollEase();
     const box = card.closest(".panel-scroll");
-    if(!box || box.scrollHeight <= box.clientHeight + 1){
-      card.scrollIntoView({behavior, block:"center"});
-      return;
-    }
+    if(!box) return;
     const cb = card.getBoundingClientRect(), bb = box.getBoundingClientRect();
-    const top = box.scrollTop + (cb.top - bb.top) - (bb.height - cb.height)/2;
+    // A just-opened entry is read from its top, so it is brought near the
+    // top of the list rather than centred with its detail cut off.
+    const top = box.scrollTop + (cb.top - bb.top) - Math.min(24, (bb.height - cb.height)/2);
     box.scrollTo({top:Math.max(0, top), behavior});
   }
 
-  function selectPlace(key, scrollMap){
+  // fromMap: the selection came from a pin rather than from the list.
+  function selectPlace(key, fromMap){
     state.selectedKey = (state.selectedKey===key) ? null : key;
     refresh();
-    if(state.selectedKey){
+    if(NARROW.matches){
+      if(fromMap && state.selectedKey){
+        // Map-focused: the sheet steps down and the card answers the tap.
+        snapSheet("collapsed");
+        showPeek();
+      } else {
+        hidePeek();
+        // An entry opened in the list is read in the list, all of it.
+        if(state.selectedKey){
+          snapSheet("full");
+          const card = document.getElementById("card-"+state.selectedKey);
+          if(card) scrollRowIntoIndex(card);
+        }
+      }
+    } else if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
       if(card) scrollRowIntoIndex(card);
     }
-    // The peek card first, so the map can see how much of it the card covers.
-    renderPeek();
     if(state.selectedKey) revealOnMap(state.selectedKey);
   }
 
@@ -1669,6 +1855,7 @@
   }
 
   /* ---------------- Init ---------------- */
+  if(NARROW.matches) snapSheet(SHORT.matches ? "collapsed" : "mid", { instant:true, force:true });
   initMap();
   renderFilters();
   refresh();

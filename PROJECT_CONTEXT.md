@@ -104,32 +104,36 @@ Built and working:
   looks identical to every viewer regardless of their OS setting, which is
   what a portfolio share needs. **This is settled — do not re-add it**, and
   do not treat §9 as evidence that it should come back.
-- **Mobile (≤880px): the map and the index take turns.** A sticky two-word
-  switch under the masthead chooses between them; the index is the default.
-  In map view the map fills the screen under the switch, and a tapped pin
-  raises a **peek card** at the bottom of the map with the place, its rating,
-  who recommended it, a way through to the full entry in the index, and a
-  Maps link. A pin low on screen is lifted clear of the card.
+- **Mobile (≤880px): a map with a draggable list sheet** (since the 2026-09
+  polish pass). The map fills the stage; the recommendations are a bottom
+  sheet with three rests — collapsed (map), mid (default) and full (list,
+  with a floating **Map** pill back). A tapped pin steps the sheet down and
+  raises a **peek card** with the place, who recommended it, and price / time
+  / energy; **Read what they said** opens the full entry in the list. The
+  city selector and Filters sit in a fixed control row under the masthead.
+  See `docs/DESIGN_SYSTEM.md` §6.
+- **Desktop: a 70/30 canvas.** The map is a rounded card on the left, the
+  recommendations one column of cards on the right; the list follows the map
+  (zoom in and it lists only what is in view). Every filter lives behind one
+  **Filters** pill on the map; a round button expands the map full-width.
 
 ## 4. How the current page works (structure)
 
-- `header.masthead` → a band on the chrome ground holding the wordmark,
-  tagline, Toronto city stamp, nav (Why this exists / Contribute a place) and
-  the Plan my trip button. Identity sits above the map rather than on it, so
-  the type never competes with the pin cluster.
-- `main.stage` → the map is **full-bleed**, no border and no box, filling the
-  viewport below the masthead. The index floats over it:
-  - `.mapfield` — holds `#atlas` (the MapLibre map), the hover tag
-    `#mapTooltip`, and `#mapNote` (loading / failure messages). `#mapLegend`
-    sits over the map beside it.
-  - `.panel` — a paper panel pinned right, containing `#listHeading`,
-    `#filterBar` (category as a row of words), `#refineBar` (price / rating /
-    sort as underlined selects), the search line, `#list` and `#emptyState`
-  - Under 880px `main.stage` carries a `data-view` of `list` or `map` and the
-    two halves take turns; `#peekCard` answers a tapped pin. See
-    `docs/DESIGN_SYSTEM.md` §6.
-- `#filterBar` and `#refineBar` are both rendered by JS
-  (`renderFilterBar()` / `renderRefineBar()`), not static HTML.
+- `.checker` → the checkerboard strip; `header.masthead` → wordmark, tagline,
+  Toronto selector (a popover menu, `#cityMenu`), Contribute, Plan my trip.
+  On a phone, `.controlbar` holds the city selector and Filters.
+- `main.stage` → the whole product canvas; nothing sits below it (no footer).
+  - `.mapfield` — `#atlas` (MapLibre), the hover tag, `#mapNote`, and the
+    map's own buttons: expand (`#mapExpand`), Filters, Why this exists.
+  - `.panel` — `#listHeading` (the count), `#list`, `#emptyState`. On a phone
+    it is the bottom sheet (`data-sheet` on the stage: collapsed/mid/full).
+  - `#peekCard` answers a tapped pin on a phone; `#mapPill` returns to the map.
+- `#filterPanel` → every filter, built once by `renderFilters()`; opened by
+  `openPopover()` from any `[data-filter-trigger]`.
+- Filtering is split in two: `applyFilters()` decides which places exist
+  (markers), `renderList()` decides which are listed — the filtered places
+  inside the visible map (`mapViewBounds()`), plus the selected one.
+  `refresh()` runs both; a map `moveend` runs only `renderList()`.
 - Four modals (`.modal-scrim` pattern, hidden by default, toggled via a
   `.open` class), all sharing one focus trap (`openScrim()` / `closeScrim()`,
   which also handle Escape and returning focus to the trigger):
@@ -475,8 +479,10 @@ The short version:
    an open dialog) and three token values that cleared 4.5:1 on `--paper` but
    failed on the other grounds the same text actually sits on.
 
-**Do not** modify `data/*.json`, the planner algorithm, or `refresh()` /
-`selectPlace()` control flow as part of visual work. And no Tailwind, no
+**Do not** modify `data/*.json` or the planner algorithm as part of visual
+work. (`refresh()` / `selectPlace()` were deliberately restructured in the
+2026-09 polish pass for the list-follows-map and the phone sheet — see
+§16.) And no Tailwind, no
 shadcn/ui, no React — each was evaluated and declined for reasons recorded in
 the plan. (MapLibre was declined then too, for a *drawn* map; it arrived
 later with the real map — see §15.)
@@ -500,3 +506,25 @@ and what was verified. The short version:
   "Approximate location" on the ten Medium places.
 - **Every failure leaves the index working**, and says so.
 - **Later:** a Maputnik pass on the style file.
+
+## 16. The UX polish pass (2026-09)
+
+Three chunks on `polish/final-ux`, each reviewed from screenshots before the
+next. The direction: modern interaction design (Airbnb as the reference for
+layout and interaction) with personal editorial character (Amici for the
+checker strip, type accents and placed photos).
+
+1. **The visual system and cleanup** — lighter warm grounds, one rounded
+   family, soft shadows; checker strip; compact masthead (Why this exists
+   floats on the map on desktop); Toronto selector as a popover menu; the
+   footer, stats, marquee and legend removed; "Recommended by …" in clean
+   sans, friends' words in the readable body face; prices as ranges
+   ("$50–100"); the story modal as a spread with placeholder photos; the map
+   style lightened a shade.
+2. **The desktop canvas** — 70/30 map card and recommendation cards; the list
+   follows the map; every filter behind one Filters pill; full-screen map.
+3. **The phone** — the map with a draggable list sheet, the peek card with
+   price / time / energy and "Read what they said", the control row.
+
+Still to come, deliberately last: the marker redesign and clustering. The
+story photos are placeholders until the owner's own arrive.

@@ -53,7 +53,7 @@ whatever their OS is set to.
 | Token | Hex | Role |
 |---|---|---|
 | `--paper` | `#FDFAF4` | content plates, the map's ground before tiles arrive |
-| `--paper-2` | `#F9F5EC` | the page: masthead, the mobile switch |
+| `--paper-2` | `#F9F5EC` | the page: masthead, the phone's control row |
 | `--paper-3` | `#F2EDE2` | recessed: chips, hover fills |
 | `--card` | `#FFFEFB` | raised: panels, popovers, modals, the peek card |
 | `--line-soft` | `#E6E0D2` | hairlines on the lighter grounds |
@@ -298,7 +298,7 @@ The index has never depended on the map, and no failure changes that.
 |---|---|
 | Still loading | "Drawing Toronto…" in the display face; after ten seconds, a line saying the index works now |
 | OpenFreeMap tiles | The pins stay, on paper, in the right places relative to each other, under a note: *The street map didn't load* |
-| MapLibre, our style file, or WebGL | The map is withdrawn with a short note pointing at the index; on a phone the switch goes too, since there is no second half to switch to |
+| MapLibre, our style file, or WebGL | The map is withdrawn with a short note pointing at the index; on a phone the list sheet goes full and stays there — there is no map to pull it off |
 | The place data | *No places to map*, beside the existing data-error message |
 
 ### No key
@@ -394,26 +394,43 @@ Field labels are section markers and carry a dashed rule out to the edge.
 Plans are hairline lists, not stacked boxes, with the plan letter as an ochre
 mark beside a serif title.
 
-### The mobile stage
+### The phone: a map with a list sheet
 
-Below 880px the map and the index **take turns**, because there is no room to
-show a map and a 39-row index at once and stacking them puts the index a
-scroll away from the pin you just tapped. A sticky two-word switch chooses.
-**The index is the default** — the map is the beautiful part, the list is the
-useful one on a phone.
+Below 880px the product is an app, not a page — nothing scrolls but the list.
+From the top: the checker strip, the compact masthead, a **control row**
+(*Toronto ⌄* left, *Filters* right — reachable whatever the sheet is doing),
+then the stage. The map always fills the stage; the recommendations are a
+**sheet** riding over it, pulled by its head.
 
-Tapping **Map** brings the switch to the top of the screen, and the map
-takes exactly the rest of it — measured from the switch, not guessed. The key
-follows a short scroll below.
+| Rest | What you see |
+|---|---|
+| **Collapsed** | the map, with only the sheet's head — handle and count — at the foot |
+| **Mid** *(default)* | the map above, the top of the list below (sheet top ≈ 44% down the stage) |
+| **Full** | the list over the whole map; a dark-green floating **Map** pill goes back to collapsed |
 
-A tapped pin raises the **peek card**: name, category, neighbourhood, rating,
-who recommended it, a way through to the full entry and a Maps link. It is
-the one raised surface on the page besides the modals, because it is
-answering a tap and has to read as sitting on top of the map. A pin low on
-the screen is lifted clear of the card. In a short landscape screen the card
-runs down the right side instead of across the bottom, and the controls move
-to the left. Everything at the map's edges keeps clear of notches and the
-home indicator.
+The sheet is the stage's full height and only ever translated (`--sheet-y`),
+so dragging never resizes the map. A drag anywhere on the sheet moves it while
+it is down; once it is full the list scrolls, and only a pull down from the
+very top of the list takes the sheet with it. A flick carries — where the
+sheet would have got to decides where it rests. The handle is a real button
+(tap: full, and back), keyboard focus reaching the list pulls it up, and
+reduced motion snaps it instantly. Short landscape screens skip the middle
+stop and fold the masthead to one row.
+
+**The list follows the part of the map the sheet leaves showing** — the same
+rule as desktop, measured above the sheet. With the sheet full it keeps the
+area you were last looking at.
+
+**Tapping a pin** steps the sheet down and floats the **peek card** above it:
+name, activity · neighbourhood, rating, *Recommended by …*, and **price ·
+time · energy** — enough to decide. **Read what they said** pulls the sheet up
+with that entry open and in view: friends' own words live in one place, the
+list. Tapping the map away from a pin, or ✕, puts the card away. Tapping an
+entry in the list opens it in the full list the same way.
+
+No zoom buttons on a phone — pinch, as in every map app. Where-am-I and
+Recentre stay on the right; the map credit stays folded to its ⓘ and sits
+just above the sheet (and the card).
 
 ---
 
@@ -430,7 +447,7 @@ ask to move.
   would be motion reporting nothing. **The arrival is opacity only** —
   MapLibre positions each pin with a transform, so an arrival that animated
   transform would land the pin off its street.
-- **State** — row expand, modal open, peek card, the mobile change-over,
+- **State** — row expand, modal open, peek card, the list sheet settling,
   and the camera easing to a selected place when it has to.
 - Camera moves use the same rule as scrolling: **instant under reduced
   motion.**
@@ -469,7 +486,7 @@ Toronto. The only photographs are the owner's own, in the story.
   tabbing the page behind an open dialog.
 - Category is carried by a glyph as well as by colour.
 - Tap targets are ≥ 34px on desktop and ≥ 40px on mobile, ≥ 44px on
-  primary buttons, Maps links and the mobile switch. The compact phone
+  primary buttons, Maps links and the phone's Map pill. The compact phone
   masthead is the deliberate exception: its three actions are 34–36px tall
   (above the 24px WCAG 2.2 minimum) so the header stays one row.
 - No horizontal overflow at 375, 812 (landscape), 1024 or 1440.
