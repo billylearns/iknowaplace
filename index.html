@@ -33,9 +33,6 @@
       <h1 class="word">I Know a Place<span class="dot">.</span></h1>
       <div class="mast-sub">
         <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
-        <!-- Desktop puts "Why this exists" under the line it explains; the
-             phone gets its own copy in the action row below. -->
-        <button type="button" class="why-link desk-only" data-open-story>Why this exists</button>
       </div>
     </div>
     <nav class="mast-right" aria-label="Main">
@@ -63,6 +60,11 @@
     </div>
     <div class="mapfield is-loading">
       <div class="atlas" id="atlas"></div>
+      <!-- Desktop's way into the story; the phone's is in the masthead row. -->
+      <button type="button" class="why-float desk-only" data-open-story>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="9" height="14" rx="1.2" transform="rotate(-8 8 12)"/><rect x="11" y="4" width="9" height="14" rx="1.2" transform="rotate(6 15.5 11)"/></svg>
+        Why this exists
+      </button>
       <div class="map-tooltip" id="mapTooltip" aria-hidden="true"></div>
       <!-- Says "drawing" while the map loads, and says so plainly if it can't. -->
       <div class="map-note" id="mapNote" role="status" aria-live="polite">

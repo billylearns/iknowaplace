@@ -186,14 +186,27 @@
     white-space:nowrap;
   }
   .kicker strong{font-weight:400; color:var(--ink);}
-  .why-link{
-    background:none; border:none; padding:2px 0;
-    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
-    color:var(--green);
-    text-decoration:underline; text-decoration-color:var(--green-line);
-    text-underline-offset:3px; text-decoration-thickness:1.5px;
+  /* "Why this exists" on desktop: a small note left on the corner of the
+     map - the one corner none of the map's own controls use. On a phone
+     the bottom of the map belongs to the list, so there it lives in the
+     masthead's action row instead. */
+  .why-float{
+    position:absolute; z-index:3;
+    left:var(--s-4); bottom:var(--s-4);
+    display:inline-flex; align-items:center; gap:8px;
+    min-height:40px; padding:0 16px 0 12px;
+    background:var(--card); border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-1);
+    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    color:var(--green-deep);
+    transition:box-shadow .15s ease, transform .15s ease;
   }
-  .why-link:hover{text-decoration-color:var(--green);}
+  .why-float:hover{box-shadow:var(--shadow-2); transform:translateY(-1px);}
+  .why-float svg{
+    width:18px; height:18px; fill:none; stroke:var(--ochre-ink); stroke-width:1.6;
+    stroke-linejoin:round;
+  }
+  .mapfield.is-unavailable .why-float{display:none;}
   .mast-right{
     display:flex; align-items:center; gap:var(--s-2);
     flex:0 0 auto;
@@ -750,7 +763,7 @@
     display:block;
     margin-top:1px;
     font-family:var(--font-display); font-style:italic;
-    font-size:1.0625rem; line-height:1.3;
+    font-size:.9375rem; line-height:1.3;
     color:var(--ink-2);
   }
   .row-where .sep{opacity:0.55; padding:0 2px;}
@@ -778,12 +791,16 @@
   }
   .row.expanded .row-detail{display:block;}
 
-  .stat-row{display:flex; gap:var(--s-2); flex-wrap:wrap; margin-bottom:var(--s-4);}
+  /* Price, time and energy are one fact about the visit, so they sit on
+     one line: small chips, no wrapping inside a chip. */
+  .stat-row{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s-4);}
   .stat-chip{
     background:var(--paper-3);
     border-radius:var(--r-pill);
-    padding:5px 12px;
-    font-size:0.8125rem;
+    padding:4px 9px;
+    font-size:.75rem;
+    line-height:1.3;
+    white-space:nowrap;
     color:var(--ink-2);
   }
   .stat-chip b{color:var(--ink); font-weight:500;}
@@ -1179,7 +1196,7 @@
     .peek-top{display:flex; align-items:flex-start; gap:var(--s-3); padding-right:var(--s-5);}
     .peek-main{flex:1; min-width:0;}
     .peek-title{font-size:1.125rem; font-weight:600; letter-spacing:-.01em; color:var(--ink);}
-    .peek-where{margin-top:1px; font-family:var(--font-display); font-style:italic; font-size:1.0625rem; color:var(--ink-2);}
+    .peek-where{margin-top:1px; font-family:var(--font-display); font-style:italic; font-size:.9375rem; color:var(--ink-2);}
     .peek-where .sep{opacity:.55; padding:0 2px;}
     .peek-stars{flex:0 0 auto; line-height:1; margin-top:3px;}
     .peek-who{
@@ -1214,4 +1231,5 @@
     }
     .filter-cats::-webkit-scrollbar{display:none;}
     .panel-scroll{overflow:visible; padding:0 var(--s-4) var(--s-5);}
+    .row-detail{padding-left:var(--s-2);}
   }

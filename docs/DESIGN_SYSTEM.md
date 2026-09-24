@@ -295,7 +295,7 @@ the activity named on every row carry category on their own.
 
 ```
 ◐  Pizzeria Badiali                    ★★★★★  ⌄
-   Food · West Queen West      ← Instrument Serif italic
+   Food · West Queen West      ← Instrument Serif italic, 0.9375rem
    Recommended by Ashton + 2   ← Instrument Sans, name in 600
 ```
 
@@ -303,7 +303,8 @@ The collapsed row **names a friend** and says what they did — "Recommended
 by Ashton + 2". A bare name gave no context; "Recommended by 3 friends"
 reads as a statistic, and people are the whole point of the site. The toggle
 is a real `<button>` with `aria-expanded`. Expanded rows show price, time
-and energy as soft chips, then each friend's name (plain, 600) with their own
+and energy as small chips on **one line** (0.75rem; verified for all 39
+places at 360px and up), then each friend's name (plain, 600) with their own
 rating and their words in the readable body face.
 
 Two kinds of fact get two lines. One grey middle-dot string flattens them
@@ -324,9 +325,11 @@ say *no filter applied*.
 
 A checker strip (two rows of 8px checks, `--green-deep` on `--paper`, pure
 CSS) sits along the very top on every screen — the only checkerboard on the
-site. Below it, on desktop, one compact band (~70px): wordmark; the tagline
-on a single line with **Why this exists** tucked under it; then the Toronto
-selector, Contribute a place and a **Plan my trip** pill. On a phone it is
+site. Below it, on desktop, one compact band (~70px): wordmark and the
+tagline on a single line; then the Toronto selector, Contribute a place and
+a **Plan my trip** pill. On desktop **Why this exists** is a small floating
+pill in the map's bottom-left corner - the one corner the map's own
+controls don't use. On a phone it is
 its own centred treatment: wordmark and tagline about a fifth smaller, then
 one row — *Why this exists · Contribute a place* as quiet links and Plan my
 trip as a small pill.
