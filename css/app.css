@@ -820,15 +820,18 @@
      lifts a little on hover; the selected one takes the green tint. */
   .list{display:flex; flex-direction:column; gap:var(--s-2);}
   .row{
-    background:var(--paper-2);
+    background:var(--paper);
     border:1px solid var(--line-soft);
     border-radius:var(--r-md);
     scroll-margin-top:var(--s-4);
     transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
   }
   .row:hover{border-color:#D9D1BF; box-shadow:var(--shadow-1);}
-  .row.selected{background:var(--green-soft); border-color:var(--green-line);}
+  .row.selected{background:var(--paper-3); border-color:#DDD5C3;}
   .row.selected:hover{box-shadow:none;}
+  /* The chips share the open card's tone, so there they lift to the card's
+     lighter one. */
+  .row.selected .stat-chip{background:var(--paper); box-shadow:0 0 0 1px var(--line-soft);}
 
   .row-top{
     display:flex;
