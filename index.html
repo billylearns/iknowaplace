@@ -878,7 +878,7 @@
       <div class="note">
         <div class="note-head">
           <span class="note-name">${escapeHtml(r.alias)}</span>
-          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.75em")}</span>
+          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.875rem")}</span>
         </div>
         <blockquote class="note-text">${escapeHtml(r.note)}</blockquote>
       </div>`).join("");
@@ -890,7 +890,7 @@
         <span class="row-main">
           <span class="row-headline">
             <span class="row-title">${escapeHtml(p.name)}</span>
-            <span class="row-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"0.8125rem")}</span>
+            <span class="row-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"1rem")}</span>
           </span>
           <span class="row-where">${escapeHtml(p.category)} <span class="sep">·</span> ${escapeHtml(p.neighbourhood)}</span>
           <span class="row-who">${contributorLine(p)}</span>
@@ -1013,7 +1013,7 @@
     } else {
       emptyTitle.textContent = activeFilterCount() ? "Nothing here matches" : "Nothing in this part of the map";
       emptyText.textContent = `${filtered.length} place${filtered.length===1?"":"s"} ${filtered.length===1?"is":"are"} just out of view.`;
-      emptyAction.textContent = "Zoom out to all of Toronto";
+      emptyAction.textContent = "Zoom back out";
       emptyAction.onclick = ()=> fitPlaces({ duration: mapEase() });
     }
   }
@@ -1135,7 +1135,7 @@
           <p class="peek-title">${escapeHtml(p.name)}</p>
           <p class="peek-where">${escapeHtml(p.category)} <span class="sep">&middot;</span> ${escapeHtml(p.neighbourhood)}</p>
         </div>
-        <span class="peek-stars">${starsHtml(p.avgRating,"0.8em")}</span>
+        <span class="peek-stars">${starsHtml(p.avgRating,"0.9375rem")}</span>
       </div>
       <p class="peek-who">${contributorLine(p)}</p>
       ${locationLine(p)}

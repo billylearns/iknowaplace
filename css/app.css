@@ -640,7 +640,7 @@
   .panel-scroll{
     flex:1 1 auto; min-height:0;
     overflow:auto; overscroll-behavior:contain;
-    padding:0 var(--s-3) var(--s-5) var(--s-3);
+    padding:2px var(--s-4) var(--s-4) var(--s-4);
     scrollbar-width:thin; scrollbar-color:var(--line-control) transparent;
   }
 
@@ -815,15 +815,20 @@
   }
   .sort-field select{padding:7px 28px 7px 12px; font-size:0.8125rem; font-weight:500;}
 
-  /* Whitespace between rows, not rules. A row is a soft tile that only
-     shows itself on hover or when it is the one selected. */
-  .list{display:flex; flex-direction:column; gap:2px;}
+  /* Each recommendation is its own card, in the same material as the map
+     card beside it: a light ground and a soft hairline, rounded. The card
+     lifts a little on hover; the selected one takes the green tint. */
+  .list{display:flex; flex-direction:column; gap:var(--s-2);}
   .row{
+    background:var(--card);
+    border:1px solid var(--line-soft);
     border-radius:var(--r-md);
     scroll-margin-top:var(--s-4);
-    transition:background .15s ease;
+    transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
   }
-  .row.selected{background:var(--green-soft);}
+  .row:hover{border-color:#D9D1BF; box-shadow:var(--shadow-1);}
+  .row.selected{background:var(--green-soft); border-color:var(--green-line);}
+  .row.selected:hover{box-shadow:none;}
 
   .row-top{
     display:flex;
@@ -838,8 +843,7 @@
     font-family:inherit;
     color:inherit;
   }
-  .row-top:hover{background:var(--paper-3);}
-  .row.selected .row-top:hover{background:transparent;}
+  .row-top:focus-visible{outline-offset:-2px;}
 
   /* Same disc-plus-glyph language as the map markers, so a row and its
      pin are recognisably the same object. */
@@ -849,7 +853,8 @@
     border-radius:var(--r-pill);
     display:flex; align-items:center; justify-content:center;
     color:#fff;
-    margin-top:2px;
+    /* Centred on the card's top row, not pinned to the first line. */
+    align-self:center;
   }
 
   .row-main{flex:1; min-width:0; display:block;}
@@ -889,7 +894,7 @@
     flex:0 0 auto;
     width:18px; height:18px;
     color:var(--ink-3);
-    margin-top:6px;
+    align-self:center;
     transition:transform .18s ease;
   }
   .row-chevron svg{width:18px; height:18px; display:block;}

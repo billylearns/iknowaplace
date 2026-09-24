@@ -234,7 +234,7 @@ rail dashes, and the minor-road ramp starts from it — change them together.
   visible map too. The selected place stays listed even when panned out of
   view. With no usable map — loading, failed, or hidden — there is no
   viewport, and the list is every match. A viewport with nothing in it says
-  so and offers **Zoom out to all of Toronto**.
+  so and offers **Zoom back out**.
 - **Full-screen map.** A round expand button at the map's top-left folds
   the list column away (the map card widens, the masthead stays); it becomes
   a **Show list** pill, and Escape also brings the list back.
@@ -334,9 +334,11 @@ together — the same rule applies to plan items in the planner.
 ### The recommendations column
 
 Recommendations only: a count heading in semibold sans ("39 places" /
-"12 places in this area"), then the rows. No box, no filters. Rows are soft
-tiles separated by whitespace — a tile only shows on hover (`--paper-3`) or
-when selected (`--green-soft`). The column is `clamp(384px, 30%, 480px)`
+"12 places in this area"), then the recommendations. No filters. Each
+recommendation is its own card in the map card's material — `--card`
+ground, a `--line-soft` hairline, `--r-md` corners — lifting slightly on
+hover and taking `--green-soft` when selected. The category disc and the
+chevron are centred on the card's top row; the average rating is 1rem stars. The column is `clamp(384px, 30%, 480px)`
 wide, which keeps price, time and energy on one line at every width.
 
 ### Filters
