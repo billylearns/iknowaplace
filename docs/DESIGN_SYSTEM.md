@@ -23,12 +23,20 @@ cluster, and the index floats over the field on paper. References were
 **Amici** (personality, warmth) and **KOBU** (restraint, hierarchy),
 translated rather than copied.
 
+Since the 2026-09 polish pass the target is **modern interaction design
+with personal editorial character**: Airbnb as the reference for layout,
+spacing, rounded controls and interaction hierarchy; Amici for personality
+(expressive type accents, the checker strip, photos placed rather than
+framed). Functional UI is soft, rounded and quiet; the personality comes from
+typography, imagery and a few accents — never from making controls messy.
+
 Three rules do most of the work:
 
 1. **Two brand colours, and all other colour comes from the categories.**
-2. **Hairlines, not boxes.** A stack of bordered cards makes you re-enter a
-   container on every item.
-3. **Radius encodes what a thing is,** not taste.
+2. **Whitespace and soft elevation, not boxes.** Not every element needs a
+   container; spacing, type hierarchy and a low shadow do the work.
+3. **One rounded family.** Pills for buttons, a medium radius for cards, a
+   large one for sheets and panels.
 
 ---
 
@@ -42,14 +50,19 @@ whatever their OS is set to.
 
 | Token | Hex | Role |
 |---|---|---|
-| `--paper` | `#FBF7ED` | content plates, the map's ground before tiles arrive |
-| `--paper-2` | `#F3EDDF` | chrome: masthead, footer, the mobile switch |
-| `--paper-3` | `#EFE8D7` | recessed: insets, notes, the story plate |
-| `--card` | `#FFFCF5` | raised: modals and the mobile peek card only |
+| `--paper` | `#FDFAF4` | content plates, the map's ground before tiles arrive |
+| `--paper-2` | `#F9F5EC` | the page: masthead, the mobile switch |
+| `--paper-3` | `#F2EDE2` | recessed: chips, hover fills |
+| `--card` | `#FFFEFB` | raised: panels, popovers, modals, the peek card |
+| `--line-soft` | `#E6E0D2` | hairlines on the lighter grounds |
+
+The grounds were lifted about two shades in the polish pass — the old chrome
+ground read as dull. They stay warm; the page is never stark white.
 
 ### Ink and brand
 
-Ratios are measured against `--paper` unless stated.
+Ratios are measured against `--paper` unless stated. The lighter grounds
+only raise them: `--ink-3` is 5.1:1 on `--paper-2` and 4.75:1 on `--paper-3`.
 
 | Token | Hex | Role | Contrast |
 |---|---|---|---|
@@ -61,7 +74,7 @@ Ratios are measured against `--paper` unless stated.
 | `--green-soft` | `#E4EBDE` | selected row / hover fill | — |
 | `--green-line` | `#C3CFBB` | separators — decorative only | 1.5:1 |
 | `--line-control` | `#788870` | the edge of a control | **3.1:1** |
-| `--ochre` | `#B8863B` | stamps, marquee, route dashes — **never text** | 3.0:1 |
+| `--ochre` | `#B8863B` | accents and marks — **never text** | 3.0:1 |
 | `--ochre-ink` | `#8A5C25` | the text-safe ochre | **5.4:1** |
 | `--star` | `#A8761F` | star fill (a graphic, 3:1 bar) | 3.7:1 |
 | `--water-fill` | `#A9C6D4` | the lake |
@@ -100,9 +113,18 @@ marker.
 **Two families from one foundry, one job each.** No third face, and no mono:
 `font-variant-numeric: tabular-nums` does the alignment job instead.
 
-- **Instrument Serif** — wordmark, section and modal heads, city stamp,
-  friend names and their words, plan titles, search placeholder, map labels.
-- **Instrument Sans** — all UI, index rows, controls, meta, essay body.
+- **Instrument Serif** — wordmark, section and modal heads, plan titles, and
+  the expressive accents: the tagline, **activity type and neighbourhood**
+  ("*Food · Liberty Village*"), the signature, the "More cities coming soon!"
+  note. Italic is the expressive voice.
+- **Instrument Sans** — everything functional: friend names, what friends
+  wrote, prices, time, energy, buttons, navigation, filters, search, and the
+  essay body.
+
+**Readable first.** Functional information is never set in the italic
+display face. What friends wrote used to be serif italic at 1.125rem and was
+hard to read; it is Instrument Sans at 0.9375rem / 1.6 now, the same voice as
+the essay.
 
 > **Instrument Serif ships Regular only.** Never request a heavier weight or
 > the browser synthesises a faux bold.
@@ -111,7 +133,7 @@ Scale — base 16px:
 
 | | |
 |---|---|
-| Masthead wordmark | `clamp(2.1rem, 3.6vw, 3.1rem)` |
+| Masthead wordmark | 2.25rem desktop · `clamp(1.55rem, 6.8vw, 1.95rem)` phone |
 | Modal head | 1.75rem |
 | Section head / panel head | 1.5rem |
 | Plan title | 1.375rem |
@@ -125,13 +147,19 @@ Scale — base 16px:
 ## 4. Structure
 
 - **Spacing** — 4px base: `--s-1` 4 … `--s-9` 96.
-- **Radius encodes what a thing is:** `--r-flat` 2px is the default,
-  `--r-pill` 999px is for pills / markers / stamps, `--r-sheet` 16px is for
-  modals and the mobile peek card. Nothing else picks a radius.
-- **Elevation** — nothing floats except the index panel, the modals and the
-  peek card. Everything else is flat on paper.
-- **Separators** — 1px `--green-line`; band breaks use the dashed route rule.
-- **Paper grain** — one tiled inline SVG noise at 5.5% over the whole page.
+- **Radius — one soft family:** `--r-sm` 10px (inputs, selects, map
+  controls, menu items), `--r-md` 16px (cards, rows, popovers, peek card),
+  `--r-lg` 24px (modals, panels, the map card), `--r-pill` (buttons, chips,
+  markers). The old 2px `--r-flat` default is retired.
+- **Elevation** — `--shadow-1` lifts a control off the map; `--shadow-2` is
+  for things floating over the page (popovers, panels, modals). Low and soft,
+  never a hard outline.
+- **Separators** — 1px `--line-soft`. The dashed route rules are gone; the
+  checker strip is the one decorative band.
+- **The app shell** — checker strip, masthead, then the stage takes exactly
+  the rest of the window (`100dvh`). Nothing lives below it: no footer, no
+  stats, no marquee.
+- **Paper grain** — one tiled inline SVG noise at 4% over the whole page.
   No image file, no extra request; it is what stops large flat areas reading
   as screen-flat.
 
@@ -173,14 +201,18 @@ Derived from the tokens in §2; the hex values live in the style file.
 
 | Layer | Colour | Note |
 |---|---|---|
-| Land | `#F2ECDF` | a shade under `--paper`, so warm-white streets read against it |
-| Water | `#A9C6D4` | `--water-fill` — visibly blue |
-| Parks | `#DDE3CD` | pale sage, well clear of `--green` |
-| Arterials | `#FFFCF5` on `#DDD2BC` | `--card` with a warm casing |
+| Land | `#F7F3EA` | lifted a shade in the polish pass; still just under `--paper` |
+| Water | `#B4CEDA` | `--water-fill` — visibly blue, a step softer |
+| Parks | `#E3E9D5` | pale sage, well clear of `--green` |
+| Buildings | `#EEE8DA` | |
+| Arterials | `#FFFEFA` on `#DDD2BC` | near-white with a warm casing |
 | Motorways | `#FAF1DC` on `#CDBD9C` | a faint ochre, so the Gardiner is findable |
-| Street names | `#636B5C` | `--ink-3` — **4.7:1** on land |
-| Neighbourhoods | `#55604F` | `--ink-2` — **5.6:1** on land, 5.0:1 on park |
-| Water names | `#2A4E60` | `--water-ink` — **5.0:1** on water |
+| Street names | `#636B5C` | `--ink-3` — **5.0:1** on land |
+| Neighbourhoods | `#55604F` | `--ink-2` — 5.3:1 on park |
+| Water names | `#2A4E60` | `--water-ink` — **5.4:1** on water |
+
+The land colour is shared by residential areas, piers and the gaps in the
+rail dashes, and the minor-road ramp starts from it — change them together.
 
 ### Framing and the camera
 
@@ -192,11 +224,10 @@ Derived from the tokens in §2; the hex values live in the style file.
   map stays still. Otherwise it eases the pin into the free area.
 - **Once someone has moved the map, it is theirs.** No automatic re-framing
   takes it back.
-- **Controls are deliberately few:** zoom, where-am-I, and a *Recentre* word
-  that returns to all 39 places. No compass (there is no rotation to undo)
-  and no scale bar. They are paper and hairline, not MapLibre's white chips:
-  top-left on desktop, where the panel isn't; the right edge at 44px on a
-  phone.
+- **Controls are deliberately few:** zoom, where-am-I, and a *Recentre*
+  pill that returns to all 39 places. No compass (there is no rotation to
+  undo) and no scale bar. They are card-coloured squircles with a soft
+  shadow and no outline.
 - **Attribution is always readable.** On desktop it sits just left of the
   index panel; on a phone it rises above the peek card while one is open.
 
@@ -251,11 +282,10 @@ The index has never depended on the map, and no failure changes that.
 | MapLibre, our style file, or WebGL | The map is withdrawn with a short note pointing at the index; on a phone the switch goes too, since there is no second half to switch to |
 | The place data | *No places to map*, beside the existing data-error message |
 
-### The key
+### No key
 
-The legend is the map's key, so it follows the map's state: filter to one
-activity and the rest of the key steps back rather than advertising colours
-that are no longer on the field.
+The map legend was removed in the polish pass: the glyph in every marker and
+the activity named on every row carry category on their own.
 
 ---
 
@@ -265,16 +295,16 @@ that are no longer on the field.
 
 ```
 ◐  Pizzeria Badiali                    ★★★★★  ⌄
-   Food · West Queen West
-   Ashton + 2 friends          ← Instrument Serif italic
+   Food · West Queen West      ← Instrument Serif italic
+   Recommended by Ashton + 2   ← Instrument Sans, name in 600
 ```
 
-Hairline-separated, no cards. The collapsed row **names a friend** rather
-than reporting a count — "Ashton + 2 friends" reads as people, "Recommended
-by 3" reads as a statistic, and people are the whole point of the site. The
-toggle is a real `<button>` with `aria-expanded`. Expanded rows show friend
-stamps (rotated 0.9° ochre tags) with each friend's own rating and their
-words in serif italic.
+The collapsed row **names a friend** and says what they did — "Recommended
+by Ashton + 2". A bare name gave no context; "Recommended by 3 friends"
+reads as a statistic, and people are the whole point of the site. The toggle
+is a real `<button>` with `aria-expanded`. Expanded rows show price, time
+and energy as soft chips, then each friend's name (plain, 600) with their own
+rating and their words in the readable body face.
 
 Two kinds of fact get two lines. One grey middle-dot string flattens them
 together — the same rule applies to plan items in the planner.
@@ -290,11 +320,34 @@ Default labels are **"All activities" / "All prices" / "All ratings"**.
 Not "Activity" / "Price" / "Rating": a dropdown reading "Activity" doesn't
 say *no filter applied*.
 
+### The masthead
+
+A checker strip (two rows of 8px checks, `--green-deep` on `--paper`, pure
+CSS) sits along the very top on every screen — the only checkerboard on the
+site. Below it, on desktop, one compact band (~70px): wordmark; the tagline
+on a single line with **Why this exists** tucked under it; then the Toronto
+selector, Contribute a place and a **Plan my trip** pill. On a phone it is
+its own centred treatment: wordmark and tagline about a fifth smaller, then
+one row — *Why this exists · Contribute a place* as quiet links and Plan my
+trip as a small pill.
+
+**The city selector** reads "Toronto ⌄" and opens a small popover menu:
+Toronto (ticked) and a muted *More cities coming soon!*. Popovers are
+anchored panels, not dialogs — Escape, clicking elsewhere or tabbing out
+closes them and returns focus to the trigger.
+
 ### Modals
 
-Sheets of the same paper: `--card` ground, hairline border, `--r-sheet`,
-serif head over a dashed rule. **One selected state everywhere** — green
-fill, paper ink. The planner previously used near-black for pills and green
+Sheets on `--card`: no border, `--r-lg`, a soft shadow, the serif head over a
+hairline. Buttons and option pills are pills; time-option cards use `--r-md`.
+**One selected state everywhere** — green fill, paper ink.
+
+**Why this exists** is an editorial spread: three phone photos (9:16, white
+print border, a small tilt, a strip of tape) dropped on the left and hanging
+slightly off the sheet's edge, the essay beside them at 0.875rem. It fits a
+1280×800 screen without scrolling inside itself. The photos are placeholders
+until the real ones arrive — each `<figure>` takes an `<img>` in place of its
+placeholder span. The planner previously used near-black for pills and green
 for cards, which read as two different kinds of chosen.
 
 Field labels are section markers and carry a dashed rule out to the edge.
@@ -342,23 +395,21 @@ ask to move.
 - Camera moves use the same rule as scrolling: **instant under reduced
   motion.**
 - Everything is neutralised by a single `prefers-reduced-motion: reduce`
-  block at the top of `css/app.css`, and the marquee stops there outright.
+  block at the top of `css/app.css`.
 
 ---
 
 ## 8. Ephemera budget
 
-City stamp · dashed route rules · friend stamps · the map key ·
-neighbourhood marquee · the story plate · expressive empty state.
+The checker strip · the italic tagline and activity/neighbourhood lines ·
+the story photos · the signature · expressive empty state.
 
 **Caps:** nothing rotated more than 1.5°; never more than two expressive
 elements in one viewport; and **filters, buttons, selects, search and rows
 are never stickers.**
 
-Imagery is **drawn, never photographed**. A stock photo of a city would be
-someone else's Toronto. The story plate uses the site's own map vocabulary —
-coast, route dash, three pins, a bearing — once, at the head of the only long
-piece of writing on the site.
+**No stock photography.** A stock photo of a city would be someone else's
+Toronto. The only photographs are the owner's own, in the story.
 
 ---
 
@@ -377,8 +428,10 @@ piece of writing on the site.
   and the frame came while the focus did not, which left keyboard users
   tabbing the page behind an open dialog.
 - Category is carried by a glyph as well as by colour.
-- Tap targets are ≥ 34px on desktop and ≥ 40px on mobile, ≥ 44px on nav
-  links, primary buttons, Maps links and the mobile switch.
+- Tap targets are ≥ 34px on desktop and ≥ 40px on mobile, ≥ 44px on
+  primary buttons, Maps links and the mobile switch. The compact phone
+  masthead is the deliberate exception: its three actions are 34–36px tall
+  (above the 24px WCAG 2.2 minimum) so the header stays one row.
 - No horizontal overflow at 375, 812 (landscape), 1024 or 1440.
 - **Markers are not in the tab order and are hidden from screen readers**, by
   design — 39 stops before reaching the index would be worse than the
@@ -402,7 +455,7 @@ piece of writing on the site.
   right tool, and the reasons are in [`REAL_MAP_PLAN.md`](REAL_MAP_PLAN.md).)
 - **The map's look lives in `map/ikap-atlas.json`, not in JavaScript.** No
   runtime `setPaintProperty` restyling.
-- **No stock photography.**
+- **No stock photography.** The owner's own photos, in the story, only.
 - Data, the planner algorithm, `escapeHtml()`, `starsHtml()`, the essay copy
   and the Google Maps URL construction are not visual territory. Coordinates
   are never changed without the owner's approval.

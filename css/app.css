@@ -11,10 +11,12 @@
        Two real grounds. Chrome (page, masthead, filter rail,
        footer) sits on the deeper --paper-2; content plates
        (map, index) sit on the lighter --paper. */
-    --paper:#FBF7ED;       /* content plates                     */
-    --paper-2:#F3EDDF;     /* chrome ground                      */
-    --paper-3:#EFE8D7;     /* recessed: notes, chips, insets     */
-    --card:#FFFCF5;        /* raised: peek card + modals only    */
+    /* Lifted about two shades in the polish pass: the old chrome ground
+       read as dull. Still warm, never stark white. */
+    --paper:#FDFAF4;       /* content plates                     */
+    --paper-2:#F9F5EC;     /* chrome ground: the page itself     */
+    --paper-3:#F2EDE2;     /* recessed: chips, insets            */
+    --card:#FFFEFB;        /* raised: panels, popovers, modals   */
 
     /* --- Ink -------------------------------------------------- */
     --ink:#1E241C;         /* primary text            15.0:1     */
@@ -37,12 +39,12 @@
 
     /* --- Ochre: the one supporting accent ---------------------
        Decorative only. Never on a control, never as body text. */
-    --ochre:#B8863B;       /* stamps, marquee, marks   3.0:1     */
+    --ochre:#B8863B;       /* accents and marks only   3.0:1     */
     --ochre-ink:#8A5C25;   /* the text-safe variant    5.4:1     */
     --star:#A8761F;        /* star fill                3.7:1     */
 
     /* --- Water: stays unmistakably blue ----------------------- */
-    --water-fill:#A9C6D4;
+    --water-fill:#B4CEDA;
     --water-line:#3C6A80;    /* the coast: a line, 3.3:1 on --water-fill */
     --water-ink:#2A4E60;     /* text on the water 5.0:1 - the map style's water labels */
 
@@ -65,15 +67,21 @@
     --font-display:'Instrument Serif', Georgia, 'Iowan Old Style', serif;
     --font-body:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-    /* --- Radius: encodes what a thing is, not taste ----------- */
-    --r-flat:2px;          /* the default: almost everything     */
-    --r-pill:999px;        /* pills, markers, stamps             */
-    --r-sheet:16px;        /* mobile peek card + modals          */
+    /* --- Radius: one soft family ------------------------------
+       Functional UI is rounded and quiet; the personality comes
+       from type, photos and accents, not from the controls. */
+    --r-sm:10px;           /* inputs, selects, map controls      */
+    --r-md:16px;           /* cards, rows, popovers, peek card   */
+    --r-lg:24px;           /* modals, panels, the map card       */
+    --r-pill:999px;        /* buttons, chips, markers            */
 
     /* --- Elevation --------------------------------------------
-       Nothing floats except the peek card and the modals, which
-       set their own shadow. Everything else is flat on paper. */
-    --shadow:none;
+       Soft and low, never a hard edge. --shadow-1 lifts a control
+       off the map; --shadow-2 is for things that float over the
+       page (popovers, panels, modals). */
+    --shadow-1:0 1px 2px rgba(30,36,28,.08), 0 3px 10px rgba(30,36,28,.10);
+    --shadow-2:0 2px 6px rgba(30,36,28,.06), 0 16px 40px -8px rgba(30,36,28,.22);
+    --line-soft:#E6E0D2;   /* hairline on the lighter grounds    */
 
     /* --- Spacing: 4px base ------------------------------------ */
     --s-1:4px;  --s-2:8px;  --s-3:12px; --s-4:16px;
@@ -100,16 +108,15 @@
   button{font-family:inherit; cursor:pointer;}
   a{color:inherit;}
   ::selection{background:var(--green); color:var(--paper);}
-  :focus-visible{outline:2.5px solid var(--green); outline-offset:2px; border-radius:var(--r-flat);}
+  :focus-visible{outline:2.5px solid var(--green); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
-    .marquee-track{animation:none !important;}
   }
   /* A map is a lot of page to tab past to reach the thing you came for. */
   .skip-link{
     position:absolute; left:var(--s-4); top:-60px; z-index:60;
     background:var(--green); color:var(--paper);
-    padding:10px 16px; border-radius:var(--r-flat);
+    padding:10px 16px; border-radius:var(--r-pill);
     font-family:var(--font-body); font-size:.875rem; font-weight:600;
     text-decoration:none;
     transition:top .12s ease;
@@ -119,67 +126,148 @@
   .visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
 
   /* ---------- Shell -------------------------------------------
-     No centred max-width column any more. The masthead is a band and
-     the map is a field that runs to the edges of the window. */
-  .app{position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh;}
+     An app, not a page: the strip, the masthead, and the stage taking
+     exactly the rest of the window. Nothing lives below the stage. The
+     stage's height is measured by the layout, not guessed. */
+  .app{
+    position:relative; z-index:1;
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh;
+  }
+  .mob-only{display:none !important;}
+
+  /* ---------- The checker strip -------------------------------
+     Two rows of 8px checks, deep green on paper, along the top edge
+     only. One repeating gradient - no image, no request. */
+  .checker{
+    flex:0 0 auto;
+    height:16px;
+    background:repeating-conic-gradient(var(--green-deep) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px;
+  }
 
   /* ---------- Masthead ----------------------------------------
-     Identity sits in its own band above the map, so the type never
-     competes with the pin cluster for the same space. */
+     A compact band: identity on the left, the tagline on one line
+     beside it with "Why this exists" tucked under, and the actions on
+     the right. */
   .masthead{
+    flex:0 0 auto;
     display:flex;
-    align-items:flex-start;
+    align-items:center;
     justify-content:space-between;
     gap:var(--s-5);
-    flex-wrap:wrap;
-    padding:var(--s-4) var(--s-6) var(--s-5);
+    padding:var(--s-3) var(--s-6);
     background:var(--paper-2);
-    border-bottom:1.5px dashed var(--green-line);
+    border-bottom:1px solid var(--line-soft);
   }
+  .mast-id{display:flex; align-items:center; gap:var(--s-5); min-width:0;}
   .word{
     font-family:var(--font-display);
-    font-size:clamp(2.1rem, 3.6vw, 3.1rem);
+    font-size:2.25rem;
     font-weight:400;
     letter-spacing:-.04em;
-    line-height:.94;
+    line-height:1;
     margin:0;
     color:var(--green-deep);
+    white-space:nowrap;
   }
   .word .dot{color:var(--ochre);}
+  .mast-sub{
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    padding-left:var(--s-5);
+    border-left:1px solid var(--line-soft);
+  }
   .kicker{
     font-family:var(--font-display);
     font-style:italic;
     font-size:1.0625rem;
+    line-height:1.25;
     color:var(--ink-2);
-    margin:var(--s-2) 0 0;
-    max-width:34ch;
+    margin:0;
+    white-space:nowrap;
   }
   .kicker strong{font-weight:400; color:var(--ink);}
+  .why-link{
+    background:none; border:none; padding:2px 0;
+    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
+    color:var(--green);
+    text-decoration:underline; text-decoration-color:var(--green-line);
+    text-underline-offset:3px; text-decoration-thickness:1.5px;
+  }
+  .why-link:hover{text-decoration-color:var(--green);}
   .mast-right{
     display:flex; align-items:center; gap:var(--s-2);
-    flex-wrap:wrap; justify-content:flex-end;
+    flex:0 0 auto;
   }
-  .mast-nav{display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;}
   .nav-link{
-    display:inline-flex; align-items:center; min-height:44px;
+    display:inline-flex; align-items:center; min-height:40px;
     background:none; border:none;
     font-family:var(--font-body); font-size:.9375rem; font-weight:500;
-    color:var(--ink-2); padding:0 10px; border-radius:var(--r-flat);
+    color:var(--ink-2); padding:0 14px; border-radius:var(--r-pill);
+    transition:background .12s ease, color .12s ease;
   }
-  .nav-link:hover{color:var(--green); text-decoration:underline; text-underline-offset:4px;}
-  .city-stamp{
-    display:inline-flex; flex-direction:column; align-items:center; gap:1px;
-    padding:6px 16px;
-    background:none; border:1.5px solid var(--ochre); border-radius:var(--r-pill);
+  .nav-link:hover{color:var(--ink); background:var(--paper-3);}
+  .nav-dot{color:var(--ink-3);}
+
+  /* The city selector reads as a selector: the name and a chevron, in a
+     quiet outlined pill. It opens the city menu (a popover), not a modal. */
+  .city-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:40px; padding:0 12px 0 16px;
+    background:var(--card); border:1px solid var(--line-soft); border-radius:var(--r-pill);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600;
     color:var(--green-deep);
-    transform:rotate(-1.2deg);
-    transition:transform .18s ease, border-color .18s ease;
+    box-shadow:0 1px 2px rgba(30,36,28,.05);
+    transition:border-color .12s ease, box-shadow .12s ease;
   }
-  .city-stamp:hover{transform:rotate(0deg); border-color:var(--ochre-ink);}
-  .city-stamp-name{font-family:var(--font-display); font-size:1.0625rem; line-height:1;}
-  .city-stamp-sub{
-    font-family:var(--font-body); font-size:.5625rem; font-weight:600;
-    letter-spacing:.18em; text-transform:uppercase; color:var(--ochre-ink);
+  .city-btn:hover{border-color:var(--line-control); box-shadow:var(--shadow-1);}
+  .city-btn .chev{
+    width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round;
+    transition:transform .18s ease;
+  }
+  .city-btn[aria-expanded="true"] .chev{transform:rotate(180deg);}
+  .city-btn-sm{min-height:36px; font-size:.875rem; padding:0 10px 0 14px;}
+
+  /* ---------- Popovers ----------------------------------------
+     Anchored panels that are not dialogs. Placed by openPopover(). */
+  .popover{
+    position:fixed; z-index:45;
+    background:var(--card);
+    border:1px solid var(--line-soft);
+    border-radius:var(--r-md);
+    box-shadow:var(--shadow-2);
+    animation:pop-in .16s ease both;
+  }
+  .popover[hidden]{display:none;}
+  @keyframes pop-in{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
+  .city-pop{padding:6px; min-width:230px;}
+  .pop-item{
+    display:flex; align-items:center; justify-content:space-between; gap:var(--s-3);
+    width:100%; min-height:44px; padding:0 12px;
+    background:none; border:none; border-radius:var(--r-sm);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600; color:var(--ink);
+    text-align:left;
+  }
+  .pop-item:hover{background:var(--paper-3);}
+  .pop-item .tick{
+    width:18px; height:18px; fill:none; stroke:var(--green); stroke-width:2.2;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .pop-note{
+    padding:8px 12px 10px;
+    margin-top:2px;
+    border-top:1px solid var(--line-soft);
+    font-family:var(--font-display); font-style:italic;
+    font-size:1rem; color:var(--ink-3);
+  }
+
+  /* Between the phone layout and a wide window there is not room for the
+     wordmark, a one-line tagline and the actions side by side, so the
+     tagline steps under the wordmark rather than wrapping or overlapping. */
+  @media (min-width: 881px) and (max-width: 1140px){
+    .mast-id{flex-direction:column; align-items:flex-start; gap:4px;}
+    .mast-sub{padding-left:0; border-left:none; flex-direction:row; align-items:baseline; gap:var(--s-3);}
+    .word{font-size:2rem;}
   }
 
   /* ---------- The stage ---------------------------------------
@@ -187,9 +275,8 @@
      border, no radius. The index floats over it on paper. */
   .stage{
     position:relative;
-    flex:1 0 auto;
-    height:calc(100vh - 156px);
-    min-height:540px;
+    flex:1 1 auto;
+    min-height:420px;
     overflow:hidden;
     background:var(--paper);
   }
@@ -205,30 +292,6 @@
   /* MapLibre paints its own background before the style loads; make that
      moment paper rather than the library's grey. */
   .atlas, .maplibregl-canvas-container, .maplibregl-canvas{background:var(--paper);}
-  /* The key, not a widget. It sits on the field in the map's own
-     drawing language and answers the map's question. */
-  .map-legend{
-    position:absolute; left:var(--s-6); bottom:var(--s-5); z-index:2;
-    display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-2) var(--s-4);
-    max-width:44ch;
-    font-size:.75rem; color:var(--ink-2);
-    background:color-mix(in srgb, var(--paper) 88%, transparent);
-    border:1px solid var(--green-line);
-    border-top:1px dashed var(--ochre);
-    padding:10px 14px 11px;
-  }
-  .map-legend .key-title{
-    flex:1 0 100%;
-    font-family:var(--font-display); font-style:italic;
-    font-size:.9375rem; color:var(--ink-3); line-height:1;
-  }
-  .map-legend .key-item{
-    display:flex; align-items:center; gap:6px;
-    transition:opacity .15s ease;
-  }
-  .map-legend .key-item.off{opacity:.32;}
-  .map-legend .swatch{width:9px; height:9px; border-radius:var(--r-pill);}
-
   /* ---------- The map's note ----------------------------------
      One line of the display face while the map draws, and a short plain
      paragraph if it can't. Centred in the part of the map that is free - on
@@ -251,13 +314,12 @@
   .mapfield.is-unavailable .map-note,
   .mapfield.is-degraded .map-note{
     background:var(--paper);
-    border:1px solid var(--green-line); border-top:1px dashed var(--ochre);
+    border-radius:var(--r-md);
     padding:var(--s-4) var(--s-5);
-    box-shadow:0 18px 40px -24px rgba(30,40,25,.45);
+    box-shadow:var(--shadow-2);
   }
   /* No map at all: no controls, no key to a map that isn't there. */
   .mapfield.is-unavailable .atlas{visibility:hidden;}
-  .stage.map-off .map-legend{display:none;}
 
   /* ---------- Markers -----------------------------------------
      Markers are ordinary HTML now, positioned by MapLibre. That is what keeps
@@ -336,13 +398,13 @@
     border-radius:var(--r-pill); background:var(--cat); opacity:.3;
   }
 
-  /* A paper tag, not a black chip. */
+  /* A small card, not a black chip. */
   .map-tooltip{
     position:absolute; pointer-events:none; z-index:5;
     display:flex; flex-direction:column; gap:2px;
-    background:var(--paper); color:var(--ink);
-    border:1px solid var(--ink);
-    padding:6px 10px 7px; border-radius:var(--r-flat);
+    background:var(--card); color:var(--ink);
+    box-shadow:var(--shadow-2);
+    padding:7px 12px 8px; border-radius:var(--r-sm);
     white-space:nowrap; text-align:left;
     transform:translate(-50%,-165%);
     opacity:0; transition:opacity .12s ease;
@@ -359,41 +421,42 @@
 
 
   /* ---------- Map controls and attribution --------------------
-     MapLibre's own chrome is a white rounded chip with a drop shadow - the
-     stock look this map is trying not to have. Here it is paper and hairline,
-     like every other control on the page. */
+     Modern, soft controls: a card-coloured squircle with a low shadow and
+     no hard edge, lifted off the map rather than outlined on it. */
   .maplibregl-ctrl-top-left{top:var(--s-3); left:var(--s-3);}
   .maplibregl-ctrl-top-left .maplibregl-ctrl{margin:0 0 var(--s-2);}
-  .maplibregl-ctrl-group{
-    background:var(--paper);
-    border:1px solid var(--line-control);
-    border-radius:var(--r-flat);
-    box-shadow:0 6px 18px -12px rgba(30,40,25,.5);
+  .maplibregl-ctrl-group:not(:empty){
+    background:var(--card);
+    border:none;
+    border-radius:var(--r-sm);
+    box-shadow:var(--shadow-1);
+    overflow:hidden;
   }
-  .maplibregl-ctrl-group button{width:36px; height:36px;}
-  .maplibregl-ctrl-group button + button{border-top:1px solid var(--green-line);}
-  .maplibregl-ctrl-group button:not(:disabled):hover{background-color:var(--green-soft);}
-  .maplibregl-ctrl button:focus-visible{outline:2.5px solid var(--green); outline-offset:1px; box-shadow:none;}
-  /* The library's icons are drawn in near-black; ink-2 is the page's own. */
-  .maplibregl-ctrl-group .maplibregl-ctrl-icon{opacity:.78;}
+  .maplibregl-ctrl-group button{width:40px; height:40px;}
+  .maplibregl-ctrl-group button + button{border-top:1px solid var(--line-soft);}
+  .maplibregl-ctrl-group button:not(:disabled):hover{background-color:var(--paper-3);}
+  .maplibregl-ctrl button:focus-visible{outline:2.5px solid var(--green); outline-offset:-3px; box-shadow:none;}
+  /* The library's icons are drawn in near-black; this softens them to ink. */
+  .maplibregl-ctrl-group .maplibregl-ctrl-icon{opacity:.8;}
 
   .map-recentre button{
-    display:block; min-height:36px; padding:0 12px;
-    background:var(--paper);
-    border:1px solid var(--line-control); border-radius:var(--r-flat);
-    box-shadow:0 6px 18px -12px rgba(30,40,25,.5);
+    display:block; min-height:40px; padding:0 16px;
+    background:var(--card);
+    border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-1);
     font-family:var(--font-body); font-size:.8125rem; font-weight:600;
     color:var(--green-deep);
   }
-  .map-recentre button:hover{background:var(--green-soft);}
+  .map-recentre button:hover{background:var(--paper-3);}
 
   .maplibregl-ctrl-attrib{
     font-family:var(--font-body); font-size:.6875rem; color:var(--ink-3);
   }
   .maplibregl-ctrl-attrib.maplibregl-compact{
-    background:color-mix(in srgb, var(--paper) 92%, transparent);
-    border:1px solid var(--green-line);
-    border-radius:var(--r-flat);
+    background:color-mix(in srgb, var(--card) 92%, transparent);
+    border:none;
+    box-shadow:var(--shadow-1);
+    border-radius:var(--r-pill);
   }
   .maplibregl-ctrl-attrib a{color:var(--ink-2);}
   /* On desktop the index panel floats over the right of the map, so the
@@ -408,11 +471,12 @@
     width:min(430px, calc(100% - var(--s-6) * 2));
     z-index:4;
     display:flex; flex-direction:column;
-    background:var(--paper);
-    border:1px solid var(--green-line);
-    box-shadow:0 24px 60px -28px rgba(30,40,25,.45);
+    background:var(--card);
+    border-radius:var(--r-lg);
+    box-shadow:var(--shadow-2);
+    overflow:hidden;
   }
-  .panel-head{padding:var(--s-5) var(--s-5) var(--s-3); border-bottom:1px dashed var(--green-line);}
+  .panel-head{padding:var(--s-5) var(--s-5) var(--s-3); border-bottom:1px solid var(--line-soft);}
   .panel-head h2{font-size:1.5rem; color:var(--green-deep); letter-spacing:-.02em;}
   .panel-scroll{overflow:auto; padding:0 var(--s-5) var(--s-5);}
 
@@ -452,7 +516,7 @@
   .searchline{margin-top:var(--s-4); border-bottom:1.5px solid var(--line-control); padding-bottom:6px;}
   .searchline input{
     border:none; outline:none; background:none; width:100%;
-    font-family:var(--font-display); font-style:italic; font-size:1.05rem; color:var(--ink);
+    font-family:var(--font-body); font-size:.9375rem; color:var(--ink);
   }
   .searchline input::placeholder{color:var(--ink-3);}
   .searchline:focus-within{border-bottom-color:var(--green);}
@@ -467,58 +531,10 @@
     inset:0;
     z-index:0;
     pointer-events:none;
-    opacity:0.055;
+    opacity:0.04;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
   }
   .app{position:relative; z-index:1;}
-
-  /* ---------- The dashed route rule ----------------------------
-     Amici frames its content with a repeating checkerboard border.
-     The same idea in this product's own vernacular: a route dashed
-     across the page. Used as a horizontal band separator only - a
-     full dashed box would read as an empty drop target. */
-  .rule-route{
-    border:0;
-    border-top:1.5px dashed var(--green-line);
-    margin:0 0 var(--s-5);
-  }
-
-  /* ---------- Footer ------------------------------------------ */
-  .site-foot{padding:var(--s-5) var(--s-6); background:var(--paper-2);
-             border-top:1.5px dashed var(--green-line);}
-  .marquee{overflow:hidden; margin-bottom:var(--s-5);}
-  .marquee-track{
-    display:flex;
-    gap:var(--s-5);
-    width:max-content;
-    animation:marquee 90s linear infinite;
-    font-family:var(--font-display);
-    font-size:1.375rem;
-    color:var(--ochre);
-    white-space:nowrap;
-  }
-  @keyframes marquee{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
-  .foot-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    gap:var(--s-4);
-    flex-wrap:wrap;
-  }
-  .colophon{
-    font-size:0.8125rem;
-    color:var(--ink-3);
-    font-variant-numeric:tabular-nums;
-  }
-  .foot-link{
-    display:inline-flex; align-items:center;
-    min-height:44px;
-    font-size:0.8125rem;
-    font-weight:600;
-    color:var(--green);
-    text-decoration:underline;
-    text-underline-offset:3px;
-  }
 
   /* ---------- Holding modals ---------------------------------- */
   .holding-copy{
@@ -530,53 +546,80 @@
   }
   .holding-copy:last-child{margin-bottom:0;}
 
-  /* ---------- The story plate ----------------------------------
-     A drawn plate, not a photograph: the site's own map vocabulary
-     used once, at the head of the only long piece of writing here.
-     It is decorative and marked aria-hidden - the essay below says
-     everything it says. */
-  .story-plate{
-    position:relative;
-    margin:calc(var(--s-5) * -1) calc(var(--s-5) * -1) var(--s-5);
-    border-bottom:1px dashed var(--green-line);
-    background:var(--paper-3);
-    overflow:hidden;
+  /* ---------- Why this exists ----------------------------------
+     An editorial spread rather than a document: three phone photos
+     dropped onto the left of the sheet, the essay beside them. Sized to
+     sit on a laptop screen whole, without scrolling inside it. */
+  .modal.modal-story{max-width:960px; margin-block:auto;}
+  /* On a laptop-height screen the sheet borrows some of the scrim's margin
+     rather than scroll inside itself. */
+  @media (max-height: 840px) and (min-width: 761px){
+    #storyScrim{padding-top:var(--s-5); padding-bottom:var(--s-5);}
   }
-  .story-plate svg{display:block; width:100%; height:150px;}
-  .story-plate .plate-grat{
-    fill:none; stroke:var(--green-line); stroke-width:1;
-    stroke-dasharray:2 7; opacity:.9;
-  }
-  .story-plate .plate-water{fill:var(--water-fill); opacity:.85;}
-  .story-plate .plate-shore{fill:none; stroke:var(--water-line); stroke-width:1.6; opacity:.7;}
-  .story-plate .plate-route{
-    fill:none; stroke:var(--ochre); stroke-width:1.6;
-    stroke-dasharray:6 6; stroke-linecap:round;
-  }
-  .story-plate .plate-pin circle{stroke:var(--paper); stroke-width:2.5;}
-  .story-plate .plate-rose{fill:none; stroke:var(--ochre-ink); stroke-width:1.2; opacity:.85;}
-  .story-plate .plate-caption{
-    position:absolute; left:var(--s-5); top:12px;
-    font-family:var(--font-body); font-size:.5625rem; font-weight:600;
-    letter-spacing:.18em; text-transform:uppercase; color:var(--ochre-ink);
+  .story-close{position:absolute; top:var(--s-4); right:var(--s-4); z-index:3;}
+  .story-grid{
+    display:grid;
+    grid-template-columns:280px minmax(0,1fr);
+    gap:var(--s-6);
+    padding:var(--s-6) var(--s-6) var(--s-5) var(--s-5);
   }
 
-  /* The essay is the one place on the site that is just writing, so it
-     gets a measure, a size you can read at length, and nothing else. */
-  .story-body{font-size:1rem; color:var(--ink); line-height:1.7; max-width:62ch;}
-  .story-body p{margin-bottom:var(--s-4);}
-  .story-body p:last-child{margin-bottom:0;}
+  /* The photos. Placed, not framed: a white print border, a small tilt,
+     a strip of tape, and the first one hanging off the sheet's edge. */
+  .story-photos{position:relative; align-self:center; height:430px; margin-left:calc(var(--s-6) * -1.1);}
+  .snap{
+    position:absolute; margin:0;
+    width:158px; aspect-ratio:9 / 16;
+    padding:7px 7px 7px;
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 1px 2px rgba(30,36,28,.10), 0 14px 30px -10px rgba(30,36,28,.35);
+  }
+  .snap::before{        /* the tape */
+    content:""; position:absolute; top:-10px; left:50%;
+    width:62px; height:20px; margin-left:-31px;
+    background:rgba(232,220,190,.78);
+    box-shadow:0 1px 1px rgba(30,36,28,.06);
+    transform:rotate(-4deg);
+  }
+  .snap > img, .snap-ph{
+    display:block; width:100%; height:100%;
+    object-fit:cover; border-radius:3px;
+  }
+  .snap-1{left:0;    top:38px;  transform:rotate(-5deg);  z-index:1;}
+  .snap-2{left:92px; top:0;     transform:rotate(3deg);   z-index:2;}
+  .snap-3{left:176px; top:92px; transform:rotate(-2deg);  z-index:3;}
+  .snap-2::before{transform:rotate(3deg);}
+  /* Placeholder prints until the real photos arrive: three warm tints
+     from the palette, so the composition can be judged now. */
+  .snap-1 .snap-ph{background:linear-gradient(160deg, #E9DDC4, #D4C3A0);}
+  .snap-2 .snap-ph{background:linear-gradient(160deg, #D7E0CF, #B4C4A6);}
+  .snap-3 .snap-ph{background:linear-gradient(160deg, #D5E2E8, #A9C1CD);}
+
+  /* The essay: the site's clean body face, a touch smaller than before,
+     at a measure that still reads comfortably. */
+  .story-body{font-size:.875rem; color:var(--ink); line-height:1.6; max-width:68ch;}
+  .story-body h2{
+    font-size:2rem; line-height:1.05; color:var(--green-deep);
+    margin:0 var(--s-7) var(--s-3) 0;
+  }
+  .story-body p{margin-bottom:10px;}
   .story-body strong{font-weight:600;}
+  .story-sign-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:var(--s-4); flex-wrap:wrap;
+    margin-top:var(--s-4);
+  }
   .story-signature{
-    font-family:var(--font-display); font-style:italic; font-size:1.25rem;
-    color:var(--green-deep); text-align:right; margin-top:var(--s-5) !important;
+    font-family:var(--font-display); font-style:italic; font-size:1.375rem;
+    color:var(--green-deep); margin:0 !important;
   }
   .story-linkedin-row{text-align:right;}
   .story-linkedin{
     display:inline-flex; align-items:center; gap:7px; min-height:44px;
     font-size:0.875rem; font-weight:600; color:var(--paper);
     text-decoration:none; border:1px solid var(--green); background:var(--green);
-    padding:10px 16px; border-radius:var(--r-flat);
+    padding:10px 16px; border-radius:var(--r-pill);
   }
   .story-linkedin:hover{background:var(--green-deep); border-color:var(--green-deep);}
 
@@ -588,8 +631,8 @@
     background:var(--green);
     color:var(--paper);
     border:1px solid var(--green);
-    padding:11px 18px;
-    border-radius:var(--r-flat);
+    padding:10px 20px;
+    border-radius:var(--r-pill);
     font-family:var(--font-body);
     font-weight:600;
     font-size:0.92rem;
@@ -599,17 +642,17 @@
   .btn-secondary{
     display:inline-flex; align-items:center; justify-content:center;
     min-height:44px;
-    background:transparent;
+    background:var(--card);
     color:var(--ink);
     border:1px solid var(--line-control);
-    padding:11px 16px;
-    border-radius:var(--r-flat);
+    padding:10px 20px;
+    border-radius:var(--r-pill);
     font-family:var(--font-body);
     font-weight:600;
     font-size:0.88rem;
-    transition:border-color .12s ease;
+    transition:border-color .12s ease, background .12s ease;
   }
-  .btn-secondary:hover{border-color:var(--ink-3);}
+  .btn-secondary:hover{border-color:var(--ink-3); background:var(--paper-3);}
   .btn-text{
     background:none; border:none; color:var(--green); font-weight:600; font-size:0.85rem; padding:4px 2px;
     text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1.5px;
@@ -701,25 +744,23 @@
 
   /* Two different kinds of fact get two different lines, rather than one
      grey middle-dot string that flattens them together. */
+  /* What and where are the personality line, in the italic display face;
+     who recommended it is information, in the clean sans. */
   .row-where{
     display:block;
-    margin-top:2px;
-    font-size:0.8125rem;
-    color:var(--ink-3);
+    margin-top:1px;
+    font-family:var(--font-display); font-style:italic;
+    font-size:1.0625rem; line-height:1.3;
+    color:var(--ink-2);
   }
   .row-where .sep{opacity:0.55; padding:0 2px;}
   .row-who{
     display:block;
     margin-top:3px;
-    font-size:0.9375rem;
-    color:var(--ink-2);
+    font-size:0.875rem;
+    color:var(--ink-3);
   }
-  .row-who em{
-    font-family:var(--font-display);
-    font-style:italic;
-    font-size:1.0625rem;
-    color:var(--ink);
-  }
+  .who-name{font-weight:600; color:var(--ink);}
 
   .row-chevron{
     flex:0 0 auto;
@@ -739,11 +780,10 @@
 
   .stat-row{display:flex; gap:var(--s-2); flex-wrap:wrap; margin-bottom:var(--s-4);}
   .stat-chip{
-    background:none;
-    border:1px solid var(--green-line);
+    background:var(--paper-3);
     border-radius:var(--r-pill);
-    padding:4px 10px;
-    font-size:0.75rem;
+    padding:5px 12px;
+    font-size:0.8125rem;
     color:var(--ink-2);
   }
   .stat-chip b{color:var(--ink); font-weight:500;}
@@ -751,30 +791,23 @@
   .note-list{display:flex; flex-direction:column; gap:var(--s-4); margin-bottom:var(--s-4);}
   .note-head{display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-2);}
 
-  /* The friend stamp. Barely rotated - enough to read as placed by hand,
-     not enough to look like a sticker pack. */
-  .note-stamp{
-    display:inline-block;
-    border:1.5px solid var(--ochre);
-    border-radius:var(--r-pill);
-    padding:2px 12px;
-    font-family:var(--font-display);
-    font-size:1rem;
-    color:var(--green-deep);
-    transform:rotate(-0.9deg);
+  /* The friend's name is information, so it is set plainly. */
+  .note-name{
+    font-size:.9375rem; font-weight:600;
+    color:var(--ink);
   }
   .note-rating{flex:0 0 auto; line-height:1;}
 
-  /* Friends speak in the serif. It is the one voice on the page that is
-     not the product talking. */
+  /* What a friend wrote is the thing people came to read, so it gets the
+     clean body face at a size and leading made for reading - the same
+     voice as the essay. The quotation marks say whose words they are. */
   .note-text{
     margin:0;
-    font-family:var(--font-display);
-    font-style:italic;
-    font-size:1.125rem;
-    line-height:1.5;
+    font-family:var(--font-body);
+    font-size:.9375rem;
+    line-height:1.6;
     color:var(--ink);
-    max-width:52ch;
+    max-width:56ch;
   }
   .note-text::before{content:"“";}
   .note-text::after{content:"”";}
@@ -799,7 +832,7 @@
 
   .empty-state{
     text-align:left; padding:var(--s-7) 0; color:var(--ink-2);
-    border-top:1.5px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
   .empty-state h3{margin-bottom:var(--s-2); font-size:1.5rem; color:var(--green-deep);}
   .empty-state p{font-size:0.9375rem; max-width:40ch;}
@@ -820,21 +853,21 @@
   .modal{
     position:relative;
     background:var(--card);
-    border:1px solid var(--green-line);
-    border-radius:var(--r-sheet);
+    border:none;
+    border-radius:var(--r-lg);
     max-width:640px; width:100%;
-    box-shadow:0 34px 70px -28px rgba(30,40,25,.55);
+    box-shadow:0 34px 70px -28px rgba(30,40,25,.5);
     transform:translateY(10px);
     transition:transform .18s ease;
   }
   .modal-scrim.open .modal{transform:translateY(0);}
-  .modal-narrow{max-width:460px;}
+  .modal-narrow{max-width:460px; margin-block:auto;}
 
   .modal-head{
     display:flex; justify-content:space-between; align-items:flex-start;
     gap:var(--s-4);
     padding:var(--s-5) var(--s-5) var(--s-4);
-    border-bottom:1px dashed var(--green-line);
+    border-bottom:1px solid var(--line-soft);
   }
   .modal-head h2{
     font-family:var(--font-display); font-weight:400;
@@ -848,11 +881,12 @@
   .modal-close{
     flex:0 0 auto;
     width:36px; height:36px; border-radius:var(--r-pill);
-    background:none; border:1px solid var(--line-control);
+    background:var(--paper-3); border:none;
     display:flex; align-items:center; justify-content:center;
     font-size:.8125rem; color:var(--ink-2);
+    transition:background .12s ease;
   }
-  .modal-close:hover{border-color:var(--ink-3); color:var(--ink);}
+  .modal-close:hover{background:var(--line-soft); color:var(--ink);}
   .modal-body{padding:var(--s-5);}
 
   /* A field label is a section marker, so it carries a rule out to the
@@ -866,27 +900,28 @@
   }
   .field-label::after{
     content:""; flex:1; height:0;
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* One selected state, everywhere: green fill, paper ink. */
   .option-grid{display:flex; flex-wrap:wrap; gap:var(--s-2);}
   .option-pill, .option-card{
-    background:var(--paper);
+    background:var(--card);
     border:1px solid var(--line-control);
-    border-radius:var(--r-flat);
+    border-radius:var(--r-pill);
     color:var(--ink);
     font-family:var(--font-body);
     transition:border-color .12s ease, background .12s ease, color .12s ease;
   }
   .option-pill{
     display:flex; align-items:center; gap:7px;
-    min-height:40px; padding:8px 14px;
+    min-height:40px; padding:8px 16px;
     font-size:.875rem; font-weight:500;
   }
   .option-pill svg{width:14px; height:14px;}
   .option-card{
-    padding:11px 14px; flex:1 1 150px; min-width:130px; min-height:44px;
+    padding:11px 16px; flex:1 1 150px; min-width:130px; min-height:44px;
+    border-radius:var(--r-md);
     text-align:left;
   }
   .option-card .t{font-weight:600; font-size:.9375rem;}
@@ -900,7 +935,7 @@
   .modal-footer{
     display:flex; justify-content:flex-end; gap:var(--s-3);
     margin-top:var(--s-5); padding-top:var(--s-4);
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* ---------- The plans ----------------------------------------
@@ -908,7 +943,7 @@
      places, and a stack of bordered cards makes you re-enter a
      container for every one of them. */
   .plans-wrap{display:flex; flex-direction:column;}
-  .plan-card{padding:var(--s-5) 0; border-top:1.5px dashed var(--green-line);}
+  .plan-card{padding:var(--s-5) 0; border-top:1px solid var(--line-soft);}
   .plans-wrap .plan-card:first-child{border-top:none; padding-top:0;}
   .plan-head{display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:2px;}
   .plan-letter{
@@ -937,7 +972,7 @@
     text-transform:uppercase; color:var(--ink-3);
     margin-bottom:var(--s-2);
   }
-  .day-label::after{content:""; flex:1; height:0; border-top:1px dashed var(--green-line);}
+  .day-label::after{content:""; flex:1; height:0; border-top:1px solid var(--line-soft);}
 
   .plan-item{
     display:flex; gap:var(--s-3); align-items:flex-start;
@@ -975,7 +1010,7 @@
   .results-actions{
     display:flex; gap:var(--s-3); justify-content:space-between; flex-wrap:wrap;
     margin-top:var(--s-5); padding-top:var(--s-4);
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* ---------- Motion ------------------------------------------
@@ -995,7 +1030,6 @@
   .booting .masthead{animation:rise .45s ease both;}
   .booting .mapfield{animation:fade .8s ease both;}
   .booting .panel{animation:rise .5s .12s ease both;}
-  .booting .site-foot{animation:fade .6s .25s ease both;}
 
   /* Pins land one after another rather than all at once. The stagger is
      capped in JS so the last pin is down well inside half a second - a
@@ -1012,32 +1046,62 @@
   @keyframes peek-in{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
   .view-in{animation:fade .24s ease both;}
 
-  /* ---------- Responsive ---------- */
+  /* The story on a phone: the photos become a short fanned row over the
+     text, and the text scrolls with the sheet. */
+  @media (max-width: 760px){
+    .story-grid{grid-template-columns:1fr; gap:var(--s-4); padding:var(--s-6) var(--s-4) var(--s-5);}
+    .story-photos{min-height:0; height:176px; margin:0 auto; width:216px; align-self:auto;}
+    .snap{width:90px; padding:4px;}
+    .snap::before{width:40px; height:14px; margin-left:-20px; top:-7px;}
+    .snap-1{left:0; top:18px;}
+    .snap-2{left:62px; top:0;}
+    .snap-3{left:124px; top:24px;}
+    .story-body h2{font-size:1.75rem;}
+  }
+
   /* ---------- Responsive --------------------------------------
      The stage stops being a stage: the map becomes a band you meet
      first, and the index runs underneath it on the page. */
   @media (max-width: 880px){
-    .masthead{padding:var(--s-3) var(--s-4) var(--s-4);}
-    /* Identity takes the first line, every control wraps under it. Nothing
-       is allowed to push the page wider than the screen. */
-    .mast-id{flex:1 1 100%;}
-    .mast-right{flex:1 1 100%; justify-content:flex-start; gap:var(--s-1) var(--s-2);}
-    .mast-nav{gap:0;}
-    .nav-link{font-size:.875rem; padding:0 8px;}
-    .word{font-size:clamp(1.9rem, 8.4vw, 2.4rem);}
-    .kicker{font-size:.9375rem; margin-top:2px;}
-    .stage{height:auto; min-height:0; overflow:visible; display:flex; flex-direction:column;}
+    /* Until the bottom sheet arrives the phone page still scrolls, so the
+       shell grows with it rather than holding the window's height. */
+    .app{height:auto; min-height:100vh; min-height:100dvh;}
+    .desk-only{display:none !important;}
+    .mob-only{display:inline-flex !important;}
+
+    /* A compact, centred masthead of its own - not the desktop one shrunk.
+       Name, line, and three small actions; about a fifth smaller than it
+       was, so the map starts much higher up the screen. */
+    .masthead{
+      flex-direction:column; align-items:center; gap:var(--s-2);
+      padding:var(--s-3) var(--s-4) var(--s-3);
+      text-align:center;
+    }
+    .mast-id{flex-direction:column; align-items:center; gap:3px;}
+    .mast-sub{padding-left:0; border-left:none; align-items:center;}
+    .word{font-size:clamp(1.55rem, 6.8vw, 1.95rem);}
+    .kicker{font-size:.8125rem; white-space:normal;}
+    .mast-right{
+      flex-wrap:wrap; justify-content:center; align-items:center;
+      gap:2px 2px;
+    }
+    .masthead{padding-left:var(--s-3); padding-right:var(--s-3);}
+    .mast-right{column-gap:0;}
+    .nav-link{font-size:.8125rem; padding:0 7px; min-height:36px; letter-spacing:-.005em;}
+    .nav-dot{align-items:center; font-size:.8125rem;}
+    .btn-plan{min-height:34px; padding:6px 13px; font-size:.8125rem; margin-left:3px;}
+    .stage{flex:none; height:auto; min-height:0; overflow:visible; display:flex; flex-direction:column;}
 
     /* ---- The switch: two words on a rule, not a pill toggle ----
        It is the first thing under the masthead and it stays there while
        the page scrolls, so the way back to the other half is never more
        than a glance away. */
     .viewswitch{
-      display:flex; gap:var(--s-5);
+      display:flex; align-items:center; gap:var(--s-5);
       position:sticky; top:0; z-index:6;
       padding:var(--s-3) var(--s-4);
       background:var(--paper-2);
-      border-bottom:1px dashed var(--green-line);
+      border-bottom:1px solid var(--line-soft);
     }
     .vs-btn{
       background:none; border:none; padding:4px 0;
@@ -1047,10 +1111,10 @@
       min-height:44px;
     }
     .vs-btn.on{color:var(--green-deep); border-bottom-color:var(--green);}
+    .viewswitch .city-btn{margin-left:auto;}
 
     /* ---- Taking turns ---- */
-    .stage[data-view="list"] .mapfield,
-    .stage[data-view="list"] .map-legend{display:none;}
+    .stage[data-view="list"] .mapfield{display:none;}
     .stage[data-view="map"] .panel{display:none;}
 
     .mapfield{position:relative; inset:auto; height:52vh; min-height:340px;
@@ -1095,9 +1159,9 @@
              var(--s-3)
              calc(var(--s-3) + env(safe-area-inset-left));
       background:var(--card);
-      border:1px solid var(--green-line);
-      border-radius:var(--r-sheet);
-      box-shadow:0 18px 40px -20px rgba(30,40,25,.55);
+      border:none;
+      border-radius:var(--r-md);
+      box-shadow:var(--shadow-2);
       padding:var(--s-4);
       animation:peek-in .22s ease both;
     }
@@ -1115,22 +1179,18 @@
     .peek-top{display:flex; align-items:flex-start; gap:var(--s-3); padding-right:var(--s-5);}
     .peek-main{flex:1; min-width:0;}
     .peek-title{font-size:1.125rem; font-weight:600; letter-spacing:-.01em; color:var(--ink);}
-    .peek-where{margin-top:2px; font-size:.8125rem; color:var(--ink-3);}
+    .peek-where{margin-top:1px; font-family:var(--font-display); font-style:italic; font-size:1.0625rem; color:var(--ink-2);}
     .peek-where .sep{opacity:.55; padding:0 2px;}
     .peek-stars{flex:0 0 auto; line-height:1; margin-top:3px;}
     .peek-who{
       margin-top:var(--s-2);
-      font-size:.9375rem; color:var(--ink-2);
-    }
-    .peek-who em{
-      font-family:var(--font-display); font-style:italic;
-      font-size:1.0625rem; color:var(--ink);
+      font-size:.875rem; color:var(--ink-3);
     }
     .peek-actions{
       display:flex; align-items:center; justify-content:space-between;
       gap:var(--s-3); flex-wrap:wrap;
       margin-top:var(--s-2);
-      border-top:1px dashed var(--green-line); padding-top:var(--s-1);
+      border-top:1px solid var(--line-soft); padding-top:var(--s-1);
     }
     .peek-open{
       background:none; border:none; min-height:44px; padding:0;
@@ -1138,13 +1198,7 @@
       color:var(--green);
       border-bottom:1.5px solid var(--line-control);
     }
-    .map-legend{position:static; max-width:none; border:none;
-                border-bottom:1px dashed var(--green-line);
-                display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
-                gap:var(--s-2) var(--s-3);
-                background:none; padding:var(--s-3) var(--s-4) var(--s-4);}
-    .map-legend .key-title{grid-column:1 / -1; margin-bottom:-2px;}
-    .panel{position:static; width:auto; border:none; box-shadow:none;}
+    .panel{position:static; width:auto; border:none; box-shadow:none; border-radius:0; overflow:visible; background:var(--paper);}
     .panel-head{padding:var(--s-4) var(--s-4) var(--s-3);}
     /* Thumbs, not cursors. */
     .filter-cats .cat{min-height:40px; white-space:nowrap;}
@@ -1160,6 +1214,4 @@
     }
     .filter-cats::-webkit-scrollbar{display:none;}
     .panel-scroll{overflow:visible; padding:0 var(--s-4) var(--s-5);}
-    .site-foot{padding-left:var(--s-4); padding-right:var(--s-4);}
-    .marquee-track{font-size:1.125rem; animation-duration:60s;}
   }

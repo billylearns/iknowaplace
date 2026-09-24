@@ -25,22 +25,29 @@
 <a class="skip-link" href="#listHeading">Skip to the index</a>
 
 <div class="app">
+  <!-- The one Amici borrowing: a strip of checks along the very top edge.
+       Pure CSS, no image. It is the only checkerboard on the page. -->
+  <div class="checker" aria-hidden="true"></div>
   <header class="masthead">
     <div class="mast-id">
       <h1 class="word">I Know a Place<span class="dot">.</span></h1>
-      <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+      <div class="mast-sub">
+        <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+        <!-- Desktop puts "Why this exists" under the line it explains; the
+             phone gets its own copy in the action row below. -->
+        <button type="button" class="why-link desk-only" data-open-story>Why this exists</button>
+      </div>
     </div>
-    <div class="mast-right">
-      <button class="city-stamp" id="openCities" aria-haspopup="dialog">
-        <span class="city-stamp-name">Toronto</span>
-        <span class="city-stamp-sub">city one</span>
+    <nav class="mast-right" aria-label="Main">
+      <button type="button" class="city-btn desk-only" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
+        Toronto
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <nav class="mast-nav" aria-label="Main">
-        <button class="nav-link" id="openStory">Why this exists</button>
-        <button class="nav-link" id="openContribute" aria-haspopup="dialog">Contribute a place</button>
-      </nav>
-      <button class="btn-primary" id="openPlanner">Plan my trip</button>
-    </div>
+      <button type="button" class="nav-link mob-only" data-open-story>Why this exists</button>
+      <span class="nav-dot mob-only" aria-hidden="true">&middot;</span>
+      <button type="button" class="nav-link" id="openContribute" aria-haspopup="dialog">Contribute a place</button>
+      <button type="button" class="btn-primary btn-plan" id="openPlanner">Plan my trip</button>
+    </nav>
   </header>
 
   <main class="stage" data-view="list">
@@ -49,6 +56,10 @@
     <div class="viewswitch" role="group" aria-label="Show the index or the map">
       <button type="button" class="vs-btn on" id="viewIndex" aria-pressed="true">Index</button>
       <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
+      <button type="button" class="city-btn city-btn-sm" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
+        Toronto
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
     </div>
     <div class="mapfield is-loading">
       <div class="atlas" id="atlas"></div>
@@ -58,7 +69,6 @@
         <p class="map-note-title">Drawing Toronto&hellip;</p>
       </div>
     </div>
-    <div class="map-legend" id="mapLegend"></div>
 
     <aside class="panel" aria-label="Recommendations">
       <div class="panel-head">
@@ -83,35 +93,17 @@
          on screen, so it answers where it was tapped. -->
     <div class="peek" id="peekCard" hidden></div>
   </main>
-
-  <hr class="rule-route" aria-hidden="true">
-
-  <footer class="site-foot">
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee-track" id="marqueeTrack"></div>
-    </div>
-    <div class="foot-row">
-      <p class="colophon" id="colophon"></p>
-      <a class="foot-link" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">Billy Liu</a>
-    </div>
-  </footer>
 </div>
 
-<div class="modal-scrim" id="citiesScrim">
-  <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="citiesTitle" tabindex="-1">
-    <div class="modal-head">
-      <div>
-        <h2 id="citiesTitle">Toronto is city one</h2>
-      </div>
-      <button class="modal-close" id="closeCities" aria-label="Close">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="holding-copy">Every place here was recommended by someone I know, which is
-      the slow part — a city only goes up once enough friends have actually been.</p>
-      <p class="holding-copy">Toronto is the one that is ready. More are coming, and they
-      will appear right here when they are.</p>
-    </div>
-  </div>
+<!-- The city menu. One element shared by both triggers (the header on
+     desktop, the bar above the map on a phone); openPopover() places it
+     under whichever one was pressed. -->
+<div class="popover city-pop" id="cityMenu" role="menu" aria-label="Choose a city" hidden>
+  <button type="button" class="pop-item on" role="menuitemradio" aria-checked="true">
+    Toronto
+    <svg class="tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+  </button>
+  <p class="pop-note">More cities coming soon!</p>
 </div>
 
 <div class="modal-scrim" id="contributeScrim">
@@ -138,48 +130,27 @@
 </div>
 
 <div class="modal-scrim" id="storyScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
-    <div class="modal-head">
-      <div>
-        <h2 id="storyTitle">Why this exists</h2>
-      </div>
-      <button class="modal-close" id="closeStory" aria-label="Close">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- The one editorial moment on the page besides the footer marquee.
-           It is drawn rather than photographed on purpose: a stock photo of
-           a city would be someone else's Toronto, and the plan rules stock
-           photography out. This is the site's own map vocabulary - the
-           coast, the route dash, three pins and a bearing - used once, at
-           the head of the piece of writing that explains all of it. -->
-      <div class="story-plate" aria-hidden="true">
-        <svg viewBox="0 0 640 150" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
-          <g class="plate-grat">
-            <path d="M80 0v112M160 0v112M240 0v112M320 0v112M400 0v112M480 0v112M560 0v112"/>
-            <path d="M0 28h640M0 56h640M0 84h640"/>
-          </g>
-          <path class="plate-water" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118 L640 150 L0 150 Z"/>
-          <path class="plate-shore" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118"/>
-          <path class="plate-route" d="M74 82 C 150 34 214 96 288 52 S 430 26 512 62"/>
-          <g class="plate-pin"><circle cx="74" cy="82" r="13" fill="var(--cat-coffee)"/></g>
-          <g class="plate-pin"><circle cx="288" cy="52" r="13" fill="var(--cat-food)"/></g>
-          <g class="plate-pin"><circle cx="512" cy="62" r="13" fill="var(--cat-outdoors)"/></g>
-          <g class="plate-rose">
-            <circle cx="590" cy="40" r="19"/>
-            <path d="M590 21v38M571 40h38"/>
-            <path d="M590 18l4.4 9h-8.8z" fill="var(--ochre)" stroke="none"/>
-          </g>
-        </svg>
-        <span class="plate-caption">Plate I &mdash; the pilot city</span>
+  <div class="modal modal-story" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
+    <button class="modal-close story-close" id="closeStory" aria-label="Close">✕</button>
+    <div class="story-grid">
+      <!-- Three phone photos, dropped on the page rather than set into it.
+           Placeholders for now: to use a real photo, put an
+           <img src="photos/story-1.jpg" alt=""> inside the figure in place
+           of the placeholder span. The frame, tilt and tape stay as they are. -->
+      <div class="story-photos" aria-hidden="true">
+        <figure class="snap snap-1"><span class="snap-ph"></span></figure>
+        <figure class="snap snap-2"><span class="snap-ph"></span></figure>
+        <figure class="snap snap-3"><span class="snap-ph"></span></figure>
       </div>
       <div class="story-body">
+        <h2 id="storyTitle">Why this exists</h2>
         <p>During my time backpacking through Southeast Asia, I received many recommendations from friends and family. They were scattered across texts, Instagram DMs, Google Docs, my Notes app and probably a few other places I've already forgotten about. The recommendations are valuable, but unorganized. Also, there wasn't a consistent way to see which ones fit the time, budget and energy I had on a particular day. I wanted to see what I could do about it while learning how to vibe code something from scratch in the process.</p>
         <p><strong>I Know a Place</strong> brings those recommendations together. Each entry includes what someone thought, how they rated it and approximately how much time, money and energy it requires. When you'd rather not piece together the day yourself, Plan my trip uses those recommendations to suggest a few options that fits what you feel like doing.</p>
         <p>This is intended to feel different than other review/recommendation sites like TripAdvisor or Google Maps. The value comes from the context behind each recommendation. Opinions from friends and family whose tastes you understand, whose judgment you trust and who have a sense of what you might actually enjoy, unlike strangers on the internet. AI is useful to help sort and organize the options, but it doesn't invent the recommendations or replace the opinions behind them.</p>
         <p>Toronto was the starting point for this project, a way to test the idea using genuine recommendations for a city I know. Now that I've seen what it can do, I plan to use it for future trips by collecting recommendations from friends before I leave and turning them into something I can actually use once I arrive.</p>
         <p>Hopefully I can spend less time digging through my phone and more time actually going places worth recommending.</p>
-        <p class="story-signature">— Billy Liu</p>
-        <div class="story-linkedin-row">
+        <div class="story-sign-row">
+          <p class="story-signature">— Billy Liu</p>
           <a class="story-linkedin" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56z"/></svg>
             Connect on LinkedIn
@@ -427,18 +398,6 @@
     tooltip.classList.add("show");
   }
   function hideTooltip(){ tooltip.classList.remove("show"); }
-
-  // The legend is the map's key, so it answers the map's question and follows
-  // the map's state: filter to one activity and the rest of the key steps back
-  // rather than continuing to advertise colours that are no longer on the field.
-  function renderLegend(){
-    const el = document.getElementById("mapLegend");
-    const only = state.filterCat;
-    el.innerHTML = '<span class="key-title">Key</span>' + CAT_ORDER.map(c=>
-      `<span class="key-item${only!=="All" && only!==c ? " off":""}">`+
-      `<span class="swatch" style="background:${CATS[c].color}"></span>${escapeHtml(c)}</span>`
-    ).join("");
-  }
 
 
   /* ---------------- The real map ----------------
@@ -783,7 +742,6 @@
       el.classList.toggle("out", !visibleKeys.has(p.key));
       el.classList.toggle("selected", state.selectedKey === p.key);
     });
-    renderLegend();
   }
 
   /* ---------------- Render list ---------------- */
@@ -800,15 +758,14 @@
 
   // The whole point of this site is that real people recommended these
   // places, so the collapsed row names one of them instead of reporting a
-  // count. "Ashton + 2 friends" reads as people; "Recommended by 3 friends"
-  // reads as a statistic.
+  // count. A bare "Greg" gave no context, so it says what Greg did:
+  // "Recommended by Greg", or "Recommended by Ashton + 2".
   function contributorLine(p){
     const list = recsByPlace[p.key] || [];
     if(list.length === 0) return "";
-    const first = `<em>${escapeHtml(list[0].alias)}</em>`;
+    const first = `<b class="who-name">${escapeHtml(list[0].alias)}</b>`;
     const others = list.length - 1;
-    if(others === 0) return first;
-    return `${first} + ${others} friend${others > 1 ? "s" : ""}`;
+    return `Recommended by ${first}${others ? ` + ${others}` : ""}`;
   }
 
   // Ten places were recommended by name without saying which branch, so their
@@ -828,7 +785,7 @@
     const notes = rlist.map(r=>`
       <div class="note">
         <div class="note-head">
-          <span class="note-stamp">${escapeHtml(r.alias)}</span>
+          <span class="note-name">${escapeHtml(r.alias)}</span>
           <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.75em")}</span>
         </div>
         <blockquote class="note-text">${escapeHtml(r.note)}</blockquote>
@@ -1108,23 +1065,78 @@
   function openModal(){ renderForm(); openScrim(scrim, openPlannerBtn); }
   function closeModal(){ closeScrim(scrim); }
 
-  // Contribute and the city selector are visible product now, but neither
-  // feature exists yet - so both open an honest holding modal rather than
-  // pretending to work. They reuse the same focus trap as the other modals.
-  [["citiesScrim","openCities","closeCities"],
-   ["contributeScrim","openContribute","closeContribute"]].forEach(([scrimId, openId, closeId])=>{
-    const el = document.getElementById(scrimId);
-    const btn = document.getElementById(openId);
-    btn.addEventListener("click", ()=> openScrim(el, btn));
-    document.getElementById(closeId).addEventListener("click", ()=> closeScrim(el));
-    el.addEventListener("click", (e)=>{ if(e.target===el) closeScrim(el); });
-  });
+  // Contribute is visible product, but the form doesn't exist yet - so it
+  // opens an honest holding modal rather than pretending to work.
+  const contributeScrim = document.getElementById("contributeScrim");
+  const openContributeBtn = document.getElementById("openContribute");
+  openContributeBtn.addEventListener("click", ()=> openScrim(contributeScrim, openContributeBtn));
+  document.getElementById("closeContribute").addEventListener("click", ()=> closeScrim(contributeScrim));
+  contributeScrim.addEventListener("click", (e)=>{ if(e.target===contributeScrim) closeScrim(contributeScrim); });
 
+  // "Why this exists" has two triggers - under the tagline on desktop, in the
+  // action row on a phone - and focus goes back to whichever was pressed.
   const storyScrim = document.getElementById("storyScrim");
-  const openStoryBtn = document.getElementById("openStory");
-  openStoryBtn.addEventListener("click", ()=> openScrim(storyScrim, openStoryBtn));
+  document.querySelectorAll("[data-open-story]").forEach(btn=>
+    btn.addEventListener("click", ()=> openScrim(storyScrim, btn)));
   document.getElementById("closeStory").addEventListener("click", ()=> closeScrim(storyScrim));
   storyScrim.addEventListener("click",(e)=>{ if(e.target===storyScrim) closeScrim(storyScrim); });
+
+  /* ---------------- Popovers ----------------
+     A small anchored panel that is not a dialog: it opens under the button
+     that asked for it, and Escape, a click anywhere else or tabbing out of it
+     closes it and hands focus back. The city menu uses it now; the filters
+     will too. The element is placed with position:fixed from the trigger's
+     own box, so one popover can serve triggers in different parts of the page. */
+  let openPop = null;   // { pop, trigger, onKey, onDown }
+  const POP_GAP = 8, POP_EDGE = 12;
+
+  function placePopover(pop, trigger, align){
+    const r = trigger.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    let left = align === "end" ? r.right - w : r.left;
+    left = Math.max(POP_EDGE, Math.min(left, window.innerWidth - w - POP_EDGE));
+    pop.style.left = left + "px";
+    pop.style.top = (r.bottom + POP_GAP) + "px";
+  }
+
+  function closePopover(returnFocus){
+    if(!openPop) return;
+    const { pop, trigger, onKey, onDown } = openPop;
+    openPop = null;
+    pop.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("pointerdown", onDown, true);
+    pop.removeEventListener("focusout", pop._onFocusOut);
+    if(returnFocus) trigger.focus();
+  }
+
+  function openPopover(pop, trigger, align){
+    if(openPop && openPop.pop === pop && openPop.trigger === trigger){ closePopover(true); return; }
+    closePopover(false);
+    pop.hidden = false;
+    placePopover(pop, trigger, align);
+    trigger.setAttribute("aria-expanded", "true");
+    const onKey = (e)=>{ if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); closePopover(true); } };
+    const onDown = (e)=>{ if(!pop.contains(e.target) && !trigger.contains(e.target)) closePopover(false); };
+    pop._onFocusOut = (e)=>{ if(e.relatedTarget && !pop.contains(e.relatedTarget) && e.relatedTarget !== trigger) closePopover(false); };
+    pop.addEventListener("focusout", pop._onFocusOut);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("pointerdown", onDown, true);
+    openPop = { pop, trigger, onKey, onDown };
+    const first = pop.querySelector("button, input, select, [tabindex]:not([tabindex='-1'])");
+    if(first) first.focus();
+  }
+  // A popover is measured once, where it opened; it is closed rather than
+  // chased when the window changes under it.
+  window.addEventListener("resize", ()=> closePopover(false));
+
+  // The city menu. Toronto is the only city, so choosing it just closes the
+  // menu; the note says why there isn't more to choose from.
+  const cityMenu = document.getElementById("cityMenu");
+  document.querySelectorAll("[data-city-trigger]").forEach(btn=>
+    btn.addEventListener("click", ()=> openPopover(cityMenu, btn, "start")));
+  cityMenu.querySelector(".pop-item").addEventListener("click", ()=> closePopover(true));
 
   const plannerLede = document.getElementById("plannerLede");
   const FORM_LEDE = "Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.";
@@ -1443,23 +1455,8 @@
     `;
   }
 
-  /* ---------------- Footer ---------------- */
-  function renderFooter(){
-    const hoods = [...new Set(places.map(p=>p.neighbourhood))].sort();
-    // The track is duplicated so the loop can translate a full copy width and
-    // land back exactly where it started, with no visible seam.
-    const strip = hoods.map(h=>`<span>${escapeHtml(h)}</span>`).join("");
-    document.getElementById("marqueeTrack").innerHTML = strip + strip;
-
-    const friends = new Set(recs.map(r=>r.alias)).size;
-    document.getElementById("colophon").textContent =
-      `${places.length} places · ${recs.length} recommendations · ${friends} friends · Toronto`;
-  }
-
   /* ---------------- Init ---------------- */
-  renderFooter();
   initMap();
-  renderLegend();
   renderFilterBar();
   renderRefineBar();
   refresh();
