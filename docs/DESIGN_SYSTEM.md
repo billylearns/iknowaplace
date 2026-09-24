@@ -303,9 +303,10 @@ The collapsed row **names a friend** and says what they did — "Recommended
 by Ashton + 2". A bare name gave no context; "Recommended by 3 friends"
 reads as a statistic, and people are the whole point of the site. The toggle
 is a real `<button>` with `aria-expanded`. Expanded rows show price, time
-and energy as small chips (0.75rem) on one line - on desktop always; on a
-375px phone eight of the 39 wrap their third chip, since the detail keeps
-the row's indent, then each friend's name (plain, 600) with their own
+and energy as small chips (0.75rem) on one line (all 39 fit at 375px).
+Price is shown as the plain range - "$50–100", "Under $20", "$100+",
+"Free" - derived from the data's label by `priceText()`; the dollar-sign
+tier only restated the range next to it. Then come each friend's name (plain, 600) with their own
 rating and their words in the readable body face.
 
 Two kinds of fact get two lines. One grey middle-dot string flattens them

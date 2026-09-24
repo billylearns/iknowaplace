@@ -276,6 +276,15 @@
   const PRICE_LABEL_SHORT = {0:"Free", 1:"$", 2:"$$", 3:"$$$", 4:"$$$$"};
   const PRICE_LABELS = ["Free","$","$$","$$$","$$$$"];
 
+  // The data says "$$$ - $50-$100"; the page says "$50–100". The dollar
+  // signs only restated the range next to them. "Free", "Under $20" and
+  // "$100+" pass through as they are.
+  function priceText(label){
+    return String(label||"")
+      .replace(/^\$+\s*-\s*/, "")
+      .replace(/^\$(\d+)-\$(\d+)$/, "$$$1–$2");
+  }
+
   const places = PLACES_RAW.map(p => ({
     key:p.place_key, name:p.place_name, category:p.category, neighbourhood:p.neighbourhood,
     lat:p.latitude, lng:p.longitude, mapsUrl:p.google_maps_url, address:p.address_or_location,
@@ -283,7 +292,7 @@
     confidence:p.location_confidence || "High", locationNote:p.location_note || "",
     energy:p.typical_energy_level, price:p.typical_price_level, time:p.typical_time_level,
     hours: DURATION_HOURS[p.typical_time_level] || 1.5,
-    priceLabel:p.typical_price_label, energyLabel:p.typical_energy_label, timeLabel:p.typical_time_label
+    priceLabel:priceText(p.typical_price_label), energyLabel:p.typical_energy_label, timeLabel:p.typical_time_label
   }));
   const placesByKey = Object.fromEntries(places.map(p=>[p.key,p]));
 
