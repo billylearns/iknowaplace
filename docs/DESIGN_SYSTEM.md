@@ -335,9 +335,9 @@ together — the same rule applies to plan items in the planner.
 
 Recommendations only: a count heading in semibold sans ("39 places" /
 "12 places in this area"), then the recommendations. No filters. Each
-recommendation is its own card in the map card's material — `--card`
-ground, a `--line-soft` hairline, `--r-md` corners — lifting slightly on
-hover and taking `--green-soft` when selected. The category disc and the
+recommendation is its own card: the page's own ground (`--paper-2`), a
+`--line-soft` hairline and `--r-md` corners, lifting slightly on hover and
+taking `--green-soft` when selected. The category disc and the
 chevron are centred on the card's top row; the average rating is 1rem stars. The column is `clamp(384px, 30%, 480px)`
 wide, which keeps price, time and energy on one line at every width.
 

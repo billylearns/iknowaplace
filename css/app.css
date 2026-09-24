@@ -820,7 +820,7 @@
      lifts a little on hover; the selected one takes the green tint. */
   .list{display:flex; flex-direction:column; gap:var(--s-2);}
   .row{
-    background:var(--card);
+    background:var(--paper-2);
     border:1px solid var(--line-soft);
     border-radius:var(--r-md);
     scroll-margin-top:var(--s-4);
