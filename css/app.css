@@ -279,7 +279,7 @@
      Search, activity, price, rating and sort in one place. Chips share
      the site's one selected state: green fill, paper ink. */
   .filter-pop{
-    width:404px;
+    width:432px;
     display:flex; flex-direction:column;
     overflow:hidden;
   }
@@ -335,6 +335,7 @@
   }
   .chip:hover{border-color:var(--ink-3);}
   .chip.on{background:var(--green); border-color:var(--green); color:var(--paper);}
+  #priceBar .chip{padding:0 12px;}
   .chip-ic{display:inline-flex;}
   .chip.on .chip-ic{color:inherit !important;}
   .fp-pair{display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3);}
