@@ -57,9 +57,22 @@
         Toronto
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
       </button>
+      <button type="button" class="filters-btn filters-btn-sm" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
+      </button>
     </div>
     <div class="mapfield is-loading">
       <div class="atlas" id="atlas"></div>
+      <!-- Expand the map over the list, and back. Desktop only. -->
+      <button type="button" class="map-expand desk-only" id="mapExpand" aria-pressed="false" aria-label="Expand the map">
+        <svg class="ic ic-expand" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>
+        <svg class="ic ic-list" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+        <span class="map-expand-label">Show list</span>
+      </button>
+      <!-- Every filter lives behind this one button. -->
+      <button type="button" class="filters-btn map-filters desk-only" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
+      </button>
       <!-- Desktop's way into the story; the phone's is in the masthead row. -->
       <button type="button" class="why-float desk-only" data-open-story>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="9" height="14" rx="1.2" transform="rotate(-8 8 12)"/><rect x="11" y="4" width="9" height="14" rx="1.2" transform="rotate(6 15.5 11)"/></svg>
@@ -74,19 +87,14 @@
 
     <aside class="panel" aria-label="Recommendations">
       <div class="panel-head">
-        <h2 id="listHeading" tabindex="-1">39 places</h2>
-        <div class="filter-cats" id="filterBar"></div>
-        <div class="refine" id="refineBar"></div>
-        <div class="searchline">
-          <label class="visually-hidden" for="searchBox">Search a place by name</label>
-          <input type="text" id="searchBox" placeholder="Search a place by name" autocomplete="off">
-        </div>
+        <h2 id="listHeading" tabindex="-1" aria-live="polite">39 places</h2>
       </div>
       <div class="panel-scroll">
         <div class="list" id="list"></div>
         <div class="empty-state" id="emptyState" style="display:none;">
           <h3 id="emptyTitle">No matches</h3>
-          <p>Try loosening a filter or clearing your search.</p>
+          <p id="emptyText">Try loosening a filter or clearing your search.</p>
+          <button type="button" class="btn-secondary" id="emptyAction" hidden></button>
         </div>
       </div>
     </aside>
@@ -95,6 +103,35 @@
          on screen, so it answers where it was tapped. -->
     <div class="peek" id="peekCard" hidden></div>
   </main>
+</div>
+
+<!-- The filters. One panel for every trigger: under the Filters button on
+     the map on desktop, a sheet from the bottom on a phone. Filters apply as
+     they change; the button at the foot just closes the panel. -->
+<div class="popover filter-pop" id="filterPanel" role="dialog" aria-label="Filters" tabindex="-1" hidden>
+  <div class="fp-head">
+    <h2 class="fp-title">Filters</h2>
+    <button type="button" class="fp-clear" id="filterClear">Clear all</button>
+  </div>
+  <div class="fp-body">
+    <div class="fp-search">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+      <label class="visually-hidden" for="searchBox">Search a place by name</label>
+      <input type="search" id="searchBox" placeholder="Search a place by name" autocomplete="off">
+    </div>
+    <fieldset class="fp-group">
+      <legend class="fp-label">Activity</legend>
+      <div class="chip-row" id="filterBar"></div>
+    </fieldset>
+    <fieldset class="fp-group">
+      <legend class="fp-label">Maximum price</legend>
+      <div class="chip-row" id="priceBar"></div>
+    </fieldset>
+    <div class="fp-pair" id="refineBar"></div>
+  </div>
+  <div class="fp-foot">
+    <button type="button" class="btn-primary fp-done" id="filterDone">Show places</button>
+  </div>
 </div>
 
 <!-- The city menu. One element shared by both triggers (the header on
@@ -274,7 +311,7 @@
   const DURATION_HOURS = {1:0.75, 2:1.5, 3:3, 4:5};
   const ENERGY_LABEL = {1:"Low", 2:"Medium", 3:"High"};
   const PRICE_LABEL_SHORT = {0:"Free", 1:"$", 2:"$$", 3:"$$$", 4:"$$$$"};
-  const PRICE_LABELS = ["Free","$","$$","$$$","$$$$"];
+  const PRICE_LABELS = ["Free","Under $20","$20–50","$50–100","$100+"];
 
   // The data says "$$$ - $50-$100"; the page says "$50–100". The dollar
   // signs only restated the range next to them. "Free", "Under $20" and
@@ -335,56 +372,100 @@
 
   const RATING_STEPS = [5,4.5,4,3.5,3,2.5,2,1.5,1]; // highest first
 
-  /* ---------------- Filter bar (dropdowns) ---------------- */
+  /* ---------------- Filters ----------------
+     Every filter lives in one panel behind a Filters button (on the map on
+     desktop, above it on a phone). They apply the moment they change, as they
+     always have; the panel's own button only closes it. Built once - after
+     that only classes and counts change. */
   const filterBar = document.getElementById("filterBar");
+  const priceBar = document.getElementById("priceBar");
+  const filterPanel = document.getElementById("filterPanel");
+  const searchBox = document.getElementById("searchBox");
+  // Ranges, not dollar signs - the same words the recommendations use. The
+  // price filter is a ceiling: "$20–50" keeps everything up to $50.
+  const PRICE_OPTIONS = [["any","Any"]].concat(PRICE_LABELS.slice(0,4).map((l,i)=>[String(i), l]));
 
-  // Category is the filter people actually reach for, so it reads as a row of
-  // words rather than a dropdown. Price, rating and sort stay <select> - the
-  // native control is right for them - but lose their boxes.
-  function renderFilterBar(){
-    const opts = ["All"].concat(CAT_ORDER);
-    filterBar.innerHTML = opts.map(c=>
-      `<button type="button" class="cat${state.filterCat===c?" on":""}" data-cat="${escapeHtml(c)}"`+
-      ` aria-pressed="${state.filterCat===c}">${escapeHtml(c==="All"?"All activities":c)}</button>`
-    ).join("");
-    filterBar.querySelectorAll("button.cat").forEach(b=>{
-      b.addEventListener("click", ()=>{ state.filterCat = b.dataset.cat; renderFilterBar(); refresh(); });
-    });
+  function chipHtml(group, value, label, on, extra){
+    return `<button type="button" class="chip${on?" on":""}" data-${group}="${escapeHtml(value)}" aria-pressed="${on}">`+
+      `${extra||""}${escapeHtml(label)}</button>`;
   }
 
-  // Built once; these three keep their own listeners, so nothing re-renders them.
-  function renderRefineBar(){
-    const bar = document.getElementById("refineBar");
-    bar.innerHTML = `
-      <label class="refine-field">Price
-        <select id="fPrice" aria-label="Filter by price">
-          <option value="any">All prices</option>
-          ${PRICE_LABELS.map((lbl,i)=>`<option value="${i}">${lbl}</option>`).join("")}
-        </select>
-      </label>
-      <label class="refine-field">Rating
-        <select id="fRating" aria-label="Filter by rating">
+  function renderFilters(){
+    filterBar.innerHTML = ["All"].concat(CAT_ORDER).map(c=>
+      chipHtml("cat", c, c==="All" ? "All activities" : c, state.filterCat===c,
+        c==="All" ? "" : `<span class="chip-ic" style="color:${CATS[c].color}">${iconUse(CATS[c].icon,"width='14' height='14' aria-hidden='true'")}</span>`)
+    ).join("");
+    priceBar.innerHTML = PRICE_OPTIONS.map(([v,l])=> chipHtml("price", v, l, state.filterPrice===v)).join("");
+    filterBar.addEventListener("click", (e)=>{
+      const b = e.target.closest("[data-cat]"); if(!b) return;
+      state.filterCat = b.dataset.cat; refresh();
+    });
+    priceBar.addEventListener("click", (e)=>{
+      const b = e.target.closest("[data-price]"); if(!b) return;
+      state.filterPrice = b.dataset.price; refresh();
+    });
+
+    document.getElementById("refineBar").innerHTML = `
+      <label class="fp-field"><span class="fp-label">Rating</span>
+        <select id="fRating" class="f-select">
           <option value="any">All ratings</option>
           ${RATING_STEPS.map(v=>`<option value="${v}">${v}★ ${v===5?"only":"&amp; up"}</option>`).join("")}
         </select>
       </label>
-      <label class="refine-field">Sort
-        <select id="fSort" aria-label="Sort places">
+      <label class="fp-field"><span class="fp-label">Sort by</span>
+        <select id="fSort" class="f-select">
           <option value="rating-desc">Highest rating</option>
           <option value="rating-asc">Lowest rating</option>
           <option value="most-recommended">Most recommended</option>
           <option value="neighbourhood">Neighbourhood</option>
         </select>
       </label>`;
-    document.getElementById("fPrice").onchange  = (e)=>{ state.filterPrice = e.target.value; refresh(); };
     document.getElementById("fRating").onchange = (e)=>{ state.filterMinRating = e.target.value; refresh(); };
     document.getElementById("fSort").onchange   = (e)=>{ state.sortBy = e.target.value; refresh(); };
+    searchBox.addEventListener("input", (e)=>{
+      state.search = e.target.value.trim().toLowerCase();
+      refresh();
+    });
+    document.getElementById("filterClear").addEventListener("click", clearFilters);
+    document.getElementById("filterDone").addEventListener("click", ()=> closePopover(true));
+    document.querySelectorAll("[data-filter-trigger]").forEach(btn=>
+      btn.addEventListener("click", ()=> openPopover(filterPanel, btn, "end", filterPanel)));
   }
 
-  document.getElementById("searchBox").addEventListener("input", (e)=>{
-    state.search = e.target.value.trim().toLowerCase();
+  function clearFilters(){
+    state.filterCat = "All"; state.filterPrice = "any"; state.filterMinRating = "any"; state.search = "";
+    searchBox.value = "";
+    document.getElementById("fRating").value = "any";
     refresh();
-  });
+  }
+
+  // Sorting is not a filter, so it doesn't count towards the badge.
+  function activeFilterCount(){
+    return (state.filterCat!=="All") + (state.filterPrice!=="any") + (state.filterMinRating!=="any") + (!!state.search);
+  }
+
+  // Keeps the chips, the badge on every Filters button and the panel's own
+  // "Show N places" in step with the state.
+  function syncFilterUI(shownCount){
+    filterBar.querySelectorAll("[data-cat]").forEach(b=>{
+      const on = b.dataset.cat === state.filterCat;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    });
+    priceBar.querySelectorAll("[data-price]").forEach(b=>{
+      const on = b.dataset.price === state.filterPrice;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    });
+    const n = activeFilterCount();
+    document.querySelectorAll("[data-filter-trigger]").forEach(btn=>{
+      const badge = btn.querySelector(".f-count");
+      badge.hidden = !n; badge.textContent = n;
+      btn.classList.toggle("has-filters", !!n);
+      btn.setAttribute("aria-label", n ? `Filters, ${n} on` : "Filters");
+    });
+    document.getElementById("filterClear").disabled = !n;
+    document.getElementById("filterDone").textContent =
+      shownCount === 0 ? "No places match" : `Show ${shownCount} place${shownCount===1?"":"s"}`;
+  }
 
   /* ---------------- The map's handles ----------------
      The map itself - MapLibre, OpenFreeMap tiles, our own style - lives in
@@ -438,18 +519,14 @@
     return b;
   }
 
-  // On desktop the index panel floats over the right of the map, so the middle
-  // of the container is not the middle of what you can see. Padding the camera
-  // by the panel frames the city in the part of the map that is free.
+  // The camera frames places in the part of the map you can actually see.
+  // On desktop that is all of it - the list sits beside the map, not over it -
+  // except the band of controls along the top.
   function mapPadding(){
     const P = mapPad();
     const pad = { top:P, bottom:P, left:P, right:P };
     const field = document.querySelector(".mapfield");
-    const panel = document.querySelector(".panel");
-    if(field && panel && window.innerWidth > 880){
-      const f = field.getBoundingClientRect(), p = panel.getBoundingClientRect();
-      if(p.width) pad.right = Math.max(P, f.right - p.left + 24);
-    }
+    if(!NARROW.matches) pad.top = Math.max(P, 64);
     // On a phone the peek card sits over the map in the same way the panel
     // does on desktop. Across the bottom in portrait; down the right side in a
     // short landscape screen, where across the bottom would bury the map.
@@ -628,13 +705,14 @@
     // desktop; where-am-I, because "what's near me" is the most useful thing
     // this map can answer on a phone; and a way home once you have panned
     // away. No compass - there is no rotation to undo - and no scale bar.
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    // They stack down the right edge, under the Filters button.
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: false,
       fitBoundsOptions: { maxZoom: 15 }
-    }), "top-left");
-    map.addControl(new RecentreControl(), "top-left");
+    }), "top-right");
+    map.addControl(new RecentreControl(), "top-right");
     // The style already carries OpenFreeMap, OpenMapTiles and OpenStreetMap,
     // so this only has to put it on screen, not restate it.
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
@@ -646,6 +724,9 @@
 
     // A tag pinned to a pin has to leave when the pin does.
     map.on("movestart", hideTooltip);
+    // The list is the map's other view: when the map settles somewhere new,
+    // the list shows what is on it. Debounced, so a fling is one update.
+    map.on("moveend", scheduleListUpdate);
     map.on("zoom", applyZoomBand);
     map.on("error", onMapError);
     map.on("data", (e)=>{
@@ -829,46 +910,130 @@
     </article>`;
   }
 
-  function refresh(){
-    const visible = places.filter(p=>{
+  /* ---------------- The list follows the map ----------------
+     The map and the list are two views of one set of places. Filters decide
+     which places exist at all: they drive the markers, as before. The map's
+     viewport then decides which of those the list shows - zoom in on a
+     neighbourhood and the list is that neighbourhood; zoom out and it is the
+     city again. Search is a filter, so it is held to the visible map too.
+
+     Two exceptions keep the list honest. The selected place stays in it even
+     when panned out of view, so the entry you are reading never vanishes
+     mid-pan. And with no usable map - still loading, failed, or hidden on a
+     phone's list view - there is no viewport, so the list is every match. */
+  let filtered = places.slice();
+  let listSig = "";
+  const panelScroll = document.querySelector(".panel-scroll");
+
+  function applyFilters(){
+    filtered = places.filter(p=>{
       const catOk = state.filterCat==="All" || p.category===state.filterCat;
       const priceOk = state.filterPrice==="any" || p.price <= Number(state.filterPrice);
       const ratingOk = state.filterMinRating==="any" || (p.avgRating/2) >= Number(state.filterMinRating);
       const searchOk = !state.search || p.name.toLowerCase().includes(state.search);
       return catOk && priceOk && ratingOk && searchOk;
     });
-    const visibleKeys = new Set(visible.map(p=>p.key));
+    const keys = new Set(filtered.map(p=>p.key));
 
     // A selected place that a filter has just turned into a survey dot is a
     // selection with nothing on screen to show for it. Let it go, and take the
     // peek card with it.
-    if(state.selectedKey && !visibleKeys.has(state.selectedKey)){
+    if(state.selectedKey && !keys.has(state.selectedKey)){
       state.selectedKey = null;
       renderPeek();
     }
+    updateMarkers(keys);
+  }
 
+  // The part of the map the reader can see, in container pixels. All of it
+  // today; the phone's bottom sheet will take its share off the bottom.
+  function visibleMapRect(w, h){ return { left:0, top:0, right:w, bottom:h }; }
+
+  function mapViewBounds(){
+    if(!mapReady || !map || mapField.classList.contains("is-unavailable")) return null;
+    const c = map.getContainer();
+    const w = c.clientWidth, h = c.clientHeight;
+    if(!w || !h || !c.offsetParent) return null;
+    const r = visibleMapRect(w, h);
+    if(r.bottom - r.top < 40 || r.right - r.left < 40) return null;
+    // North is always up, so two corners are the whole box.
+    return new maplibregl.LngLatBounds(map.unproject([r.left, r.bottom]), map.unproject([r.right, r.top]));
+  }
+
+  function renderList(opts){
+    opts = opts || {};
+    const bounds = mapViewBounds();
+    const inView = bounds ? filtered.filter(p=> bounds.contains([p.lng, p.lat])) : filtered;
+    const shown = inView.slice();
+    const sel = state.selectedKey && filtered.find(p=> p.key === state.selectedKey);
+    if(sel && !shown.includes(sel)) shown.push(sel);
+    const sorted = shown.sort(SORTERS[state.sortBy]);
+    const limited = !!bounds && inView.length < filtered.length;
+
+    const n = sorted.length;
     document.getElementById("listHeading").textContent =
-      visible.length + " place" + (visible.length===1 ? "" : "s");
+      (n || "No") + " place" + (n===1 ? "" : "s") + (limited ? " in this area" : "");
+    syncFilterUI(n);
 
-    updateMarkers(visibleKeys);
+    const sig = sorted.map(p=>p.key).join() + "|" + state.selectedKey;
+    if(!opts.force && sig === listSig) return;
+    const changedSet = sig.split("|")[0] !== listSig.split("|")[0];
+    listSig = sig;
 
-    if(visible.length===0){
+    if(n===0){
       listEl.style.display="none";
       listEl.innerHTML = "";
-      emptyEl.style.display="block";
+      showEmpty(filtered.length === 0);
     } else {
       listEl.style.display="flex";
       emptyEl.style.display="none";
-      const sorted = [...visible].sort(SORTERS[state.sortBy]);
       listEl.innerHTML = sorted.map(cardHtml).join("");
-      listEl.querySelectorAll(".row-top").forEach(top=>{
-        top.addEventListener("click", ()=>{
-          const key = top.closest(".row").dataset.key;
-          selectPlace(key, false);
-        });
-      });
+    }
+
+    // A map move that changes what is listed starts the list from the top,
+    // unless something is selected - then that entry is kept in sight.
+    if(opts.fromMap && changedSet && panelScroll){
+      const card = state.selectedKey && document.getElementById("card-"+state.selectedKey);
+      if(card) scrollRowIntoIndex(card, true);
+      else panelScroll.scrollTop = 0;
     }
   }
+
+  const emptyTitle = document.getElementById("emptyTitle");
+  const emptyText = document.getElementById("emptyText");
+  const emptyAction = document.getElementById("emptyAction");
+  function showEmpty(noMatches){
+    emptyEl.style.display = "block";
+    emptyAction.hidden = false;
+    if(noMatches){
+      emptyTitle.textContent = "No matches";
+      emptyText.textContent = "Try loosening a filter or clearing your search.";
+      emptyAction.textContent = "Clear filters";
+      emptyAction.onclick = clearFilters;
+    } else {
+      emptyTitle.textContent = activeFilterCount() ? "Nothing here matches" : "Nothing in this part of the map";
+      emptyText.textContent = `${filtered.length} place${filtered.length===1?"":"s"} ${filtered.length===1?"is":"are"} just out of view.`;
+      emptyAction.textContent = "Zoom out to all of Toronto";
+      emptyAction.onclick = ()=> fitPlaces({ duration: mapEase() });
+    }
+  }
+
+  let listTimer = null;
+  function scheduleListUpdate(){
+    clearTimeout(listTimer);
+    listTimer = setTimeout(()=> renderList({ fromMap:true }), 120);
+  }
+
+  function refresh(){
+    applyFilters();
+    renderList({ force:true });
+  }
+
+  // One listener for every row, rather than one per row per render.
+  listEl.addEventListener("click", (e)=>{
+    const top = e.target.closest(".row-top");
+    if(top) selectPlace(top.closest(".row").dataset.key, false);
+  });
 
   // scrollIntoView walks every scrollable ancestor, so clicking a marker used
   // to scroll the window as well as the index - taking the map the click was
@@ -896,7 +1061,7 @@
     vsMap.classList.toggle("on", v === "map");
     vsIndex.setAttribute("aria-pressed", String(v === "list"));
     vsMap.setAttribute("aria-pressed", String(v === "map"));
-    if(v === "list") hidePeek();
+    if(v === "list"){ hidePeek(); renderList(); }
     // The map band only has a size once it is the visible half.
     if(v === "map") mapResize();
     changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
@@ -922,7 +1087,33 @@
   vsIndex.addEventListener("click", ()=> setView("list"));
   vsMap.addEventListener("click", ()=> setView("map"));
   // Leaving mobile drops the whole idea: on desktop both are on screen.
-  NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); mapResize(); });
+  NARROW.addEventListener("change", e=>{
+    if(!e.matches) hidePeek(); else setMapFull(false);
+    mapResize();
+  });
+
+  /* ---------------- Full-screen map (desktop) ----------------
+     The map can take the list's column for a while. The masthead stays; the
+     map card simply widens. The same button - now reading "Show list" - or
+     Escape brings the list back, showing whatever the map has moved to. */
+  const mapExpandBtn = document.getElementById("mapExpand");
+  function setMapFull(on){
+    if(stage.classList.contains("map-full") === on) return;
+    stage.classList.toggle("map-full", on);
+    mapExpandBtn.setAttribute("aria-pressed", String(on));
+    mapExpandBtn.setAttribute("aria-label", on ? "Show list" : "Expand the map");
+    hideTooltip();
+    // The ResizeObserver resizes the map as the column opens or closes; the
+    // list catches up once it is back.
+    if(!on) scheduleListUpdate();
+  }
+  mapExpandBtn.addEventListener("click", ()=> setMapFull(!stage.classList.contains("map-full")));
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape" && stage.classList.contains("map-full") && !openPop &&
+       !document.querySelector(".modal-scrim.open")) setMapFull(false);
+  });
+  // The skip link lands on the list's heading, so the list has to be there.
+  document.getElementById("listHeading").addEventListener("focus", ()=> setMapFull(false));
 
   // The attribution lives in the map's bottom corner, which is exactly where
   // the peek card lands. The credit has to stay readable while a card is open,
@@ -968,19 +1159,20 @@
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   const scrollEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? "auto" : "smooth";
 
-  function scrollRowIntoIndex(card){
+  function scrollRowIntoIndex(card, instant){
     // In the mobile map view the index isn't on screen at all, and the peek
     // card is what answers the tap - scrolling to a hidden row would only
     // move the page out from under the map.
     if(NARROW.matches && mobileView === "map") return;
+    const behavior = instant ? "auto" : scrollEase();
     const box = card.closest(".panel-scroll");
     if(!box || box.scrollHeight <= box.clientHeight + 1){
-      card.scrollIntoView({behavior:scrollEase(), block:"center"});
+      card.scrollIntoView({behavior, block:"center"});
       return;
     }
     const cb = card.getBoundingClientRect(), bb = box.getBoundingClientRect();
     const top = box.scrollTop + (cb.top - bb.top) - (bb.height - cb.height)/2;
-    box.scrollTo({top:Math.max(0, top), behavior:scrollEase()});
+    box.scrollTo({top:Math.max(0, top), behavior});
   }
 
   function selectPlace(key, scrollMap){
@@ -1007,7 +1199,8 @@
     {id:1, label:"Low"}, {id:2, label:"Medium"}, {id:3, label:"High"}
   ];
   const BUDGET_OPTIONS = [
-    {id:0, label:"Free"}, {id:1, label:"$"}, {id:2, label:"$$"}, {id:3, label:"$$$"}, {id:4, label:"$$$$"}
+    // The same ranges the recommendations and the filter use.
+    ...PRICE_LABELS.map((label, id)=>({id, label}))
   ];
 
   // Highest tier on each already covers everything at or below it, so there's
@@ -1108,6 +1301,8 @@
     left = Math.max(POP_EDGE, Math.min(left, window.innerWidth - w - POP_EDGE));
     pop.style.left = left + "px";
     pop.style.top = (r.bottom + POP_GAP) + "px";
+    // Tall panels scroll inside themselves rather than run off the window.
+    pop.style.maxHeight = Math.max(200, window.innerHeight - r.bottom - POP_GAP - POP_EDGE) + "px";
   }
 
   function closePopover(returnFocus){
@@ -1122,7 +1317,10 @@
     if(returnFocus) trigger.focus();
   }
 
-  function openPopover(pop, trigger, align){
+  // focusTarget: where focus lands on open. By default the first control;
+  // the filter panel takes it itself, so a phone does not raise its keyboard
+  // for the search box the moment the panel opens.
+  function openPopover(pop, trigger, align, focusTarget){
     if(openPop && openPop.pop === pop && openPop.trigger === trigger){ closePopover(true); return; }
     closePopover(false);
     pop.hidden = false;
@@ -1135,12 +1333,16 @@
     document.addEventListener("keydown", onKey, true);
     document.addEventListener("pointerdown", onDown, true);
     openPop = { pop, trigger, onKey, onDown };
-    const first = pop.querySelector("button, input, select, [tabindex]:not([tabindex='-1'])");
-    if(first) first.focus();
+    const first = focusTarget || pop.querySelector("button, input, select, [tabindex]:not([tabindex='-1'])");
+    if(first) first.focus({ preventScroll:true });
   }
   // A popover is measured once, where it opened; it is closed rather than
-  // chased when the window changes under it.
-  window.addEventListener("resize", ()=> closePopover(false));
+  // chased when the window's width changes under it. Height alone changes
+  // whenever a phone's keyboard comes up, and that must not close anything.
+  let popLastWidth = window.innerWidth;
+  window.addEventListener("resize", ()=>{
+    if(window.innerWidth !== popLastWidth){ popLastWidth = window.innerWidth; closePopover(false); }
+  });
 
   // The city menu. Toronto is the only city, so choosing it just closes the
   // menu; the note says why there isn't more to choose from.
@@ -1468,8 +1670,7 @@
 
   /* ---------------- Init ---------------- */
   initMap();
-  renderFilterBar();
-  renderRefineBar();
+  renderFilters();
   refresh();
 
   // The load moment is over once it has played. Taking the class off means

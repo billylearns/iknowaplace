@@ -19,7 +19,9 @@ composition carries it, not the trim.**
 
 The map is not a widget in a grid cell; it is the ground the product stands
 on. Identity sits in a band above it so type never competes with the pin
-cluster, and the index floats over the field on paper. References were
+cluster. Since the polish pass the map and the list share the screen as
+equals-with-a-lead: the map is a rounded card taking about 70% of the width,
+the recommendations one column beside it. References were
 **Amici** (personality, warmth) and **KOBU** (restraint, hierarchy),
 translated rather than copied.
 
@@ -217,19 +219,36 @@ rail dashes, and the minor-road ramp starts from it — change them together.
 ### Framing and the camera
 
 - **The whole city is framed in the part of the map you can see.** On
-  desktop the index panel covers the right of the map and the camera is
-  padded by it; on a phone the peek card counts the same way.
+  desktop nothing covers the map any more (the list sits beside it), so the
+  camera is only padded clear of the button row along the top; on a phone
+  the peek card counts as covered.
 - **Selecting a place moves the camera only if it has to.** If the pin is
-  already somewhere visible — not under the panel, not under the card — the
-  map stays still. Otherwise it eases the pin into the free area.
+  already somewhere visible — not under the card — the map stays still.
+  Otherwise it eases the pin into the free area.
+- **The list follows the map.** Filters decide which places exist (they
+  drive the markers); the map's viewport decides which of those the list
+  shows. Zoom into a neighbourhood and the list is that neighbourhood —
+  "12 places in this area" — zoom out and it is the city again. It updates
+  once the map settles (`moveend`, debounced), and only rebuilds when the
+  set of places actually changed. Search is a filter, so it is held to the
+  visible map too. The selected place stays listed even when panned out of
+  view. With no usable map — loading, failed, or hidden — there is no
+  viewport, and the list is every match. A viewport with nothing in it says
+  so and offers **Zoom out to all of Toronto**.
+- **Full-screen map.** A round expand button at the map's top-left folds
+  the list column away (the map card widens, the masthead stays); it becomes
+  a **Show list** pill, and Escape also brings the list back.
 - **Once someone has moved the map, it is theirs.** No automatic re-framing
   takes it back.
 - **Controls are deliberately few:** zoom, where-am-I, and a *Recentre*
   pill that returns to all 39 places. No compass (there is no rotation to
   undo) and no scale bar. They are card-coloured squircles with a soft
-  shadow and no outline.
-- **Attribution is always readable.** On desktop it sits just left of the
-  index panel; on a phone it rises above the peek card while one is open.
+  shadow and no outline. Layout on desktop: expand top-left, **Filters**
+  top-right with the map's own controls stacked under it, *Why this exists*
+  bottom-left, attribution bottom-right.
+- **Attribution is always readable.** On desktop it sits in the map card's
+  bottom-right corner; on a phone it rises above the peek card while one is
+  open.
 
 ### Markers
 
@@ -312,16 +331,30 @@ rating and their words in the readable body face.
 Two kinds of fact get two lines. One grey middle-dot string flattens them
 together — the same rule applies to plan items in the planner.
 
-### Controls, unboxed
+### The recommendations column
 
-Category is a row of words with a rule under the active one. Price, rating
-and sort stay native `<select>` — the native control is right for them — but
-lose their boxes down to an underline and a caret. Search is a
-baseline-underlined field with a serif italic placeholder.
+Recommendations only: a count heading in semibold sans ("39 places" /
+"12 places in this area"), then the rows. No box, no filters. Rows are soft
+tiles separated by whitespace — a tile only shows on hover (`--paper-3`) or
+when selected (`--green-soft`). The column is `clamp(384px, 30%, 480px)`
+wide, which keeps price, time and energy on one line at every width.
 
-Default labels are **"All activities" / "All prices" / "All ratings"**.
-Not "Activity" / "Price" / "Rating": a dropdown reading "Activity" doesn't
-say *no filter applied*.
+### Filters
+
+Every filter lives behind one **Filters** pill (sliders icon, a green count
+badge when any are on). On desktop it sits on the map's top-right and opens
+an anchored panel; on a phone it opens the same panel as a sheet from the
+bottom. Inside: search; activity as chips (with each category's glyph);
+**maximum price** as chips in the same words the recommendations use — Any,
+Free, Under $20, $20–50, $50–100 (a ceiling, as it always was); rating and
+sort as rounded selects; *Clear all*. Filters apply as they change; the
+panel's **Show N places** button just closes it. Sort does not count
+towards the badge.
+
+Default labels are **"All activities" / "Any" / "All ratings"** — each
+says *no filter applied*.
+
+Plan my trip's *Maximum budget* uses the same five ranges (Free … $100+).
 
 ### The masthead
 
