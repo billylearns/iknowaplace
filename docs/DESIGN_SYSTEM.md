@@ -135,7 +135,8 @@ Scale — base 16px:
 
 | | |
 |---|---|
-| Masthead wordmark | 2.25rem desktop · `clamp(1.55rem, 6.8vw, 1.95rem)` phone |
+| Masthead wordmark | 2.25rem desktop · `clamp(1.8rem, 7.8vw, 2.25rem)` phone |
+| Tagline (desktop only) | 1.1875rem italic; *actually* thickened with a hairline stroke, not a faux bold |
 | Modal head | 1.75rem |
 | Section head / panel head | 1.5rem |
 | Plan title | 1.375rem |
@@ -372,9 +373,9 @@ tagline on a single line; then two white pills — the Toronto selector and
 **Contribute** — and the filled **Plan my trip** pill. On desktop **Why this exists** is a small floating
 pill in the map's bottom-left corner - the one corner the map's own
 controls don't use. On a phone it is
-its own centred treatment: wordmark and tagline about a fifth smaller, then
-one row of three small pills: *Why this exists* and *Contribute* in white,
-*Plan my trip* filled.
+its own centred treatment: the wordmark alone (no tagline — its line goes
+to the map), then one row of three small (30px) pills: *Why this exists* and
+*Contribute* in white, *Plan my trip* filled.
 
 **The city selector** reads "Toronto ⌄" and opens a small popover menu:
 Toronto (ticked) and a muted *More cities coming soon!*. Popovers are
@@ -406,7 +407,9 @@ From the top: the checker strip, the compact masthead, then the stage. The
 city selector and Filters sit **on the map** — *Toronto ⌄* top-left,
 *Filters* top-right with where-am-I under it — so filtering means having the
 map in view, a deliberate trade for a cleaner screen. The map always fills the stage; the recommendations are a
-**sheet** riding over it, pulled by its head.
+**sheet** riding over it, pulled by its head. The sheet is the page's own
+colour (`--paper-2`, as the desktop column is), so its cards read a shade
+lighter, exactly as on desktop.
 
 | Rest | What you see |
 |---|---|

@@ -179,13 +179,19 @@
   .kicker{
     font-family:var(--font-display);
     font-style:italic;
-    font-size:1.0625rem;
+    font-size:1.1875rem;
     line-height:1.25;
     color:var(--ink-2);
     margin:0;
     white-space:nowrap;
   }
-  .kicker strong{font-weight:400; color:var(--ink);}
+  /* Instrument Serif has no bold, and a synthesised one smears. A hairline
+     stroke in the text's own colour thickens "actually" just enough. */
+  .kicker strong{
+    font-weight:400; color:var(--green-deep);
+    -webkit-text-stroke:.45px currentColor;
+    paint-order:stroke fill;
+  }
   /* "Why this exists" on desktop: a small note left on the corner of the
      map - the one corner none of the map's own controls use. On a phone
      the bottom of the map belongs to the list, so there it lives in the
@@ -561,19 +567,19 @@
      above the list sheet). */
   .recentre-pill{
     position:absolute; z-index:4;
-    left:50%; bottom:var(--s-6);
+    left:50%; bottom:72px;
     transform:translateX(-50%);
-    display:inline-flex; align-items:center; gap:8px;
-    min-height:42px; padding:0 18px 0 14px;
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:34px; padding:0 14px 0 11px;
     background:var(--card); color:var(--green-deep);
     border:none; border-radius:var(--r-pill);
     box-shadow:var(--shadow-2);
-    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
     animation:recentre-in .22s ease both;
   }
   .recentre-pill[hidden]{display:none;}
   .recentre-pill:hover{background:var(--paper);}
-  .recentre-pill svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round;}
+  .recentre-pill svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round;}
   @keyframes recentre-in{ from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);} }
   .mapfield.is-unavailable .recentre-pill{display:none;}
 
@@ -1232,25 +1238,28 @@
     }
     .mast-id{flex-direction:column; align-items:center; gap:3px;}
     .mast-sub{padding-left:0; border-left:none; align-items:center;}
-    .word{font-size:clamp(1.55rem, 6.8vw, 1.95rem);}
-    .kicker{font-size:.8125rem; white-space:normal;}
+    .word{font-size:clamp(1.8rem, 7.8vw, 2.25rem);}
+    /* The tagline gives its line back to the map on a phone. */
+    .mast-sub{display:none;}
     .mast-right{
       flex-wrap:wrap; justify-content:center; align-items:center;
       gap:2px 0;
     }
     .mast-right{gap:6px;}
-    .pill-btn{min-height:34px; padding:0 13px; font-size:.8125rem;}
-    .btn-plan{min-height:34px; padding:6px 14px; font-size:.8125rem;}
+    .pill-btn{min-height:30px; padding:0 11px; font-size:.75rem;}
+    .btn-plan{min-height:30px; padding:4px 12px; font-size:.75rem;}
     .masthead{border-bottom:1px solid var(--line-soft);}
 
     /* ---- The city and the filters, on the map ---- */
     .map-city, .map-filters{
       position:absolute; z-index:3; top:var(--s-3);
-      min-height:38px; border:none; box-shadow:var(--shadow-1);
-      font-size:.875rem;
+      min-height:34px; border:none; box-shadow:var(--shadow-1);
+      font-size:.8125rem;
     }
-    .map-city{left:calc(var(--s-3) + env(safe-area-inset-left)); padding:0 10px 0 14px;}
-    .map-filters{left:auto; right:calc(var(--s-3) + env(safe-area-inset-right)); padding:0 14px 0 11px;}
+    .map-city{left:calc(var(--s-3) + env(safe-area-inset-left)); padding:0 9px 0 13px; gap:4px;}
+    .map-city .chev{width:14px; height:14px;}
+    .map-filters{left:auto; right:calc(var(--s-3) + env(safe-area-inset-right)); padding:0 13px 0 10px; gap:6px;}
+    .map-filters .ic{width:16px; height:16px;}
 
     /* The filter panel is a sheet from the bottom on a phone, with the
        page dimmed behind it. */
@@ -1277,7 +1286,7 @@
       position:absolute; left:0; right:0; top:0; height:100%;
       z-index:6;
       transform:translateY(var(--sheet-y, 0px));
-      background:var(--paper);
+      background:var(--paper-2);
       border-radius:var(--r-lg) var(--r-lg) 0 0;
       box-shadow:0 -1px 0 var(--line-soft), 0 -8px 24px -6px rgba(30,36,28,.16);
       will-change:transform;
@@ -1337,7 +1346,7 @@
     .maplibregl-ctrl-group:has(.maplibregl-ctrl-zoom-in){display:none;}
     /* Where-am-I sits under Filters, on the right. */
     .maplibregl-ctrl-top-left{
-      top:calc(var(--s-3) + 38px + var(--s-2)); left:auto;
+      top:calc(var(--s-3) + 34px + var(--s-2)); left:auto;
       right:calc(var(--s-3) + env(safe-area-inset-right));
       align-items:flex-end;
     }
@@ -1375,8 +1384,8 @@
       .word{font-size:1.5rem;}
       .peek{
         left:auto; width:min(360px, 55%);
-        top:calc(var(--s-3) + 38px + var(--s-2)); bottom:auto;
-        max-height:calc(var(--sheet-y, 100%) - 38px - var(--s-6));
+        top:calc(var(--s-3) + 34px + var(--s-2)); bottom:auto;
+        max-height:calc(var(--sheet-y, 100%) - 34px - var(--s-6));
         overflow:auto; padding:var(--s-3);
       }
       /* The card now owns the right edge, so where-am-I goes under the city. */
