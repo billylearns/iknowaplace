@@ -73,7 +73,8 @@ Built and working:
   place sits at its true coordinates. Markers are HTML elements coloured by
   category with a glyph; a numeric badge is that **place's recommendation
   count** (not a cluster count — one place per marker). Markers resize by
-  zoom band. Controls: zoom, where-am-I, Recentre. Full detail in
+  zoom band. Controls: zoom, where-am-I, and a Recentre pill that only
+  appears once the map has wandered off most of the places. Full detail in
   `docs/DESIGN_SYSTEM.md` §5 and `docs/REAL_MAP_PLAN.md`.
 - **List** — sortable (highest/lowest rating, most recommended,
   neighbourhood), searchable by name, expandable cards showing every
@@ -110,7 +111,7 @@ Built and working:
   with a floating **Map** pill back). A tapped pin steps the sheet down and
   raises a **peek card** with the place, who recommended it, and price / time
   / energy; **Read what they said** opens the full entry in the list. The
-  city selector and Filters sit in a fixed control row under the masthead.
+  city selector and Filters sit on the map itself.
   See `docs/DESIGN_SYSTEM.md` §6.
 - **Desktop: a 70/30 canvas.** The map is a rounded card on the left, the
   recommendations one column of cards on the right; the list follows the map
@@ -524,7 +525,8 @@ checker strip, type accents and placed photos).
 2. **The desktop canvas** — 70/30 map card and recommendation cards; the list
    follows the map; every filter behind one Filters pill; full-screen map.
 3. **The phone** — the map with a draggable list sheet, the peek card with
-   price / time / energy and "Read what they said", the control row.
+   price / time / energy and "Read what they said"; city and Filters on the
+   map.
 
 Still to come, deliberately last: the marker redesign and clustering. The
 story photos are placeholders until the owner's own arrive.

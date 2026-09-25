@@ -53,7 +53,7 @@ whatever their OS is set to.
 | Token | Hex | Role |
 |---|---|---|
 | `--paper` | `#FDFAF4` | content plates, the map's ground before tiles arrive |
-| `--paper-2` | `#F9F5EC` | the page: masthead, the phone's control row |
+| `--paper-2` | `#F9F5EC` | the page: masthead, the space around the map card |
 | `--paper-3` | `#F2EDE2` | recessed: chips, hover fills |
 | `--card` | `#FFFEFB` | raised: panels, popovers, modals, the peek card |
 | `--line-soft` | `#E6E0D2` | hairlines on the lighter grounds |
@@ -235,17 +235,21 @@ rail dashes, and the minor-road ramp starts from it — change them together.
   view. With no usable map — loading, failed, or hidden — there is no
   viewport, and the list is every match. A viewport with nothing in it says
   so and offers **Zoom back out**.
-- **Full-screen map.** A round expand button at the map's top-left folds
+- **Full-screen map.** A round expand button at the map's top-right folds
   the list column away (the map card widens, the masthead stays); it becomes
   a **Show list** pill, and Escape also brings the list back.
 - **Once someone has moved the map, it is theirs.** No automatic re-framing
   takes it back.
-- **Controls are deliberately few:** zoom, where-am-I, and a *Recentre*
-  pill that returns to all 39 places. No compass (there is no rotation to
-  undo) and no scale bar. They are card-coloured squircles with a soft
-  shadow and no outline. Layout on desktop: expand top-left, **Filters**
-  top-right with the map's own controls stacked under it, *Why this exists*
-  bottom-left, attribution bottom-right.
+- **Controls are deliberately few:** zoom and where-am-I. No compass (there
+  is no rotation to undo) and no scale bar. They are card-coloured squircles
+  with a soft shadow and no outline. Layout on desktop: **Filters** top-left
+  with zoom and where-am-I stacked under it, expand top-right, *Why this
+  exists* bottom-left, attribution bottom-right.
+- **Recentre only when it is needed.** It is not a permanent control. Once
+  the visible map shows less than a quarter of the places the filters allow,
+  a **Recentre** pill appears low and centred on the map (on a phone, just
+  above the list sheet); it frames all the places again and, its job done,
+  goes.
 - **Attribution is always readable.** On desktop it sits in the map card's
   bottom-right corner; on a phone it rises above the peek card while one is
   open.
@@ -344,7 +348,8 @@ wide, which keeps price, time and energy on one line at every width.
 ### Filters
 
 Every filter lives behind one **Filters** pill (sliders icon, a green count
-badge when any are on). On desktop it sits on the map's top-right and opens
+badge when any are on). It sits on the map — top-left on desktop, top-right
+on a phone — and opens
 an anchored panel; on a phone it opens the same panel as a sheet from the
 bottom. Inside: search; activity as chips (with each category's glyph);
 **maximum price** as chips in the same words the recommendations use — Any,
@@ -363,13 +368,13 @@ Plan my trip's *Maximum budget* uses the same five ranges (Free … $100+).
 A checker strip (two rows of 8px checks, `--green-deep` on `--paper`, pure
 CSS) sits along the very top on every screen — the only checkerboard on the
 site. Below it, on desktop, one compact band (~70px): wordmark and the
-tagline on a single line; then the Toronto selector, Contribute a place and
-a **Plan my trip** pill. On desktop **Why this exists** is a small floating
+tagline on a single line; then two white pills — the Toronto selector and
+**Contribute** — and the filled **Plan my trip** pill. On desktop **Why this exists** is a small floating
 pill in the map's bottom-left corner - the one corner the map's own
 controls don't use. On a phone it is
 its own centred treatment: wordmark and tagline about a fifth smaller, then
-one row — *Why this exists · Contribute a place* as quiet links and Plan my
-trip as a small pill.
+one row of three small pills: *Why this exists* and *Contribute* in white,
+*Plan my trip* filled.
 
 **The city selector** reads "Toronto ⌄" and opens a small popover menu:
 Toronto (ticked) and a muted *More cities coming soon!*. Popovers are
@@ -397,9 +402,10 @@ mark beside a serif title.
 ### The phone: a map with a list sheet
 
 Below 880px the product is an app, not a page — nothing scrolls but the list.
-From the top: the checker strip, the compact masthead, a **control row**
-(*Toronto ⌄* left, *Filters* right — reachable whatever the sheet is doing),
-then the stage. The map always fills the stage; the recommendations are a
+From the top: the checker strip, the compact masthead, then the stage. The
+city selector and Filters sit **on the map** — *Toronto ⌄* top-left,
+*Filters* top-right with where-am-I under it — so filtering means having the
+map in view, a deliberate trade for a cleaner screen. The map always fills the stage; the recommendations are a
 **sheet** riding over it, pulled by its head.
 
 | Rest | What you see |
@@ -428,9 +434,10 @@ with that entry open and in view: friends' own words live in one place, the
 list. Tapping the map away from a pin, or ✕, puts the card away. Tapping an
 entry in the list opens it in the full list the same way.
 
-No zoom buttons on a phone — pinch, as in every map app. Where-am-I and
-Recentre stay on the right; the map credit stays folded to its ⓘ and sits
-just above the sheet (and the card).
+No zoom buttons on a phone — pinch, as in every map app. The map credit
+starts folded to its ⓘ (MapLibre unfolds it on its own the first time the
+credits arrive; that first unfolding is undone) and sits just above the
+sheet (and the card).
 
 ---
 

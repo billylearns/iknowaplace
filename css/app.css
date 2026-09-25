@@ -211,15 +211,18 @@
     display:flex; align-items:center; gap:var(--s-2);
     flex:0 0 auto;
   }
-  .nav-link{
+  /* Secondary actions (Contribute; on a phone, Why this exists too) are the
+     same white pill as the city selector; Plan my trip is the one filled. */
+  .pill-btn{
     display:inline-flex; align-items:center; min-height:40px;
-    background:none; border:none;
-    font-family:var(--font-body); font-size:.9375rem; font-weight:500;
-    color:var(--ink-2); padding:0 14px; border-radius:var(--r-pill);
-    transition:background .12s ease, color .12s ease;
+    padding:0 16px;
+    background:var(--card); border:1px solid var(--line-soft); border-radius:var(--r-pill);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600;
+    color:var(--green-deep);
+    box-shadow:0 1px 2px rgba(30,36,28,.05);
+    transition:border-color .12s ease, box-shadow .12s ease;
   }
-  .nav-link:hover{color:var(--ink); background:var(--paper-3);}
-  .nav-dot{color:var(--ink-3);}
+  .pill-btn:hover{border-color:var(--line-control); box-shadow:var(--shadow-1);}
 
   /* The city selector reads as a selector: the name and a chevron, in a
      quiet outlined pill. It opens the city menu (a popover), not a modal. */
@@ -385,7 +388,7 @@
   .stage.map-full .panel{visibility:hidden;}
   /* The control row, the sheet's handle, the Map pill and the peek card
      belong to the phone layout only. */
-  .controlbar, .sheet-handle, .map-pill{display:none;}
+  .sheet-handle, .map-pill{display:none;}
   .peek{display:none;}
 
   .mapfield{
@@ -534,10 +537,10 @@
   /* ---------- Map controls and attribution --------------------
      Modern, soft controls: a card-coloured squircle with a low shadow and
      no hard edge, lifted off the map rather than outlined on it. */
-  /* The map's own controls stack down the right edge, under Filters. */
-  .maplibregl-ctrl-top-right{top:calc(var(--s-4) + 40px + var(--s-3)); right:var(--s-4);
-    display:flex; flex-direction:column; align-items:flex-end;}
-  .maplibregl-ctrl-top-right .maplibregl-ctrl{margin:0 0 var(--s-2);}
+  /* The map's own controls stack down the left edge, under Filters. */
+  .maplibregl-ctrl-top-left{top:calc(var(--s-4) + 40px + var(--s-3)); left:var(--s-4);
+    display:flex; flex-direction:column; align-items:flex-start;}
+  .maplibregl-ctrl-top-left .maplibregl-ctrl{margin:0 0 var(--s-2);}
   .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 var(--s-3) var(--s-3) 0;}
   .maplibregl-ctrl-group:not(:empty){
     background:var(--card);
@@ -553,15 +556,26 @@
   /* The library's icons are drawn in near-black; this softens them to ink. */
   .maplibregl-ctrl-group .maplibregl-ctrl-icon{opacity:.8;}
 
-  .map-recentre button{
-    display:block; min-height:40px; padding:0 16px;
-    background:var(--card);
+  /* Recentre: only there when the map has wandered off most of the places.
+     Low and centred, in the lower quarter of the map (on a phone, just
+     above the list sheet). */
+  .recentre-pill{
+    position:absolute; z-index:4;
+    left:50%; bottom:var(--s-6);
+    transform:translateX(-50%);
+    display:inline-flex; align-items:center; gap:8px;
+    min-height:42px; padding:0 18px 0 14px;
+    background:var(--card); color:var(--green-deep);
     border:none; border-radius:var(--r-pill);
-    box-shadow:var(--shadow-1);
-    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
-    color:var(--green-deep);
+    box-shadow:var(--shadow-2);
+    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    animation:recentre-in .22s ease both;
   }
-  .map-recentre button:hover{background:var(--paper-3);}
+  .recentre-pill[hidden]{display:none;}
+  .recentre-pill:hover{background:var(--paper);}
+  .recentre-pill svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round;}
+  @keyframes recentre-in{ from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);} }
+  .mapfield.is-unavailable .recentre-pill{display:none;}
 
   .maplibregl-ctrl-attrib{
     font-family:var(--font-body); font-size:.6875rem; color:var(--ink-3);
@@ -599,10 +613,10 @@
     font-size:.6875rem; font-weight:700; font-variant-numeric:tabular-nums;
   }
   .f-count[hidden]{display:none;}
-  .map-filters{position:absolute; z-index:3; top:var(--s-4); right:var(--s-4);}
+  .map-filters{position:absolute; z-index:3; top:var(--s-4); left:var(--s-4);}
 
   .map-expand{
-    position:absolute; z-index:3; top:var(--s-4); left:var(--s-4);
+    position:absolute; z-index:3; top:var(--s-4); right:var(--s-4);
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
     width:40px; height:40px; padding:0;
     background:var(--card); color:var(--ink);
@@ -1224,19 +1238,19 @@
       flex-wrap:wrap; justify-content:center; align-items:center;
       gap:2px 0;
     }
-    .nav-link{font-size:.8125rem; padding:0 7px; min-height:36px; letter-spacing:-.005em;}
-    .nav-dot{align-items:center; font-size:.8125rem;}
-    .btn-plan{min-height:34px; padding:6px 13px; font-size:.8125rem; margin-left:3px;}
+    .mast-right{gap:6px;}
+    .pill-btn{min-height:34px; padding:0 13px; font-size:.8125rem;}
+    .btn-plan{min-height:34px; padding:6px 14px; font-size:.8125rem;}
+    .masthead{border-bottom:1px solid var(--line-soft);}
 
-    /* ---- The control row: the city and the filters, always in reach ---- */
-    .controlbar{
-      flex:0 0 auto;
-      display:flex; align-items:center; justify-content:space-between; gap:var(--s-2);
-      padding:0 var(--s-3) var(--s-2);
-      background:var(--paper-2);
-      border-bottom:1px solid var(--line-soft);
+    /* ---- The city and the filters, on the map ---- */
+    .map-city, .map-filters{
+      position:absolute; z-index:3; top:var(--s-3);
+      min-height:38px; border:none; box-shadow:var(--shadow-1);
+      font-size:.875rem;
     }
-    .filters-btn-sm{min-height:36px; padding:0 12px 0 10px; box-shadow:none; border:1px solid var(--line-soft); font-size:.875rem;}
+    .map-city{left:calc(var(--s-3) + env(safe-area-inset-left)); padding:0 10px 0 14px;}
+    .map-filters{left:auto; right:calc(var(--s-3) + env(safe-area-inset-right)); padding:0 14px 0 11px;}
 
     /* The filter panel is a sheet from the bottom on a phone, with the
        page dimmed behind it. */
@@ -1321,11 +1335,14 @@
        Recentre stay, on the right where a thumb is. The note and the credit
        keep to the part of the map the sheet leaves showing. */
     .maplibregl-ctrl-group:has(.maplibregl-ctrl-zoom-in){display:none;}
-    .maplibregl-ctrl-top-right{
-      top:var(--s-3); right:calc(var(--s-3) + env(safe-area-inset-right));
+    /* Where-am-I sits under Filters, on the right. */
+    .maplibregl-ctrl-top-left{
+      top:calc(var(--s-3) + 38px + var(--s-2)); left:auto;
+      right:calc(var(--s-3) + env(safe-area-inset-right));
+      align-items:flex-end;
     }
-    .maplibregl-ctrl-group button{width:44px; height:44px;}
-    .map-recentre button{min-height:44px;}
+    .maplibregl-ctrl-group button{width:42px; height:42px;}
+    .recentre-pill{bottom:calc(100% - var(--sheet-y, 100%) + var(--peek-clear, 0px) + var(--s-4));}
     .map-note{top:calc(var(--sheet-y, 100%) / 2);}
     .maplibregl-ctrl-bottom-right{
       right:env(safe-area-inset-right);
@@ -1356,15 +1373,15 @@
       .masthead{flex-direction:row; justify-content:space-between; padding:var(--s-2) var(--s-3);}
       .mast-sub{display:none;}
       .word{font-size:1.5rem;}
-      .controlbar{padding-top:0;}
       .peek{
         left:auto; width:min(360px, 55%);
-        top:var(--s-2); bottom:auto;
-        max-height:calc(var(--sheet-y, 100%) - var(--s-4));
+        top:calc(var(--s-3) + 38px + var(--s-2)); bottom:auto;
+        max-height:calc(var(--sheet-y, 100%) - 38px - var(--s-6));
         overflow:auto; padding:var(--s-3);
       }
-      /* The card now owns the right edge, so the controls take the left. */
-      .maplibregl-ctrl-top-right{right:auto; left:calc(var(--s-3) + env(safe-area-inset-left)); align-items:flex-start;}
+      /* The card now owns the right edge, so where-am-I goes under the city. */
+      .maplibregl-ctrl-top-left{right:auto; left:calc(var(--s-3) + env(safe-area-inset-left)); align-items:flex-start;}
+      .recentre-pill{bottom:calc(100% - var(--sheet-y, 100%) + var(--s-3));}
     }
     .peek-close{
       position:absolute; top:6px; right:6px;

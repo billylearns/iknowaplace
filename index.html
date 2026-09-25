@@ -40,28 +40,20 @@
         Toronto
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <button type="button" class="nav-link mob-only" data-open-story>Why this exists</button>
-      <span class="nav-dot mob-only" aria-hidden="true">&middot;</span>
-      <button type="button" class="nav-link" id="openContribute" aria-haspopup="dialog">Contribute a place</button>
+      <button type="button" class="pill-btn mob-only" data-open-story>Why this exists</button>
+      <button type="button" class="pill-btn" id="openContribute" aria-haspopup="dialog">Contribute</button>
       <button type="button" class="btn-primary btn-plan" id="openPlanner">Plan my trip</button>
     </nav>
   </header>
 
-  <!-- Phones: the city and the filters in a fixed row between the masthead
-       and the map, reachable whatever the list sheet is doing. -->
-  <div class="controlbar">
-      <button type="button" class="city-btn city-btn-sm" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
-        Toronto
-        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <button type="button" class="filters-btn filters-btn-sm" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
-        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
-      </button>
-  </div>
-
   <main class="stage">
     <div class="mapfield is-loading">
       <div class="atlas" id="atlas"></div>
+      <!-- Phones: the city selector sits on the map's top-left corner. -->
+      <button type="button" class="city-btn map-city mob-only" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
+        Toronto
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
       <!-- Expand the map over the list, and back. Desktop only. -->
       <button type="button" class="map-expand desk-only" id="mapExpand" aria-pressed="false" aria-label="Expand the map">
         <svg class="ic ic-expand" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>
@@ -69,13 +61,18 @@
         <span class="map-expand-label">Show list</span>
       </button>
       <!-- Every filter lives behind this one button. -->
-      <button type="button" class="filters-btn map-filters desk-only" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
+      <button type="button" class="filters-btn map-filters" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
       </button>
       <!-- Desktop's way into the story; the phone's is in the masthead row. -->
       <button type="button" class="why-float desk-only" data-open-story>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="9" height="14" rx="1.2" transform="rotate(-8 8 12)"/><rect x="11" y="4" width="9" height="14" rx="1.2" transform="rotate(6 15.5 11)"/></svg>
         Why this exists
+      </button>
+      <!-- Only there when the map has wandered off most of the places. -->
+      <button type="button" class="recentre-pill" id="recentreBtn" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3.5M12 17.5V21M3 12h3.5M17.5 12H21"/></svg>
+        Recentre
       </button>
       <div class="map-tooltip" id="mapTooltip" aria-hidden="true"></div>
       <!-- Says "drawing" while the map loads, and says so plainly if it can't. -->
@@ -437,7 +434,7 @@
     document.getElementById("filterClear").addEventListener("click", clearFilters);
     document.getElementById("filterDone").addEventListener("click", ()=> closePopover(true));
     document.querySelectorAll("[data-filter-trigger]").forEach(btn=>
-      btn.addEventListener("click", ()=> openPopover(filterPanel, btn, "end", filterPanel)));
+      btn.addEventListener("click", ()=> openPopover(filterPanel, btn, "start", filterPanel)));
   }
 
   function clearFilters(){
@@ -534,9 +531,10 @@
     const P = mapPad();
     const pad = { top:P, bottom:P, left:P, right:P };
     const field = document.querySelector(".mapfield");
-    if(!NARROW.matches) pad.top = Math.max(P, 64);
+    // Clear of the buttons along the top.
+    pad.top = Math.max(P, NARROW.matches ? 58 : 64);
     // On a phone the list sheet covers the bottom of the map; frame above it.
-    else if(field && sheetY > 80){
+    if(NARROW.matches && field && sheetY > 80){
       const cover = field.getBoundingClientRect().height - sheetY;
       if(cover > 0) pad.bottom = Math.max(pad.bottom, cover + Math.round(P / 2));
     }
@@ -719,14 +717,14 @@
     // desktop; where-am-I, because "what's near me" is the most useful thing
     // this map can answer on a phone; and a way home once you have panned
     // away. No compass - there is no rotation to undo - and no scale bar.
-    // They stack down the right edge, under the Filters button.
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    // They stack under the Filters button: down the left edge on desktop,
+    // the right edge on a phone (where the city selector has the left).
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     map.addControl(new maplibregl.GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: false,
       fitBoundsOptions: { maxZoom: 15 }
-    }), "top-right");
-    map.addControl(new RecentreControl(), "top-right");
+    }), "top-left");
     // The style already carries OpenFreeMap, OpenMapTiles and OpenStreetMap,
     // so this only has to put it on screen, not restate it.
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
@@ -771,12 +769,7 @@
 
     map.on("load", ()=>{
       mapReady = true;
-      // A phone has no room for the credit spelled out over the map; it
-      // stays folded to its (i) until asked for.
-      if(NARROW.matches){
-        const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
-        if(attrib){ attrib.classList.remove("maplibregl-compact-show"); attrib.removeAttribute("open"); }
-      }
+      foldAttributionOnPhones();
       if(mapField.classList.contains("is-loading")) showMapNote(null);
       applyZoomBand();
       buildMarkers();
@@ -788,20 +781,34 @@
     });
   }
 
-  // "Recentre": the whole city again. A word, not an icon - there is no glyph
-  // for "all the places" that reads faster than saying so.
-  class RecentreControl {
-    onAdd(){
-      this.el = document.createElement("div");
-      this.el.className = "maplibregl-ctrl map-recentre";
-      this.el.innerHTML = '<button type="button">Recentre</button>';
-      this.el.firstChild.addEventListener("click", ()=>{
-        hideTooltip();
-        fitPlaces({ duration: mapEase() });
-      });
-      return this.el;
-    }
-    onRemove(){ this.el.remove(); }
+  // A phone has no room for the credit spelled out over the map, so there it
+  // starts folded to its (i). MapLibre unfolds the compact credit itself the
+  // first time the attributions arrive, which can be after "load", so the
+  // first unfolding is watched for and undone. A tap on the (i) still opens it.
+  function foldAttributionOnPhones(){
+    if(!NARROW.matches) return;
+    const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
+    if(!attrib) return;
+    const fold = ()=>{ attrib.classList.remove("maplibregl-compact-show"); attrib.removeAttribute("open"); };
+    if(attrib.hasAttribute("open")){ fold(); return; }
+    const mo = new MutationObserver(()=>{
+      if(attrib.hasAttribute("open")){ fold(); mo.disconnect(); }
+    });
+    mo.observe(attrib, { attributes:true, attributeFilter:["open", "class"] });
+    setTimeout(()=> mo.disconnect(), 8000);
+  }
+
+  // "Recentre" is not a permanent control any more. It appears, low and
+  // centred on the map, only once the map shows less than a quarter of the
+  // places the filters allow - and goes again once it has done its job.
+  const recentreBtn = document.getElementById("recentreBtn");
+  recentreBtn.addEventListener("click", ()=>{
+    hideTooltip();
+    fitPlaces({ duration: mapEase() });
+  });
+  function syncRecentre(bounds, inViewCount){
+    const lost = !!bounds && filtered.length > 0 && inViewCount < filtered.length / 4;
+    recentreBtn.hidden = !lost;
   }
 
   // Built once, at boot. Filtering only ever toggles a class from here on, so a
@@ -1002,6 +1009,7 @@
     if(sel && !shown.includes(sel)) shown.push(sel);
     const sorted = shown.sort(SORTERS[state.sortBy]);
     const limited = !!bounds && inView.length < filtered.length;
+    syncRecentre(bounds, inView.length);
 
     const n = sorted.length;
     document.getElementById("listHeading").textContent =
