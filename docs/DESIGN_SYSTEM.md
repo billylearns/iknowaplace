@@ -200,18 +200,25 @@ subject and the city is the ground they stand on.
 
 ### Map palette
 
-Derived from the tokens in §2; the hex values live in the style file.
+**"Cool stone"** (chosen in the polish pass from three candidates). The old
+all-beige map read as muted; this one is a cool light grey, so the warm page
+around it and the coloured pins stand out, with pastel greens and a
+teal-leaning blue doing the colouring. The hex values live in the style
+file; `--map-land` in the CSS is the same ground, shown before tiles arrive.
 
 | Layer | Colour | Note |
 |---|---|---|
-| Land | `#F7F3EA` | lifted a shade in the polish pass; still just under `--paper` |
-| Water | `#B4CEDA` | `--water-fill` — visibly blue, a step softer |
-| Parks | `#E3E9D5` | pale sage, well clear of `--green` |
-| Buildings | `#EEE8DA` | |
-| Arterials | `#FFFEFA` on `#DDD2BC` | near-white with a warm casing |
-| Motorways | `#FAF1DC` on `#CDBD9C` | a faint ochre, so the Gardiner is findable |
-| Street names | `#636B5C` | `--ink-3` — **5.0:1** on land |
-| Neighbourhoods | `#55604F` | `--ink-2` — 5.3:1 on park |
+| Land | `#EEF0EF` | cool stone grey — `--map-land` |
+| Water | `#A9CFDF` | `--water-fill` — teal-leaning blue |
+| Parks | `#D2E6CF` | pastel sage, well clear of `--green` |
+| Woods | `#C8DEC3` | a step deeper |
+| Grass | `#D9EBD5` | landcover *grass* — added in the polish pass |
+| Pitches, cemeteries, gardens | `#D4E8D0` | landuse — added in the polish pass |
+| Buildings | `#E1E4E3` on `#D5D9D8` | |
+| Arterials | `#FFFFFF` on `#D3D8D7` | white with a cool casing |
+| Motorways | `#FFFFFF` on `#C3CAC8` | plain white, a firmer casing — no yellow |
+| Street names | `#636B5C` | `--ink-3` — **4.8:1** on land |
+| Neighbourhoods | `#55604F` | `--ink-2` — **5.8:1** on land, 5.0:1 on park |
 | Water names | `#2A4E60` | `--water-ink` — **5.4:1** on water |
 
 The land colour is shared by residential areas, piers and the gaps in the
@@ -484,10 +491,13 @@ Toronto. The only photographs are the owner's own, in the story.
 
 - Every text/background pair in §2 is **≥ 4.5:1**; every graphic that carries
   meaning is **≥ 3:1**.
-- **The map meets the same bar.** Street names 4.7:1, neighbourhood names
-  5.6:1, water names 5.0:1. Every marker colour is ≥ 3:1 on land, park and
-  water alike — the lowest is Wellness on water at 3.06:1. (Land, water and
-  park fills against each other are ground, not meaning; water is named.)
+- **The map meets the same bar for text.** Street names 4.8:1,
+  neighbourhood names 5.8:1 (5.0:1 on park), water names 5.4:1. Every
+  marker colour is ≥ 3:1 on land and park; on the (cool stone) water all
+  are ≥ 3.3:1 except Outdoors at 2.5:1 — the only such pin is on the Toronto
+  Islands, and every disc carries a paper rim, which is what separates it
+  from the lake. Revisit with the marker redesign. (Land, water and park
+  fills against each other are ground, not meaning; water is named.)
 - A skip link jumps past the map to the index — a map is a lot of page to tab
   through to reach the thing you came for.
 - Modals trap focus, close on Escape and return focus to the trigger. Focus
