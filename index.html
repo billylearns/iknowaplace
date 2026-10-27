@@ -18,7 +18,7 @@
      and it still falls back to WebGL1 on older phones. -->
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
-<link rel="stylesheet" href="./css/app.css?v=2026-10-27">
+<link rel="stylesheet" href="./css/app.css?v=2026-10-27b">
 </head>
 <body class="booting">
 
@@ -113,6 +113,8 @@
      the map on desktop, a sheet from the bottom on a phone. Filters apply as
      they change; the button at the foot just closes the panel. -->
 <div class="popover filter-pop" id="filterPanel" role="dialog" aria-label="Filters" tabindex="-1" hidden>
+  <!-- Phones: the panel is a sheet, and swiping it down puts it away. -->
+  <div class="fp-grab" aria-hidden="true"></div>
   <div class="fp-head">
     <h2 class="fp-title">Filters</h2>
     <button type="button" class="fp-clear" id="filterClear">Clear all</button>
@@ -154,7 +156,7 @@
     <div class="modal-head">
       <div>
         <h2 id="contributeTitle">Know a place?</h2>
-        <p id="contributeLede">Recommendations for where I should go next, and what places are good there!</p>
+        <p id="contributeLede">Recommendations for where I should go next, and what to do there!</p>
       </div>
       <button class="modal-close" id="closeContribute" aria-label="Close">✕</button>
     </div>
@@ -175,7 +177,7 @@
       </form>
       <div class="cf-thanks" id="cfThanks" hidden>
         <p class="cf-thanks-title">Thank you!</p>
-        <p class="holding-copy">Got it. It's on the list for the next trip.</p>
+        <p class="holding-copy">I'll add it to the list</p>
         <div class="cf-foot"><button type="button" class="btn-secondary" id="cfAnother">Send another</button></div>
       </div>
     </div>
@@ -444,7 +446,10 @@
     document.getElementById("filterClear").addEventListener("click", clearFilters);
     document.getElementById("filterDone").addEventListener("click", ()=> closePopover(true));
     document.querySelectorAll("[data-filter-trigger]").forEach(btn=>
-      btn.addEventListener("click", ()=> openPopover(filterPanel, btn, "start", filterPanel)));
+      btn.addEventListener("click", ()=>{
+        filterPanel.classList.remove("fp-dragging");
+        openPopover(filterPanel, btn, "start", filterPanel);
+      }));
   }
 
   function clearFilters(){
@@ -1640,6 +1645,57 @@
   window.addEventListener("resize", ()=>{
     if(window.innerWidth !== popLastWidth){ popLastWidth = window.innerWidth; closePopover(false); }
   });
+
+  /* On a phone the filters are a sheet, so a sheet's gesture puts them away:
+     swipe down and they follow the finger; let go far enough down, or with a
+     flick, and they close. Short of that they settle back. Inside the
+     options a pull down only counts once they are scrolled to the top. */
+  const fpBody = filterPanel.querySelector(".fp-body");
+  let fpDrag = null;
+  function fpSettle(y, then){
+    filterPanel.style.transition = "transform .22s cubic-bezier(.3,.7,.2,1)";
+    filterPanel.style.transform = y ? "translateY(" + y + "px)" : "";
+    // The drag class stays until the panel next opens: taking it off here
+    // would replay the opening animation on a sheet that never left.
+    setTimeout(()=>{
+      filterPanel.style.transition = "";
+      if(then) then();
+    }, 230);
+  }
+  filterPanel.addEventListener("touchstart", (e)=>{
+    if(!NARROW.matches || e.touches.length !== 1){ fpDrag = null; return; }
+    const y = e.touches[0].clientY;
+    fpDrag = { y0:y, lastY:y, lastT:performance.now(), v:0, on:false, inBody: fpBody.contains(e.target) };
+  }, { passive:true });
+  filterPanel.addEventListener("touchmove", (e)=>{
+    if(!fpDrag) return;
+    const y = e.touches[0].clientY, dy = y - fpDrag.y0;
+    if(!fpDrag.on){
+      if(dy < 0 || (fpDrag.inBody && fpBody.scrollTop > 0)){ fpDrag = null; return; }
+      if(dy < DRAG_SLOP) return;
+      fpDrag.on = true;
+      filterPanel.classList.add("fp-dragging");
+    }
+    const now = performance.now();
+    fpDrag.v = 0.8 * ((y - fpDrag.lastY) / Math.max(1, now - fpDrag.lastT)) + 0.2 * fpDrag.v;
+    fpDrag.lastY = y; fpDrag.lastT = now;
+    filterPanel.style.transform = "translateY(" + Math.max(0, dy) + "px)";
+    if(e.cancelable) e.preventDefault();
+  }, { passive:false });
+  function fpDragEnd(){
+    if(!fpDrag) return;
+    const d = fpDrag; fpDrag = null;
+    if(!d.on) return;
+    const dy = d.lastY - d.y0;
+    const flick = (performance.now() - d.lastT) < 90 && d.v > 0.5;
+    if(flick || dy > filterPanel.offsetHeight * 0.3){
+      fpSettle(filterPanel.offsetHeight, ()=>{ closePopover(true); filterPanel.style.transform = ""; });
+    } else {
+      fpSettle(0);
+    }
+  }
+  filterPanel.addEventListener("touchend", fpDragEnd);
+  filterPanel.addEventListener("touchcancel", fpDragEnd);
 
   // The city menu. Toronto is the only city, so choosing it just closes the
   // menu; the note says why there isn't more to choose from.
