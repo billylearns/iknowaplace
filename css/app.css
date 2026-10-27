@@ -701,7 +701,8 @@
     font-family:var(--font-body); font-size:1rem; line-height:1.5;
   }
   .contribute-form textarea{min-height:140px; resize:vertical;}
-  .contribute-form textarea::placeholder, .contribute-form input::placeholder{color:var(--ink-3);}
+  /* Placeholders sit back, so the example never reads as something typed. */
+  .contribute-form textarea::placeholder, .contribute-form input::placeholder{color:#A9AEA3; opacity:1;}
   .contribute-form textarea:focus-visible, .contribute-form input:focus-visible{
     outline:2.5px solid var(--green); outline-offset:1px; border-color:var(--green);
   }
@@ -739,7 +740,7 @@
   .story-photos{position:relative; align-self:center; height:430px; margin-left:calc(var(--s-6) * -1.1);}
   .snap{
     position:absolute; margin:0;
-    width:132px; aspect-ratio:3 / 4;
+    width:128px; aspect-ratio:3 / 4;
     padding:7px 7px 7px;
     background:#fff;
     border-radius:6px;
@@ -757,10 +758,13 @@
     object-fit:cover; border-radius:3px;
     background:var(--paper-3);
   }
+  /* A print in each corner and Padar over the middle, each corner print
+     losing only its inside corner to it. */
   .snap-1{left:0;     top:0;     transform:rotate(-6deg); z-index:1;}
-  .snap-2{left:150px; top:16px;  transform:rotate(5deg);  z-index:2;}
-  .snap-3{left:8px;   top:248px; transform:rotate(4deg);  z-index:3;}
-  .snap-main{left:62px; top:96px; width:190px; transform:rotate(-2deg); z-index:4;}
+  .snap-2{left:156px; top:10px;  transform:rotate(5deg);  z-index:2;}
+  .snap-3{left:4px;   top:252px; transform:rotate(4deg);  z-index:3;}
+  .snap-4{left:154px; top:242px; transform:rotate(-4deg); z-index:3;}
+  .snap-main{left:66px; top:110px; width:156px; transform:rotate(-2deg); z-index:4;}
   .snap-2::before{transform:rotate(3deg);}
 
   /* The essay: the site's clean body face, a touch smaller than before,
@@ -1234,14 +1238,27 @@
      text, and the text scrolls with the sheet. */
   @media (max-width: 760px){
     .story-grid{grid-template-columns:1fr; gap:var(--s-4); padding:var(--s-6) var(--s-4) var(--s-5);}
-    .story-photos{min-height:0; height:176px; margin:0 auto; width:276px; align-self:auto;}
-    .snap{width:80px; padding:4px;}
+    /* A fanned row: each print overlaps the next by a sliver, Padar in
+       the middle and a size up. */
+    .story-photos{min-height:0; height:172px; margin:0 auto; width:458px; max-width:100%; align-self:auto;}
+    .snap{width:92px; padding:4px;}
     .snap::before{width:40px; height:14px; margin-left:-20px; top:-7px;}
-    .snap-1{left:0;     top:26px;}
-    .snap-2{left:40px;  top:58px;}
-    .snap-3{left:196px; top:34px; transform:rotate(7deg);}
-    .snap-main{left:88px; top:6px; width:116px;}
+    .snap-1{left:0;     top:30px; transform:rotate(-7deg);}
+    .snap-2{left:84px;  top:12px; transform:rotate(-3deg);}
+    .snap-main{left:170px; top:0; width:120px; transform:rotate(1deg);}
+    .snap-3{left:280px; top:14px; transform:rotate(4deg);}
+    .snap-4{left:366px; top:34px; transform:rotate(8deg);}
     .story-body h2{font-size:1.75rem;}
+  }
+  /* A phone has room for four in the fan; the elephant sits this one out. */
+  @media (max-width: 520px){
+    .story-photos{width:296px; height:152px;}
+    .snap{width:76px;}
+    .snap-1{left:0;     top:26px;}
+    .snap-2{left:62px;  top:10px;}
+    .snap-main{left:122px; top:0; width:104px;}
+    .snap-3{left:216px; top:16px;}
+    .snap-4{display:none;}
   }
 
   /* ---------- Responsive --------------------------------------

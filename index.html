@@ -18,7 +18,7 @@
      and it still falls back to WebGL1 on older phones. -->
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
-<link rel="stylesheet" href="./css/app.css">
+<link rel="stylesheet" href="./css/app.css?v=2026-10-27">
 </head>
 <body class="booting">
 
@@ -146,7 +146,7 @@
     Toronto
     <svg class="tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
   </button>
-  <p class="pop-note">More cities to come</p>
+  <p class="pop-note">More cities coming soon&hellip;</p>
 </div>
 
 <div class="modal-scrim" id="contributeScrim">
@@ -163,9 +163,9 @@
       <form class="contribute-form" id="contributeForm" novalidate>
         <label class="visually-hidden" for="cfMessage">Your recommendation</label>
         <textarea id="cfMessage" name="message" rows="6" required
-          placeholder="e.g. Lisbon. Lunch at Time Out Market, then sunset from Miradouro da Senhora do Monte."></textarea>
-        <label class="visually-hidden" for="cfName">Your name (optional)</label>
-        <input type="text" id="cfName" name="name" autocomplete="name" placeholder="Your name (optional)">
+          placeholder="e.g. Sydney. Dinner at Spice Alley in Chippendale, and the Bondi to Coogee coastal walk at sunrise."></textarea>
+        <label class="visually-hidden" for="cfName">Name (optional)</label>
+        <input type="text" id="cfName" name="name" autocomplete="name" placeholder="Name (optional)">
         <!-- A field people never see; bots fill it in and Formspree drops them. -->
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="visually-hidden" aria-hidden="true">
         <p class="cf-status" id="cfStatus" role="status" aria-live="polite"></p>
@@ -186,12 +186,14 @@
   <div class="modal modal-story" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
     <button class="modal-close story-close" id="closeStory" aria-label="Close">✕</button>
     <div class="story-grid">
-      <!-- Four photos from the trip, dropped on the page rather than set into
-           it. Padar is the main one: the biggest, and on top of the rest. -->
+      <!-- Five photos from the trip, dropped on the page rather than set into
+           it. Padar is the main one: the biggest, and on top of the rest.
+           Phones show four; the elephant needs the width. -->
       <div class="story-photos" aria-hidden="true">
         <figure class="snap snap-1"><img src="photos/rinjani.jpg" alt="" loading="lazy"></figure>
         <figure class="snap snap-2"><img src="photos/hanoi.jpg" alt="" loading="lazy"></figure>
         <figure class="snap snap-3"><img src="photos/kelingking.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-4"><img src="photos/elephant.jpg" alt="" loading="lazy"></figure>
         <figure class="snap snap-main"><img src="photos/padar.jpg" alt="" loading="lazy"></figure>
       </div>
       <div class="story-body">
@@ -1529,9 +1531,9 @@
   /* ---------------- Contribute ----------------
      One text box: where should I go next, and what's good there. It posts to
      Formspree, which emails each one on - there is no backend of our own.
-     The endpoint comes from the form made at formspree.io; until it is set,
-     sending says so plainly instead of pretending to work. */
-  const CONTRIBUTE_ENDPOINT = "";   // "https://formspree.io/f/<form id>"
+     Submissions are kept in the Formspree dashboard; whether each one is
+     also emailed is a setting on the form there, not here. */
+  const CONTRIBUTE_ENDPOINT = "https://formspree.io/f/xnppdrzn";
   const contributeScrim = document.getElementById("contributeScrim");
   const openContributeBtn = document.getElementById("openContribute");
   const cfForm = document.getElementById("contributeForm");
