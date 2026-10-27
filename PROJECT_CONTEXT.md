@@ -528,5 +528,14 @@ checker strip, type accents and placed photos).
    price / time / energy and "Read what they said"; city and Filters on the
    map.
 
-Still to come, deliberately last: the marker redesign and clustering. The
-story photos are placeholders until the owner's own arrive.
+Still to come, deliberately last: the marker redesign and clustering.
+
+**Owner's notes (2026-10).** A round of fixes on the same branch: the story's
+four real photos (Padar is the main print) and shorter copy; places sorted by
+most recommended by default; grounds a shade whiter; the planner without its
+subheader, wider, with "Max price per activity" and day plans that land
+between 6 and 7 hours; the full-screen map closed by an X; on a phone,
+pulling the list down zooms the map in on the area above it (Airbnb's
+behaviour), and pushing it back up zooms back out to exactly where it was.
+Contribute is now one text box posting to Formspree - `CONTRIBUTE_ENDPOINT`
+in `index.html` stays empty until the owner creates the Formspree form.

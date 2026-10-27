@@ -1124,6 +1124,57 @@
     stage.style.setProperty("--sheet-y", Math.round(y) + "px");
   }
 
+  /* ---- The map follows the sheet ----
+     As Airbnb does it: pulling the list down doesn't just uncover more map, it
+     brings you in closer to the area you were looking at, so by the time the
+     cards are gone the map is about that area rather than the whole city.
+     The part of the map above the sheet keeps its centre, and the zoom grows
+     with its height - twice the height, one level closer. It only applies
+     between the middle stop and the bottom; above the middle the map is
+     mostly hidden anyway, so it holds still. Pin taps don't use it: a tapped
+     pin must stay where it was tapped. */
+  let sheetCam = null;    // { z0, vis0, centre } from where the move began
+  let sheetCamRaf = 0;
+  const sheetVisible = (y)=> Math.min(sheetSnaps.collapsed, Math.max(sheetSnaps.mid, y));
+  // Where the sheet is drawn right now, mid-animation included.
+  function renderedSheetY(){
+    const t = getComputedStyle(panel).transform;
+    return t && t !== "none" ? new DOMMatrixReadOnly(t).m42 : sheetY;
+  }
+  function beginSheetCam(){
+    cancelAnimationFrame(sheetCamRaf);
+    sheetCam = null;
+    if(!mapReady || !map || SHORT.matches || stage.classList.contains("map-off")) return;
+    const vis0 = sheetVisible(renderedSheetY());
+    const w = map.getContainer().clientWidth;
+    if(!w || vis0 < 40) return;
+    sheetCam = { z0: map.getZoom(), vis0, centre: map.unproject([w / 2, vis0 / 2]) };
+  }
+  function applySheetCam(y){
+    if(!sheetCam) return;
+    const c = map.getContainer();
+    const vis = sheetVisible(y);
+    map.jumpTo({ zoom: sheetCam.z0 + Math.log2(vis / sheetCam.vis0), center: sheetCam.centre });
+    // The centre belongs in the middle of the part above the sheet, not of
+    // the container: measure where it landed and slide it up by the difference.
+    const at = map.project(sheetCam.centre), mid = map.project(map.getCenter());
+    map.jumpTo({ center: map.unproject([mid.x + at.x - c.clientWidth / 2, mid.y + at.y - vis / 2]) });
+  }
+  // A snap is a CSS transition, so the camera reads the sheet frame by frame
+  // rather than keep a second copy of its timing.
+  function followSheetSnap(){
+    cancelAnimationFrame(sheetCamRaf);
+    const t0 = performance.now();
+    const step = ()=>{
+      if(!sheetCam) return;
+      const moving = panel.classList.contains("sheet-animate") && performance.now() - t0 < 450;
+      applySheetCam(moving ? renderedSheetY() : sheetY);
+      if(moving) sheetCamRaf = requestAnimationFrame(step);
+      else sheetCam = null;
+    };
+    sheetCamRaf = requestAnimationFrame(step);
+  }
+
   function snapSheet(to, opts){
     if(!NARROW.matches) return;
     opts = opts || {};
@@ -1133,8 +1184,10 @@
     const was = sheetState;
     sheetState = to;
     stage.dataset.sheet = to;
+    if(opts.follow && !sheetCam) beginSheetCam();
     panel.classList.toggle("sheet-animate", !opts.instant);
     setSheetY(sheetSnaps[to]);
+    if(opts.follow) followSheetSnap();
     if(to !== "collapsed") hidePeek();
     syncSheetControls();
     // Once it has settled, the list catches up with the part of the map that
@@ -1154,9 +1207,9 @@
 
   sheetHandle.addEventListener("click", ()=>{
     if(suppressSheetClick()) return;
-    snapSheet(sheetState === "full" ? (SHORT.matches ? "collapsed" : "mid") : "full");
+    snapSheet(sheetState === "full" ? (SHORT.matches ? "collapsed" : "mid") : "full", { follow:true });
   });
-  mapPill.addEventListener("click", ()=> snapSheet("collapsed"));
+  mapPill.addEventListener("click", ()=> snapSheet("collapsed", { follow:true }));
   // Keyboard focus that reaches the list pulls the list up to meet it.
   panel.addEventListener("focusin", (e)=>{
     if(NARROW.matches && sheetState !== "full" && panelScroll.contains(e.target)) snapSheet("full");
@@ -1192,7 +1245,8 @@
         return true;
       }
       drag.moved = true;
-      drag.y0 = y; drag.sheet0 = sheetY;
+      beginSheetCam();
+      drag.y0 = y; drag.sheet0 = renderedSheetY();
       panel.classList.remove("sheet-animate");
       panel.classList.add("sheet-dragging");
       hidePeek(); hideTooltip();
@@ -1206,6 +1260,7 @@
     if(ny < 0) ny *= 0.25;                          // resist past the top
     if(ny > max) ny = max + (ny - max) * 0.25;      // and past the bottom
     setSheetY(ny);
+    applySheetCam(ny);
     return true;
   }
   function dragEnd(){
@@ -1219,7 +1274,7 @@
     const projected = sheetY + v * 200;
     const to = sheetStops().reduce((best, s)=>
       Math.abs(sheetSnaps[s] - projected) < Math.abs(sheetSnaps[best] - projected) ? s : best);
-    snapSheet(to, { force:true });
+    snapSheet(to, { force:true, follow:true });
   }
 
   panel.addEventListener("touchstart", (e)=>{
