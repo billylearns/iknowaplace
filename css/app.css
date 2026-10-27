@@ -762,8 +762,8 @@
   /* A print in each corner and Padar over the middle, each corner print
      losing only its inside corner to it. */
   .snap-1{left:0;     top:0;     transform:rotate(-6deg); z-index:1;}
-  .snap-2{left:154px; top:242px; transform:rotate(-4deg); z-index:3;}
-  .snap-3{left:4px;   top:252px; transform:rotate(4deg);  z-index:3;}
+  .snap-2{left:4px;   top:252px; transform:rotate(4deg);  z-index:3;}
+  .snap-3{left:154px; top:242px; transform:rotate(-4deg); z-index:3;}
   .snap-4{left:156px; top:10px;  transform:rotate(5deg);  z-index:2;}
   .snap-main{left:66px; top:110px; width:156px; transform:rotate(-2deg); z-index:4;}
   .snap-2::before{transform:rotate(3deg);}
