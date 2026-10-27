@@ -11,11 +11,12 @@
        Two real grounds. Chrome (page, masthead, filter rail,
        footer) sits on the deeper --paper-2; content plates
        (map, index) sit on the lighter --paper. */
-    /* Lifted about two shades in the polish pass: the old chrome ground
-       read as dull. Still warm, never stark white. */
-    --paper:#FDFAF4;       /* content plates                     */
-    --paper-2:#F9F5EC;     /* chrome ground: the page itself     */
-    --paper-3:#F2EDE2;     /* recessed: chips, insets            */
+    /* Lifted about two shades in the polish pass, and one more after it:
+       the old chrome ground read as dull, then as beige. Still warm,
+       never stark white. */
+    --paper:#FEFCF8;       /* content plates                     */
+    --paper-2:#FBF9F3;     /* chrome ground: the page itself     */
+    --paper-3:#F4F1E9;     /* recessed: chips, insets            */
     --card:#FFFEFB;        /* raised: panels, popovers, modals   */
 
     /* --- Ink -------------------------------------------------- */
@@ -633,11 +634,9 @@
     transition:box-shadow .15s ease;
   }
   .map-expand:hover{box-shadow:var(--shadow-2);}
-  .map-expand .ic-list, .map-expand-label{display:none;}
-  .stage.map-full .map-expand{width:auto; padding:0 16px 0 13px;}
+  .map-expand .ic-close{display:none;}
   .stage.map-full .map-expand .ic-expand{display:none;}
-  .stage.map-full .map-expand .ic-list,
-  .stage.map-full .map-expand .map-expand-label{display:inline;}
+  .stage.map-full .map-expand .ic-close{display:inline;}
   .mapfield.is-unavailable .map-expand{display:none;}
 
   /* ---------- The index panel --------------------------------- */
@@ -690,6 +689,32 @@
   }
   .holding-copy:last-child{margin-bottom:0;}
 
+  /* ---------- Contribute --------------------------------------
+     A text box and a send button: the same edge and radius as the
+     filter panel's controls. */
+  .contribute-form{display:flex; flex-direction:column; gap:var(--s-3);}
+  .contribute-form textarea, .contribute-form input[type=text]{
+    width:100%;
+    background:var(--card); color:var(--ink);
+    border:1px solid var(--line-control); border-radius:var(--r-md);
+    padding:12px 14px;
+    font-family:var(--font-body); font-size:1rem; line-height:1.5;
+  }
+  .contribute-form textarea{min-height:140px; resize:vertical;}
+  .contribute-form textarea::placeholder, .contribute-form input::placeholder{color:var(--ink-3);}
+  .contribute-form textarea:focus-visible, .contribute-form input:focus-visible{
+    outline:2.5px solid var(--green); outline-offset:1px; border-color:var(--green);
+  }
+  .cf-status{font-size:.8125rem; color:var(--ink-2); min-height:1.2em; margin:0;}
+  .cf-status:empty{display:none;}
+  .cf-status.is-error{color:var(--cat-food);}
+  .cf-foot{display:flex; justify-content:flex-end;}
+  .cf-thanks-title{
+    font-family:var(--font-display); font-size:1.5rem; line-height:1.1;
+    color:var(--green-deep); margin-bottom:var(--s-2);
+  }
+  .contribute-form[hidden], .cf-thanks[hidden]{display:none;}
+
   /* ---------- Why this exists ----------------------------------
      An editorial spread rather than a document: three phone photos
      dropped onto the left of the sheet, the essay beside them. Sized to
@@ -709,11 +734,12 @@
   }
 
   /* The photos. Placed, not framed: a white print border, a small tilt,
-     a strip of tape, and the first one hanging off the sheet's edge. */
+     a strip of tape, and the first one hanging off the sheet's edge.
+     Padar is the main print - bigger, and on top of the other three. */
   .story-photos{position:relative; align-self:center; height:430px; margin-left:calc(var(--s-6) * -1.1);}
   .snap{
     position:absolute; margin:0;
-    width:158px; aspect-ratio:9 / 16;
+    width:132px; aspect-ratio:3 / 4;
     padding:7px 7px 7px;
     background:#fff;
     border-radius:6px;
@@ -726,19 +752,16 @@
     box-shadow:0 1px 1px rgba(30,36,28,.06);
     transform:rotate(-4deg);
   }
-  .snap > img, .snap-ph{
+  .snap > img{
     display:block; width:100%; height:100%;
     object-fit:cover; border-radius:3px;
+    background:var(--paper-3);
   }
-  .snap-1{left:0;    top:38px;  transform:rotate(-5deg);  z-index:1;}
-  .snap-2{left:92px; top:0;     transform:rotate(3deg);   z-index:2;}
-  .snap-3{left:176px; top:92px; transform:rotate(-2deg);  z-index:3;}
+  .snap-1{left:0;     top:0;     transform:rotate(-6deg); z-index:1;}
+  .snap-2{left:150px; top:16px;  transform:rotate(5deg);  z-index:2;}
+  .snap-3{left:8px;   top:248px; transform:rotate(4deg);  z-index:3;}
+  .snap-main{left:62px; top:96px; width:190px; transform:rotate(-2deg); z-index:4;}
   .snap-2::before{transform:rotate(3deg);}
-  /* Placeholder prints until the real photos arrive: three warm tints
-     from the palette, so the composition can be judged now. */
-  .snap-1 .snap-ph{background:linear-gradient(160deg, #E9DDC4, #D4C3A0);}
-  .snap-2 .snap-ph{background:linear-gradient(160deg, #D7E0CF, #B4C4A6);}
-  .snap-3 .snap-ph{background:linear-gradient(160deg, #D5E2E8, #A9C1CD);}
 
   /* The essay: the site's clean body face, a touch smaller than before,
      at a measure that still reads comfortably. */
@@ -758,7 +781,6 @@
     font-family:var(--font-display); font-style:italic; font-size:1.375rem;
     color:var(--green-deep); margin:0 !important;
   }
-  .story-linkedin-row{text-align:right;}
   .story-linkedin{
     display:inline-flex; align-items:center; gap:7px; min-height:44px;
     font-size:0.875rem; font-weight:600; color:var(--paper);
@@ -1018,6 +1040,10 @@
   }
   .modal-scrim.open .modal{transform:translateY(0);}
   .modal-narrow{max-width:460px; margin-block:auto;}
+  /* Wide enough for the nine activities to sit on two lines, with the
+     title a size up now that it stands alone. */
+  .modal-planner{max-width:690px;}
+  @media (min-width: 881px){ .modal-planner .modal-head h2{font-size:2.25rem;} }
 
   .modal-head{
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -1208,12 +1234,13 @@
      text, and the text scrolls with the sheet. */
   @media (max-width: 760px){
     .story-grid{grid-template-columns:1fr; gap:var(--s-4); padding:var(--s-6) var(--s-4) var(--s-5);}
-    .story-photos{min-height:0; height:176px; margin:0 auto; width:216px; align-self:auto;}
-    .snap{width:90px; padding:4px;}
+    .story-photos{min-height:0; height:176px; margin:0 auto; width:276px; align-self:auto;}
+    .snap{width:80px; padding:4px;}
     .snap::before{width:40px; height:14px; margin-left:-20px; top:-7px;}
-    .snap-1{left:0; top:18px;}
-    .snap-2{left:62px; top:0;}
-    .snap-3{left:124px; top:24px;}
+    .snap-1{left:0;     top:26px;}
+    .snap-2{left:40px;  top:58px;}
+    .snap-3{left:196px; top:34px; transform:rotate(7deg);}
+    .snap-main{left:88px; top:6px; width:116px;}
     .story-body h2{font-size:1.75rem;}
   }
 

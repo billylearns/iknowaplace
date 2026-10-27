@@ -57,8 +57,7 @@
       <!-- Expand the map over the list, and back. Desktop only. -->
       <button type="button" class="map-expand desk-only" id="mapExpand" aria-pressed="false" aria-label="Expand the map">
         <svg class="ic ic-expand" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>
-        <svg class="ic ic-list" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
-        <span class="map-expand-label">Show list</span>
+        <svg class="ic ic-close" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
       </button>
       <!-- Every filter lives behind this one button. -->
       <button type="button" class="filters-btn map-filters" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
@@ -147,27 +146,37 @@
     Toronto
     <svg class="tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
   </button>
-  <p class="pop-note">More cities coming soon!</p>
+  <p class="pop-note">More cities to come</p>
 </div>
 
 <div class="modal-scrim" id="contributeScrim">
   <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="contributeTitle" tabindex="-1">
     <div class="modal-head">
       <div>
-        <h2 id="contributeTitle">Contribute a place</h2>
+        <h2 id="contributeTitle">Know a place?</h2>
+        <p id="contributeLede">Recommendations for where I should go next, and what places are good there!</p>
       </div>
       <button class="modal-close" id="closeContribute" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <p class="holding-copy">A proper form is being built: your name, the place, what you
-      thought of it, and roughly what it costs in time, money and energy.</p>
-      <p class="holding-copy">It is not ready yet, so nothing here would go anywhere. Until
-      it is, send it to me and I will add it by hand.</p>
-      <div class="story-linkedin-row">
-        <a class="story-linkedin" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56z"/></svg>
-          Send it on LinkedIn
-        </a>
+      <!-- Posts to Formspree, which emails it on. See CONTRIBUTE_ENDPOINT. -->
+      <form class="contribute-form" id="contributeForm" novalidate>
+        <label class="visually-hidden" for="cfMessage">Your recommendation</label>
+        <textarea id="cfMessage" name="message" rows="6" required
+          placeholder="e.g. Lisbon. Lunch at Time Out Market, then sunset from Miradouro da Senhora do Monte."></textarea>
+        <label class="visually-hidden" for="cfName">Your name (optional)</label>
+        <input type="text" id="cfName" name="name" autocomplete="name" placeholder="Your name (optional)">
+        <!-- A field people never see; bots fill it in and Formspree drops them. -->
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="visually-hidden" aria-hidden="true">
+        <p class="cf-status" id="cfStatus" role="status" aria-live="polite"></p>
+        <div class="cf-foot">
+          <button type="submit" class="btn-primary" id="cfSend">Send</button>
+        </div>
+      </form>
+      <div class="cf-thanks" id="cfThanks" hidden>
+        <p class="cf-thanks-title">Thank you!</p>
+        <p class="holding-copy">Got it. It's on the list for the next trip.</p>
+        <div class="cf-foot"><button type="button" class="btn-secondary" id="cfAnother">Send another</button></div>
       </div>
     </div>
   </div>
@@ -177,20 +186,19 @@
   <div class="modal modal-story" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
     <button class="modal-close story-close" id="closeStory" aria-label="Close">✕</button>
     <div class="story-grid">
-      <!-- Three phone photos, dropped on the page rather than set into it.
-           Placeholders for now: to use a real photo, put an
-           <img src="photos/story-1.jpg" alt=""> inside the figure in place
-           of the placeholder span. The frame, tilt and tape stay as they are. -->
+      <!-- Four photos from the trip, dropped on the page rather than set into
+           it. Padar is the main one: the biggest, and on top of the rest. -->
       <div class="story-photos" aria-hidden="true">
-        <figure class="snap snap-1"><span class="snap-ph"></span></figure>
-        <figure class="snap snap-2"><span class="snap-ph"></span></figure>
-        <figure class="snap snap-3"><span class="snap-ph"></span></figure>
+        <figure class="snap snap-1"><img src="photos/rinjani.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-2"><img src="photos/hanoi.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-3"><img src="photos/kelingking.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-main"><img src="photos/padar.jpg" alt="" loading="lazy"></figure>
       </div>
       <div class="story-body">
         <h2 id="storyTitle">Why this exists</h2>
         <p>During my time backpacking through Southeast Asia, I received many recommendations from friends and family. They were scattered across texts, Instagram DMs, Google Docs, my Notes app and probably a few other places I've already forgotten about. The recommendations are valuable, but unorganized. Also, there wasn't a consistent way to see which ones fit the time, budget and energy I had on a particular day. I wanted to see what I could do about it while learning how to vibe code something from scratch in the process.</p>
         <p><strong>I Know a Place</strong> brings those recommendations together. Each entry includes what someone thought, how they rated it and approximately how much time, money and energy it requires. When you'd rather not piece together the day yourself, Plan my trip uses those recommendations to suggest a few options that fits what you feel like doing.</p>
-        <p>This is intended to feel different than other review/recommendation sites like TripAdvisor or Google Maps. The value comes from the context behind each recommendation. Opinions from friends and family whose tastes you understand, whose judgment you trust and who have a sense of what you might actually enjoy, unlike strangers on the internet. AI is useful to help sort and organize the options, but it doesn't invent the recommendations or replace the opinions behind them.</p>
+        <p>This is intended to feel different than other review/recommendation sites, the value comes from the context behind each recommendation. Opinions from friends and family whose tastes you understand, whose judgment you trust and who have a sense of what you might actually enjoy, moreso than strangers on the internet.</p>
         <p>Toronto was the starting point for this project, a way to test the idea using genuine recommendations for a city I know. Now that I've seen what it can do, I plan to use it for future trips by collecting recommendations from friends before I leave and turning them into something I can actually use once I arrive.</p>
         <p>Hopefully I can spend less time digging through my phone and more time actually going places worth recommending.</p>
         <div class="story-sign-row">
@@ -206,11 +214,11 @@
 </div>
 
 <div class="modal-scrim" id="plannerScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plannerTitle" tabindex="-1">
+  <div class="modal modal-planner" role="dialog" aria-modal="true" aria-labelledby="plannerTitle" tabindex="-1">
     <div class="modal-head">
       <div>
         <h2 id="plannerTitle">Plan my trip</h2>
-        <p id="plannerLede">Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.</p>
+        <p id="plannerLede" hidden></p>
       </div>
       <button class="modal-close" id="closePlanner" aria-label="Close">✕</button>
     </div>
@@ -366,7 +374,7 @@
   }
 
   /* ---------------- State ---------------- */
-  const state = { filterCat: "All", filterPrice: "any", filterMinRating: "any", search: "", sortBy: "rating-desc", selectedKey: null };
+  const state = { filterCat: "All", filterPrice: "any", filterMinRating: "any", search: "", sortBy: "most-recommended", selectedKey: null };
 
   const SORTERS = {
     "rating-desc": (a,b)=> b.avgRating-a.avgRating || b.recCount-a.recCount,
@@ -419,9 +427,9 @@
       </label>
       <label class="fp-field"><span class="fp-label">Sort by</span>
         <select id="fSort" class="f-select">
+          <option value="most-recommended">Most recommended</option>
           <option value="rating-desc">Highest rating</option>
           <option value="rating-asc">Lowest rating</option>
-          <option value="most-recommended">Most recommended</option>
           <option value="neighbourhood">Neighbourhood</option>
         </select>
       </label>`;
@@ -1267,14 +1275,14 @@
 
   /* ---------------- Full-screen map (desktop) ----------------
      The map can take the list's column for a while. The masthead stays; the
-     map card simply widens. The same button - now reading "Show list" - or
-     Escape brings the list back, showing whatever the map has moved to. */
+     map card simply widens. The same button - now an X, as Airbnb has it -
+     or Escape brings the list back, showing whatever the map has moved to. */
   const mapExpandBtn = document.getElementById("mapExpand");
   function setMapFull(on){
     if(stage.classList.contains("map-full") === on) return;
     stage.classList.toggle("map-full", on);
     mapExpandBtn.setAttribute("aria-pressed", String(on));
-    mapExpandBtn.setAttribute("aria-label", on ? "Show list" : "Expand the map");
+    mapExpandBtn.setAttribute("aria-label", on ? "Close the full map" : "Expand the map");
     hideTooltip();
     // The ResizeObserver resizes the map as the column opens or closes; the
     // list catches up once it is back.
@@ -1385,7 +1393,7 @@
   const TIME_OPTIONS = [
     {id:"t1", label:"Up to 2 hours", cap:2, days:1},
     {id:"t2", label:"2 to 4 hours", cap:4, days:1},
-    {id:"t3", label:"1 day", cap:6, days:1},
+    {id:"t3", label:"1 day", cap:6, days:1},   // a day is 6 to 7 hours: see DAY_HOURS
     {id:"t4", label:"2 days", cap:12, days:2},
     {id:"t5", label:"3 days", cap:18, days:3}
   ];
@@ -1463,13 +1471,51 @@
   function openModal(){ renderForm(); openScrim(scrim, openPlannerBtn); }
   function closeModal(){ closeScrim(scrim); }
 
-  // Contribute is visible product, but the form doesn't exist yet - so it
-  // opens an honest holding modal rather than pretending to work.
+  /* ---------------- Contribute ----------------
+     One text box: where should I go next, and what's good there. It posts to
+     Formspree, which emails each one on - there is no backend of our own.
+     The endpoint comes from the form made at formspree.io; until it is set,
+     sending says so plainly instead of pretending to work. */
+  const CONTRIBUTE_ENDPOINT = "";   // "https://formspree.io/f/<form id>"
   const contributeScrim = document.getElementById("contributeScrim");
   const openContributeBtn = document.getElementById("openContribute");
+  const cfForm = document.getElementById("contributeForm");
+  const cfMessage = document.getElementById("cfMessage");
+  const cfStatus = document.getElementById("cfStatus");
+  const cfSend = document.getElementById("cfSend");
+  const cfThanks = document.getElementById("cfThanks");
   openContributeBtn.addEventListener("click", ()=> openScrim(contributeScrim, openContributeBtn));
   document.getElementById("closeContribute").addEventListener("click", ()=> closeScrim(contributeScrim));
   contributeScrim.addEventListener("click", (e)=>{ if(e.target===contributeScrim) closeScrim(contributeScrim); });
+
+  function cfSay(text, isError){
+    cfStatus.textContent = text;
+    cfStatus.classList.toggle("is-error", !!isError);
+  }
+  cfMessage.addEventListener("input", ()=>{ if(cfStatus.classList.contains("is-error")) cfSay(""); });
+  cfForm.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    if(!cfMessage.value.trim()){ cfSay("Write a place or two first.", true); cfMessage.focus(); return; }
+    if(!CONTRIBUTE_ENDPOINT){ cfSay("This isn't connected yet, so nothing was sent.", true); return; }
+    cfSend.disabled = true; cfSend.textContent = "Sending…"; cfSay("");
+    try {
+      const res = await fetch(CONTRIBUTE_ENDPOINT, {
+        method:"POST", body:new FormData(cfForm), headers:{ "Accept":"application/json" }
+      });
+      if(!res.ok) throw new Error("Formspree responded " + res.status);
+      cfForm.reset();
+      cfForm.hidden = true; cfThanks.hidden = false;
+      document.getElementById("cfAnother").focus();
+    } catch (err) {
+      console.error("Could not send the recommendation.", err);
+      cfSay("That didn't send. Check your connection and try again.", true);
+    } finally {
+      cfSend.disabled = false; cfSend.textContent = "Send";
+    }
+  });
+  document.getElementById("cfAnother").addEventListener("click", ()=>{
+    cfThanks.hidden = true; cfForm.hidden = false; cfMessage.focus();
+  });
 
   // "Why this exists" has two triggers - under the tagline on desktop, in the
   // action row on a phone - and focus goes back to whichever was pressed.
@@ -1546,11 +1592,13 @@
   cityMenu.querySelector(".pop-item").addEventListener("click", ()=> closePopover(true));
 
   const plannerLede = document.getElementById("plannerLede");
-  const FORM_LEDE = "Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.";
   const RESULTS_LEDE = "Three ways to spend it, assembled from what my friends actually recommended.";
 
+  // The form needs no introduction; the results get one line.
+  function setLede(text){ plannerLede.textContent = text; plannerLede.hidden = !text; }
+
   function renderForm(){
-    plannerLede.textContent = FORM_LEDE;
+    setLede("");
     body.innerHTML = `
       <div class="field-group">
         <span class="field-label">Activity</span>
@@ -1565,7 +1613,7 @@
         <div class="option-grid" id="pf-energy"></div>
       </div>
       <div class="field-group">
-        <span class="field-label">Maximum budget</span>
+        <span class="field-label">Max price per activity</span>
         <div class="option-grid" id="pf-budget"></div>
       </div>
       <div class="modal-footer">
@@ -1678,10 +1726,17 @@
     "Nightlife":1
   };
 
-  function fillBucket(rng, pool, hoursCap, used, opts){
+  // A day lands anywhere from 6 to 7 hours, so three plans don't all come
+  // out at exactly six. Durations come in steps of 45 minutes or more, so a
+  // day either stops as soon as it reaches six or keeps going while it still
+  // fits under seven - a coin toss per day, which gives 6h, 6h 30m and 6h 45m.
+  const DAY_HOURS = { min:6, max:7 };
+
+  // A bucket fills until it reaches stopAt, and nothing may take it past ceiling.
+  function fillBucket(rng, pool, stopAt, ceiling, used, opts){
     opts = opts || {};
     const chosen = [];
-    let hoursLeft = hoursCap;
+    let filled = 0;
     const catCount = {};
 
     function capFor(cat){
@@ -1689,7 +1744,7 @@
       return CATEGORY_DAY_CAP[cat] ?? 2;
     }
     function eligible(fromPool){
-      return fromPool.filter(p=> !used.has(p.key) && p.hours <= hoursLeft + 0.15
+      return fromPool.filter(p=> !used.has(p.key) && filled + p.hours <= ceiling
         && (catCount[p.category]||0) < capFor(p.category));
     }
     function takeOne(fromPool){
@@ -1699,7 +1754,7 @@
       chosen.push(pick);
       used.add(pick.key);
       catCount[pick.category] = (catCount[pick.category]||0) + 1;
-      hoursLeft -= pick.hours;
+      filled += pick.hours;
       return pick;
     }
 
@@ -1710,7 +1765,7 @@
     }
 
     let guard = 0;
-    while(hoursLeft > 0.4 && guard < 200){
+    while(filled < stopAt && guard < 200){
       guard++;
       if(!takeOne(pool)) break;
     }
@@ -1742,9 +1797,13 @@
     const used = new Set();
     const clusters = kmeansCluster(candidates, timeOpt.days, rng);
     const days = [];
+    const fullDays = timeOpt.cap >= DAY_HOURS.min * timeOpt.days;
     clusters.slice(0, timeOpt.days).forEach(cluster=>{
-      const cap = timeOpt.days>1 ? 6 : timeOpt.cap;
-      const items = fillBucket(rng, cluster, cap, used, opts);
+      // Shorter outings keep their old fit: within 0.4h under the cap, at
+      // most 0.15h over it.
+      const items = fullDays
+        ? fillBucket(rng, cluster, rng() < 0.5 ? DAY_HOURS.min : DAY_HOURS.max, DAY_HOURS.max, used, opts)
+        : fillBucket(rng, cluster, timeOpt.cap - 0.4, timeOpt.cap + 0.15, used, opts);
       if(items.length) days.push(items);
     });
     const flat = days.flat();
@@ -1779,7 +1838,7 @@
   }
 
   function renderResults(){
-    plannerLede.textContent = RESULTS_LEDE;
+    setLede(RESULTS_LEDE);
     const timeOpt = TIME_OPTIONS.find(t=>t.id===plannerState.timeId);
     const cats = plannerState.categories;
     let candidates = places.filter(p=>{
