@@ -2,172 +2,211 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="A map of Toronto built entirely from places real friends recommended - who suggested each one, how they rated it, and what they said about it.">
 <meta name="theme-color" content="#F3EDDF">
 <title>I Know a Place</title>
+<!-- The wordmark's ochre full stop on the chrome ground. Inline, so it costs
+     no request and the console no longer reports a missing favicon.ico. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232E5D3C'/%3E%3Ccircle cx='16' cy='16' r='6.5' fill='%23B8863B'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/app.css">
+<!-- MapLibre GL JS renders the map; OpenFreeMap serves the tiles. Pinned to an
+     exact version so the map can never change under the site on its own. v5 is
+     the last line with a UMD build (this page is one plain script, not a module)
+     and it still falls back to WebGL1 on older phones. -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="./css/app.css?v=2026-10-27b">
 </head>
 <body class="booting">
 
 <a class="skip-link" href="#listHeading">Skip to the index</a>
 
 <div class="app">
+  <!-- The one Amici borrowing: a strip of checks along the very top edge.
+       Pure CSS, no image. It is the only checkerboard on the page. -->
+  <div class="checker" aria-hidden="true"></div>
   <header class="masthead">
     <div class="mast-id">
       <h1 class="word">I Know a Place<span class="dot">.</span></h1>
-      <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+      <div class="mast-sub">
+        <p class="kicker">Recommendations from people you <strong>actually</strong> trust</p>
+      </div>
     </div>
-    <div class="mast-right">
-      <button class="city-stamp" id="openCities" aria-haspopup="dialog">
-        <span class="city-stamp-name">Toronto</span>
-        <span class="city-stamp-sub">city one</span>
+    <nav class="mast-right" aria-label="Main">
+      <button type="button" class="city-btn desk-only" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
+        Toronto
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
       </button>
-      <nav class="mast-nav" aria-label="Main">
-        <button class="nav-link" id="openStory">Why this exists</button>
-        <button class="nav-link" id="openContribute" aria-haspopup="dialog">Contribute a place</button>
-      </nav>
-      <button class="btn-primary" id="openPlanner">Plan my trip</button>
-    </div>
+      <button type="button" class="pill-btn mob-only" data-open-story>Why this exists</button>
+      <button type="button" class="pill-btn" id="openContribute" aria-haspopup="dialog">Contribute</button>
+      <button type="button" class="btn-primary btn-plan" id="openPlanner">Plan my trip</button>
+    </nav>
   </header>
 
-  <main class="stage" data-view="list">
-    <!-- Below 880px the map and the index stop sharing the screen and take
-         turns. Hidden entirely on desktop, where both are visible at once. -->
-    <div class="viewswitch" role="group" aria-label="Show the index or the map">
-      <button type="button" class="vs-btn on" id="viewIndex" aria-pressed="true">Index</button>
-      <button type="button" class="vs-btn" id="viewMap" aria-pressed="false">Map</button>
+  <main class="stage">
+    <div class="mapfield is-loading">
+      <div class="atlas" id="atlas"></div>
+      <!-- Phones: the city selector sits on the map's top-left corner. -->
+      <button type="button" class="city-btn map-city mob-only" data-city-trigger aria-haspopup="true" aria-expanded="false" aria-controls="cityMenu">
+        Toronto
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <!-- Expand the map over the list, and back. Desktop only. -->
+      <button type="button" class="map-expand desk-only" id="mapExpand" aria-pressed="false" aria-label="Expand the map">
+        <svg class="ic ic-expand" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg>
+        <svg class="ic ic-close" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+      </button>
+      <!-- Every filter lives behind this one button. -->
+      <button type="button" class="filters-btn map-filters" data-filter-trigger aria-haspopup="dialog" aria-expanded="false" aria-controls="filterPanel">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span>Filters</span><span class="f-count" hidden></span>
+      </button>
+      <!-- Desktop's way into the story; the phone's is in the masthead row. -->
+      <button type="button" class="why-float desk-only" data-open-story>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="9" height="14" rx="1.2" transform="rotate(-8 8 12)"/><rect x="11" y="4" width="9" height="14" rx="1.2" transform="rotate(6 15.5 11)"/></svg>
+        Why this exists
+      </button>
+      <!-- Only there when the map has wandered off most of the places. -->
+      <button type="button" class="recentre-pill" id="recentreBtn" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3.5M12 17.5V21M3 12h3.5M17.5 12H21"/></svg>
+        Recentre
+      </button>
+      <div class="map-tooltip" id="mapTooltip" aria-hidden="true"></div>
+      <!-- Says "drawing" while the map loads, and says so plainly if it can't. -->
+      <div class="map-note" id="mapNote" role="status" aria-live="polite">
+        <p class="map-note-title">Drawing Toronto&hellip;</p>
+      </div>
     </div>
-    <div class="mapfield">
-      <svg class="atlas" id="atlas" xmlns="http://www.w3.org/2000/svg" aria-label="Map of recommended places in Toronto"></svg>
-      <div class="map-tooltip" id="mapTooltip"></div>
-    </div>
-    <p class="schematic">Schematic map, not to scale.</p>
-    <div class="map-legend" id="mapLegend"></div>
 
     <aside class="panel" aria-label="Recommendations">
       <div class="panel-head">
-        <h2 id="listHeading" tabindex="-1">39 places</h2>
-        <div class="filter-cats" id="filterBar"></div>
-        <div class="refine" id="refineBar"></div>
-        <div class="searchline">
-          <label class="visually-hidden" for="searchBox">Search a place by name</label>
-          <input type="text" id="searchBox" placeholder="Search a place by name" autocomplete="off">
-        </div>
+        <!-- Phones: the list is a sheet over the map. The head is where it is
+             dragged from; the handle is the same thing as a button. -->
+        <button type="button" class="sheet-handle" id="sheetHandle" aria-label="Show more of the list"><span></span></button>
+        <h2 id="listHeading" tabindex="-1" aria-live="polite">39 places</h2>
       </div>
       <div class="panel-scroll">
         <div class="list" id="list"></div>
         <div class="empty-state" id="emptyState" style="display:none;">
           <h3 id="emptyTitle">No matches</h3>
-          <p>Try loosening a filter or clearing your search.</p>
+          <p id="emptyText">Try loosening a filter or clearing your search.</p>
+          <button type="button" class="btn-secondary" id="emptyAction" hidden></button>
         </div>
       </div>
     </aside>
 
-    <!-- The peek card: on mobile a tapped pin can't scroll a list that isn't
-         on screen, so it answers where it was tapped. -->
+    <!-- The peek card: on a phone a tapped pin answers where it was tapped,
+         with the summary, and a way through to what friends said. -->
     <div class="peek" id="peekCard" hidden></div>
+
+    <!-- Phones, with the list pulled all the way up: the way back to the map. -->
+    <button type="button" class="map-pill" id="mapPill" tabindex="-1" aria-hidden="true">
+      Map
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/></svg>
+    </button>
   </main>
-
-  <hr class="rule-route" aria-hidden="true">
-
-  <footer class="site-foot">
-    <div class="marquee" aria-hidden="true">
-      <div class="marquee-track" id="marqueeTrack"></div>
-    </div>
-    <div class="foot-row">
-      <p class="colophon" id="colophon"></p>
-      <a class="foot-link" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">Billy Liu</a>
-    </div>
-  </footer>
 </div>
 
-<div class="modal-scrim" id="citiesScrim">
-  <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="citiesTitle" tabindex="-1">
-    <div class="modal-head">
-      <div>
-        <h2 id="citiesTitle">Toronto is city one</h2>
-      </div>
-      <button class="modal-close" id="closeCities" aria-label="Close">✕</button>
-    </div>
-    <div class="modal-body">
-      <p class="holding-copy">Every place here was recommended by someone I know, which is
-      the slow part — a city only goes up once enough friends have actually been.</p>
-      <p class="holding-copy">Toronto is the one that is ready. More are coming, and they
-      will appear right here when they are.</p>
-    </div>
+<!-- The filters. One panel for every trigger: under the Filters button on
+     the map on desktop, a sheet from the bottom on a phone. Filters apply as
+     they change; the button at the foot just closes the panel. -->
+<div class="popover filter-pop" id="filterPanel" role="dialog" aria-label="Filters" tabindex="-1" hidden>
+  <!-- Phones: the panel is a sheet, and swiping it down puts it away. -->
+  <div class="fp-grab" aria-hidden="true"></div>
+  <div class="fp-head">
+    <h2 class="fp-title">Filters</h2>
+    <button type="button" class="fp-clear" id="filterClear">Clear all</button>
   </div>
+  <div class="fp-body">
+    <div class="fp-search">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+      <label class="visually-hidden" for="searchBox">Search a place by name</label>
+      <input type="search" id="searchBox" placeholder="Search a place by name" autocomplete="off">
+    </div>
+    <fieldset class="fp-group">
+      <legend class="fp-label">Activity</legend>
+      <div class="chip-row" id="filterBar"></div>
+    </fieldset>
+    <fieldset class="fp-group">
+      <legend class="fp-label">Maximum price</legend>
+      <div class="chip-row" id="priceBar"></div>
+    </fieldset>
+    <div class="fp-pair" id="refineBar"></div>
+  </div>
+  <div class="fp-foot">
+    <button type="button" class="btn-primary fp-done" id="filterDone">Show places</button>
+  </div>
+</div>
+
+<!-- The city menu. One element shared by both triggers (the header on
+     desktop, the bar above the map on a phone); openPopover() places it
+     under whichever one was pressed. -->
+<div class="popover city-pop" id="cityMenu" role="menu" aria-label="Choose a city" hidden>
+  <button type="button" class="pop-item on" role="menuitemradio" aria-checked="true">
+    Toronto
+    <svg class="tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+  </button>
+  <p class="pop-note">More cities coming soon&hellip;</p>
 </div>
 
 <div class="modal-scrim" id="contributeScrim">
   <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="contributeTitle" tabindex="-1">
     <div class="modal-head">
       <div>
-        <h2 id="contributeTitle">Contribute a place</h2>
+        <h2 id="contributeTitle">Know a place?</h2>
+        <p id="contributeLede">Recommendations for where I should go next, and what to do there!</p>
       </div>
       <button class="modal-close" id="closeContribute" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <p class="holding-copy">A proper form is being built: your name, the place, what you
-      thought of it, and roughly what it costs in time, money and energy.</p>
-      <p class="holding-copy">It is not ready yet, so nothing here would go anywhere. Until
-      it is, send it to me and I will add it by hand.</p>
-      <div class="story-linkedin-row">
-        <a class="story-linkedin" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56z"/></svg>
-          Send it on LinkedIn
-        </a>
+      <!-- Posts to Formspree, which emails it on. See CONTRIBUTE_ENDPOINT. -->
+      <form class="contribute-form" id="contributeForm" novalidate>
+        <label class="visually-hidden" for="cfMessage">Your recommendation</label>
+        <textarea id="cfMessage" name="message" rows="6" required
+          placeholder="e.g. Sydney. Dinner at Spice Alley in Chippendale, and the Bondi to Coogee coastal walk at sunrise."></textarea>
+        <label class="visually-hidden" for="cfName">Name (optional)</label>
+        <input type="text" id="cfName" name="name" autocomplete="name" placeholder="Name (optional)">
+        <!-- A field people never see; bots fill it in and Formspree drops them. -->
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="visually-hidden" aria-hidden="true">
+        <p class="cf-status" id="cfStatus" role="status" aria-live="polite"></p>
+        <div class="cf-foot">
+          <button type="submit" class="btn-primary" id="cfSend">Send</button>
+        </div>
+      </form>
+      <div class="cf-thanks" id="cfThanks" hidden>
+        <p class="cf-thanks-title">Thank you!</p>
+        <p class="holding-copy">I'll add it to the list</p>
+        <div class="cf-foot"><button type="button" class="btn-secondary" id="cfAnother">Send another</button></div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="modal-scrim" id="storyScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
-    <div class="modal-head">
-      <div>
-        <h2 id="storyTitle">Why this exists</h2>
-      </div>
-      <button class="modal-close" id="closeStory" aria-label="Close">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- The one editorial moment on the page besides the footer marquee.
-           It is drawn rather than photographed on purpose: a stock photo of
-           a city would be someone else's Toronto, and the plan rules stock
-           photography out. This is the site's own map vocabulary - the
-           coast, the route dash, three pins and a bearing - used once, at
-           the head of the piece of writing that explains all of it. -->
-      <div class="story-plate" aria-hidden="true">
-        <svg viewBox="0 0 640 150" preserveAspectRatio="xMidYMid slice" role="presentation" focusable="false">
-          <g class="plate-grat">
-            <path d="M80 0v112M160 0v112M240 0v112M320 0v112M400 0v112M480 0v112M560 0v112"/>
-            <path d="M0 28h640M0 56h640M0 84h640"/>
-          </g>
-          <path class="plate-water" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118 L640 150 L0 150 Z"/>
-          <path class="plate-shore" d="M0 112 C 120 100 210 124 330 112 S 540 96 640 118"/>
-          <path class="plate-route" d="M74 82 C 150 34 214 96 288 52 S 430 26 512 62"/>
-          <g class="plate-pin"><circle cx="74" cy="82" r="13" fill="var(--cat-coffee)"/></g>
-          <g class="plate-pin"><circle cx="288" cy="52" r="13" fill="var(--cat-food)"/></g>
-          <g class="plate-pin"><circle cx="512" cy="62" r="13" fill="var(--cat-outdoors)"/></g>
-          <g class="plate-rose">
-            <circle cx="590" cy="40" r="19"/>
-            <path d="M590 21v38M571 40h38"/>
-            <path d="M590 18l4.4 9h-8.8z" fill="var(--ochre)" stroke="none"/>
-          </g>
-        </svg>
-        <span class="plate-caption">Plate I &mdash; the pilot city</span>
+  <div class="modal modal-story" role="dialog" aria-modal="true" aria-labelledby="storyTitle" tabindex="-1">
+    <button class="modal-close story-close" id="closeStory" aria-label="Close">✕</button>
+    <div class="story-grid">
+      <!-- Five photos from the trip, dropped on the page rather than set into
+           it. Padar is the main one: the biggest, and on top of the rest.
+           Phones show four; the elephant needs the width. -->
+      <div class="story-photos" aria-hidden="true">
+        <figure class="snap snap-1"><img src="photos/rinjani.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-2"><img src="photos/hanoi.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-3"><img src="photos/kelingking.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-4"><img src="photos/elephant.jpg" alt="" loading="lazy"></figure>
+        <figure class="snap snap-main"><img src="photos/padar.jpg" alt="" loading="lazy"></figure>
       </div>
       <div class="story-body">
+        <h2 id="storyTitle">Why this exists</h2>
         <p>During my time backpacking through Southeast Asia, I received many recommendations from friends and family. They were scattered across texts, Instagram DMs, Google Docs, my Notes app and probably a few other places I've already forgotten about. The recommendations are valuable, but unorganized. Also, there wasn't a consistent way to see which ones fit the time, budget and energy I had on a particular day. I wanted to see what I could do about it while learning how to vibe code something from scratch in the process.</p>
         <p><strong>I Know a Place</strong> brings those recommendations together. Each entry includes what someone thought, how they rated it and approximately how much time, money and energy it requires. When you'd rather not piece together the day yourself, Plan my trip uses those recommendations to suggest a few options that fits what you feel like doing.</p>
-        <p>This is intended to feel different than other review/recommendation sites like TripAdvisor or Google Maps. The value comes from the context behind each recommendation. Opinions from friends and family whose tastes you understand, whose judgment you trust and who have a sense of what you might actually enjoy, unlike strangers on the internet. AI is useful to help sort and organize the options, but it doesn't invent the recommendations or replace the opinions behind them.</p>
+        <p>This is intended to feel different than other review/recommendation sites, the value comes from the context behind each recommendation. Opinions from friends and family whose tastes you understand, whose judgment you trust and who have a sense of what you might actually enjoy, moreso than strangers on the internet.</p>
         <p>Toronto was the starting point for this project, a way to test the idea using genuine recommendations for a city I know. Now that I've seen what it can do, I plan to use it for future trips by collecting recommendations from friends before I leave and turning them into something I can actually use once I arrive.</p>
         <p>Hopefully I can spend less time digging through my phone and more time actually going places worth recommending.</p>
-        <p class="story-signature">— Billy Liu</p>
-        <div class="story-linkedin-row">
+        <div class="story-sign-row">
+          <p class="story-signature">— Billy Liu</p>
           <a class="story-linkedin" href="https://www.linkedin.com/in/billyhliu/" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56z"/></svg>
             Connect on LinkedIn
@@ -179,11 +218,11 @@
 </div>
 
 <div class="modal-scrim" id="plannerScrim">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plannerTitle" tabindex="-1">
+  <div class="modal modal-planner" role="dialog" aria-modal="true" aria-labelledby="plannerTitle" tabindex="-1">
     <div class="modal-head">
       <div>
         <h2 id="plannerTitle">Plan my trip</h2>
-        <p id="plannerLede">Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.</p>
+        <p id="plannerLede" hidden></p>
       </div>
       <button class="modal-close" id="closePlanner" aria-label="Close">✕</button>
     </div>
@@ -226,6 +265,11 @@
       "from your computer, run a local server in this folder (npx serve) and open the " +
       "address it prints instead.";
     document.getElementById("emptyState").style.display = "block";
+    // With no places there is nothing to put on a map; don't leave it drawing.
+    document.querySelector(".mapfield").classList.replace("is-loading", "is-unavailable");
+    document.querySelector(".stage").classList.add("map-off");
+    document.getElementById("mapNote").innerHTML =
+      '<p class="map-note-title">No places to map</p>';
     return;
   }
 
@@ -284,15 +328,25 @@
   const DURATION_HOURS = {1:0.75, 2:1.5, 3:3, 4:5};
   const ENERGY_LABEL = {1:"Low", 2:"Medium", 3:"High"};
   const PRICE_LABEL_SHORT = {0:"Free", 1:"$", 2:"$$", 3:"$$$", 4:"$$$$"};
-  const PRICE_LABELS = ["Free","$","$$","$$$","$$$$"];
+  const PRICE_LABELS = ["Free","Under $20","$20–50","$50–100","$100+"];
+
+  // The data says "$$$ - $50-$100"; the page says "$50–100". The dollar
+  // signs only restated the range next to them. "Free", "Under $20" and
+  // "$100+" pass through as they are.
+  function priceText(label){
+    return String(label||"")
+      .replace(/^\$+\s*-\s*/, "")
+      .replace(/^\$(\d+)-\$(\d+)$/, "$$$1–$2");
+  }
 
   const places = PLACES_RAW.map(p => ({
     key:p.place_key, name:p.place_name, category:p.category, neighbourhood:p.neighbourhood,
     lat:p.latitude, lng:p.longitude, mapsUrl:p.google_maps_url, address:p.address_or_location,
     recCount:p.recommendation_count, avgRating:p.average_rating,
+    confidence:p.location_confidence || "High", locationNote:p.location_note || "",
     energy:p.typical_energy_level, price:p.typical_price_level, time:p.typical_time_level,
     hours: DURATION_HOURS[p.typical_time_level] || 1.5,
-    priceLabel:p.typical_price_label, energyLabel:p.typical_energy_label, timeLabel:p.typical_time_label
+    priceLabel:priceText(p.typical_price_label), energyLabel:p.typical_energy_label, timeLabel:p.typical_time_label
   }));
   const placesByKey = Object.fromEntries(places.map(p=>[p.key,p]));
 
@@ -324,7 +378,7 @@
   }
 
   /* ---------------- State ---------------- */
-  const state = { filterCat: "All", filterPrice: "any", filterMinRating: "any", search: "", sortBy: "rating-desc", selectedKey: null };
+  const state = { filterCat: "All", filterPrice: "any", filterMinRating: "any", search: "", sortBy: "most-recommended", selectedKey: null };
 
   const SORTERS = {
     "rating-desc": (a,b)=> b.avgRating-a.avgRating || b.recCount-a.recCount,
@@ -335,370 +389,497 @@
 
   const RATING_STEPS = [5,4.5,4,3.5,3,2.5,2,1.5,1]; // highest first
 
-  /* ---------------- Filter bar (dropdowns) ---------------- */
+  /* ---------------- Filters ----------------
+     Every filter lives in one panel behind a Filters button (on the map on
+     desktop, above it on a phone). They apply the moment they change, as they
+     always have; the panel's own button only closes it. Built once - after
+     that only classes and counts change. */
   const filterBar = document.getElementById("filterBar");
+  const priceBar = document.getElementById("priceBar");
+  const filterPanel = document.getElementById("filterPanel");
+  const searchBox = document.getElementById("searchBox");
+  // Ranges, not dollar signs - the same words the recommendations use. The
+  // price filter is a ceiling: "$20–50" keeps everything up to $50.
+  const PRICE_OPTIONS = [["any","Any"]].concat(PRICE_LABELS.slice(0,4).map((l,i)=>[String(i), l]));
 
-  // Category is the filter people actually reach for, so it reads as a row of
-  // words rather than a dropdown. Price, rating and sort stay <select> - the
-  // native control is right for them - but lose their boxes.
-  function renderFilterBar(){
-    const opts = ["All"].concat(CAT_ORDER);
-    filterBar.innerHTML = opts.map(c=>
-      `<button type="button" class="cat${state.filterCat===c?" on":""}" data-cat="${escapeHtml(c)}"`+
-      ` aria-pressed="${state.filterCat===c}">${escapeHtml(c==="All"?"All activities":c)}</button>`
-    ).join("");
-    filterBar.querySelectorAll("button.cat").forEach(b=>{
-      b.addEventListener("click", ()=>{ state.filterCat = b.dataset.cat; renderFilterBar(); refresh(); });
-    });
+  function chipHtml(group, value, label, on, extra){
+    return `<button type="button" class="chip${on?" on":""}" data-${group}="${escapeHtml(value)}" aria-pressed="${on}">`+
+      `${extra||""}${escapeHtml(label)}</button>`;
   }
 
-  // Built once; these three keep their own listeners, so nothing re-renders them.
-  function renderRefineBar(){
-    const bar = document.getElementById("refineBar");
-    bar.innerHTML = `
-      <label class="refine-field">Price
-        <select id="fPrice" aria-label="Filter by price">
-          <option value="any">All prices</option>
-          ${PRICE_LABELS.map((lbl,i)=>`<option value="${i}">${lbl}</option>`).join("")}
-        </select>
-      </label>
-      <label class="refine-field">Rating
-        <select id="fRating" aria-label="Filter by rating">
+  function renderFilters(){
+    filterBar.innerHTML = ["All"].concat(CAT_ORDER).map(c=>
+      chipHtml("cat", c, c==="All" ? "All activities" : c, state.filterCat===c,
+        c==="All" ? "" : `<span class="chip-ic" style="color:${CATS[c].color}">${iconUse(CATS[c].icon,"width='14' height='14' aria-hidden='true'")}</span>`)
+    ).join("");
+    priceBar.innerHTML = PRICE_OPTIONS.map(([v,l])=> chipHtml("price", v, l, state.filterPrice===v)).join("");
+    filterBar.addEventListener("click", (e)=>{
+      const b = e.target.closest("[data-cat]"); if(!b) return;
+      state.filterCat = b.dataset.cat; refresh();
+    });
+    priceBar.addEventListener("click", (e)=>{
+      const b = e.target.closest("[data-price]"); if(!b) return;
+      state.filterPrice = b.dataset.price; refresh();
+    });
+
+    document.getElementById("refineBar").innerHTML = `
+      <label class="fp-field"><span class="fp-label">Rating</span>
+        <select id="fRating" class="f-select">
           <option value="any">All ratings</option>
           ${RATING_STEPS.map(v=>`<option value="${v}">${v}★ ${v===5?"only":"&amp; up"}</option>`).join("")}
         </select>
       </label>
-      <label class="refine-field">Sort
-        <select id="fSort" aria-label="Sort places">
+      <label class="fp-field"><span class="fp-label">Sort by</span>
+        <select id="fSort" class="f-select">
+          <option value="most-recommended">Most recommended</option>
           <option value="rating-desc">Highest rating</option>
           <option value="rating-asc">Lowest rating</option>
-          <option value="most-recommended">Most recommended</option>
           <option value="neighbourhood">Neighbourhood</option>
         </select>
       </label>`;
-    document.getElementById("fPrice").onchange  = (e)=>{ state.filterPrice = e.target.value; refresh(); };
     document.getElementById("fRating").onchange = (e)=>{ state.filterMinRating = e.target.value; refresh(); };
     document.getElementById("fSort").onchange   = (e)=>{ state.sortBy = e.target.value; refresh(); };
+    searchBox.addEventListener("input", (e)=>{
+      state.search = e.target.value.trim().toLowerCase();
+      refresh();
+    });
+    document.getElementById("filterClear").addEventListener("click", clearFilters);
+    document.getElementById("filterDone").addEventListener("click", ()=> closePopover(true));
+    document.querySelectorAll("[data-filter-trigger]").forEach(btn=>
+      btn.addEventListener("click", ()=>{
+        filterPanel.classList.remove("fp-dragging");
+        openPopover(filterPanel, btn, "start", filterPanel);
+      }));
   }
 
-  document.getElementById("searchBox").addEventListener("input", (e)=>{
-    state.search = e.target.value.trim().toLowerCase();
+  function clearFilters(){
+    state.filterCat = "All"; state.filterPrice = "any"; state.filterMinRating = "any"; state.search = "";
+    searchBox.value = "";
+    document.getElementById("fRating").value = "any";
     refresh();
-  });
-
-  /* ---------------- Map projection ---------------- */
-  const VB_W = 1500, VB_H = 900, PAD = 150;
-  const lats = places.map(p=>p.lat), lngs = places.map(p=>p.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const avgLatRad = (minLat+maxLat)/2 * Math.PI/180;
-  const lngCorrection = Math.cos(avgLatRad);
-  const spanX = (maxLng-minLng) * lngCorrection;
-  const spanY = (maxLat-minLat);
-  const scale = Math.min((VB_W-PAD*2)/spanX, (VB_H*0.82-PAD)/spanY);
-  function project(lat,lng){
-    const x = PAD + ((lng-minLng)*lngCorrection) * scale + (VB_W-PAD*2-spanX*scale)/2;
-    const y = PAD + ( (maxLat-lat) * scale );
-    return {x,y};
-  }
-  places.forEach(p=>{ const {x,y}=project(p.lat,p.lng); p.mx=x; p.my=y; });
-
-  /* ---------------- The shore, and the offshore pass ----------------
-     Toronto's waterfront runs at about 43.6355, so the lake edge is
-     projected from a real latitude rather than drawn at a guessed
-     fraction of the canvas. That alone gives the field a coast.
-
-     One place - Toronto Islands - is genuinely out in the lake, and at
-     true scale it sits 300 units south of everything else, which
-     squeezes the other 38 pins into the top third of the drawing. So
-     anything south of the shore keeps its bearing and its order but has
-     its distance offshore compressed. project() is untouched: this is a
-     separate pass run after it, exactly like the relaxation pass below.
-     The map says "not to scale" and means it. */
-  const SHORE_Y = project(43.6355, minLng).y;
-  const OFFSHORE_SQUASH = 0.35;
-  places.forEach(p=>{
-    if(p.my > SHORE_Y) p.my = SHORE_Y + (p.my - SHORE_Y) * OFFSHORE_SQUASH;
-  });
-
-  // simple collision relaxation so close-together pins don't fully overlap
-  for(let iter=0; iter<60; iter++){
-    for(let i=0;i<places.length;i++){
-      for(let j=i+1;j<places.length;j++){
-        const a=places[i], b=places[j];
-        const dx=b.mx-a.mx, dy=b.my-a.my;
-        const dist=Math.hypot(dx,dy) || 0.001;
-        const minDist = 40;
-        if(dist < minDist){
-          const push = (minDist-dist)/2;
-          const ux=dx/dist, uy=dy/dist;
-          a.mx -= ux*push; a.my -= uy*push;
-          b.mx += ux*push; b.my += uy*push;
-        }
-      }
-    }
   }
 
-  const R = 15;
-  function radiusFor(p){ return R; }
+  // Sorting is not a filter, so it doesn't count towards the badge.
+  function activeFilterCount(){
+    return (state.filterCat!=="All") + (state.filterPrice!=="any") + (state.filterMinRating!=="any") + (!!state.search);
+  }
 
-  /* ---------------- Render map ---------------- */
+  // Keeps the chips, the badge on every Filters button and the panel's own
+  // "Show N places" in step with the state.
+  function syncFilterUI(shownCount){
+    filterBar.querySelectorAll("[data-cat]").forEach(b=>{
+      const on = b.dataset.cat === state.filterCat;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    });
+    priceBar.querySelectorAll("[data-price]").forEach(b=>{
+      const on = b.dataset.price === state.filterPrice;
+      b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+    });
+    const n = activeFilterCount();
+    document.querySelectorAll("[data-filter-trigger]").forEach(btn=>{
+      const badge = btn.querySelector(".f-count");
+      badge.hidden = !n; badge.textContent = n;
+      btn.classList.toggle("has-filters", !!n);
+      btn.setAttribute("aria-label", n ? `Filters, ${n} on` : "Filters");
+    });
+    document.getElementById("filterClear").disabled = !n;
+    document.getElementById("filterDone").textContent =
+      shownCount === 0 ? "No places match" : `Show ${shownCount} place${shownCount===1?"":"s"}`;
+  }
+
+  /* ---------------- The map's handles ----------------
+     The map itself - MapLibre, OpenFreeMap tiles, our own style - lives in
+     "The real map" below. These are the page elements it draws into. */
   const atlas = document.getElementById("atlas");
+  const mapField = document.querySelector(".mapfield");
   const tooltip = document.getElementById("mapTooltip");
-  function svgEl(tag, attrs){
-    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-    Object.entries(attrs||{}).forEach(([k,v])=>el.setAttribute(k,v));
-    return el;
-  }
-  // The visible window pans and zooms with the viewport (see
-  // fitMapToViewport), so the ground has to be drawn well past the pins in
-  // every direction or its edge shows up as a hard line across the field.
-  const WORLD = { x0:-1800, x1:3400, y0:-1400, y1:2800 };
-  let lakeLabel = null;
-
-  function renderAtlasChrome(){
-    const ground = svgEl("g", {class:"ground", "aria-hidden":"true"});
-
-    // Dashed graticule rather than solid rules: the same route-dash language
-    // the page dividers use, so the map reads as part of the same drawing.
-    const step = 96;
-    for(let gx=Math.ceil(WORLD.x0/step)*step; gx<=WORLD.x1; gx+=step){
-      ground.appendChild(svgEl("line",{class:"grat",x1:gx,y1:WORLD.y0,x2:gx,y2:SHORE_Y}));
-    }
-    for(let gy=Math.ceil(WORLD.y0/step)*step; gy<SHORE_Y; gy+=step){
-      ground.appendChild(svgEl("line",{class:"grat",x1:WORLD.x0,y1:gy,x2:WORLD.x1,y2:gy}));
-    }
-
-    // The lake. A coast needs a line, not just a change of fill - the shore
-    // is the one drawn edge on the map, so it gets the only solid stroke.
-    const w = WORLD.x1 - WORLD.x0;
-    const shore =
-      `M${WORLD.x0},${SHORE_Y+8}`+
-      ` C ${WORLD.x0+w*0.17},${SHORE_Y-22} ${WORLD.x0+w*0.33},${SHORE_Y+30} ${WORLD.x0+w*0.51},${SHORE_Y+6}`+
-      ` S ${WORLD.x0+w*0.82},${SHORE_Y-30} ${WORLD.x1},${SHORE_Y+18}`;
-    ground.appendChild(svgEl("path",{class:"water",
-      d:shore+` L${WORLD.x1},${WORLD.y1} L${WORLD.x0},${WORLD.y1} Z`}));
-    ground.appendChild(svgEl("path",{class:"shoreline", d:shore}));
-
-    // The window on the field moves with the viewport, so the lake is named
-    // where the lake is actually on screen - see fitMapToViewport.
-    lakeLabel = svgEl("text",{class:"water-label", y:SHORE_Y+46});
-    lakeLabel.textContent = "Lake Ontario";
-    ground.appendChild(lakeLabel);
-
-    renderDistricts(ground);
-    atlas.appendChild(ground);
-  }
-
-  // District names are the field guide's own cartography: without them the
-  // pins are confetti on a grid, and with them the cluster reads as a city.
-  // Only neighbourhoods with more than one place earn a label - plus Toronto
-  // Islands, which is alone out in the lake and otherwise looks like a bug.
-  // Biggest first, and any label that would land on a pin or on a label
-  // already placed is dropped rather than crowded in.
-  function renderDistricts(ground){
-    const groups = {};
-    places.forEach(p=>{ (groups[p.neighbourhood] ||= []).push(p); });
-    const named = Object.entries(groups)
-      .filter(([name, list]) => list.length > 1 || name === "Toronto Islands")
-      .sort((a,b)=> b[1].length - a[1].length);
-
-    const placed = [];
-    const free = (box)=>
-      !placed.some(b =>
-        Math.abs(b.x-box.x) < (b.w+box.w)/2 + 12 &&
-        Math.abs(b.y-box.y) < (b.h+box.h)/2 + 8) &&
-      !places.some(p =>
-        Math.abs(p.mx-box.x) < box.w/2 + R + 2 &&
-        Math.abs(p.my-box.y) < box.h/2 + R);
-
-    named.forEach(([name, list])=>{
-      const xs = list.map(p=>p.mx), ys = list.map(p=>p.my);
-      const cx = xs.reduce((a,v)=>a+v,0)/xs.length;
-      const cy = ys.reduce((a,v)=>a+v,0)/ys.length;
-      const top = Math.min(...ys), bottom = Math.max(...ys);
-      const left = Math.min(...xs), right = Math.max(...xs);
-      const isle = name === "Toronto Islands";
-      const box = { w: name.length * 9.2 + 10, h: 18, x:cx, y:0 };
-
-      // Try each shoulder of the group in turn, and only give up on a label
-      // if the district has no clear air anywhere around it. Toronto Islands
-      // is labelled below its pin so the name sits out in the water with it,
-      // rather than on the mainland it is nowhere near.
-      const spots = isle
-        ? [[cx, bottom + R + 26]]
-        : [[cx, top - R - 20], [cx, bottom + R + 28],
-           [left - box.w/2 - R - 18, cy + 5], [right + box.w/2 + R + 18, cy + 5],
-           [cx, top - R - 46], [cx, bottom + R + 54]];
-
-      const spot = spots.find(([x,y])=>{ box.x=x; box.y=y; return free(box); });
-      if(!spot) return;
-      box.x = spot[0]; box.y = spot[1];
-      placed.push({...box});
-      const t = svgEl("text", {class:"district"+(isle?" offshore":""),
-        x:spot[0], y:spot[1], "text-anchor":"middle"});
-      t.textContent = name;
-      ground.appendChild(t);
-    });
-  }
-
-  /* ---------------- The window on the field ----------------
-     The map used to be a fixed 1500x900 canvas that the browser cropped to
-     fill whatever shape the stage happened to be, which left the pins small
-     and adrift in a mostly empty field on desktop and squeezed on mobile.
-
-     Instead the viewBox is computed for the viewport: it is given the stage's
-     own aspect ratio, so map units map one-to-one onto the element, and it is
-     then positioned so the pin cluster is framed inside the part of the stage
-     that is actually free - on desktop the index panel floats over the right
-     of the map, so the cluster centres in what is left of it.
-
-     Below K_MIN the map stops shrinking and starts cropping instead: 39 pins
-     at 11px across is a texture, not a map. */
-  const K_MIN = 0.62, K_MAX = 1.2, FRAME_PAD = R + 34;
-  function fitMapToViewport(){
-    const box = atlas.getBoundingClientRect();
-    if(!box.width || !box.height) return;
-
-    const xs = places.map(p=>p.mx), ys = places.map(p=>p.my);
-    const c = {
-      x0: Math.min(...xs) - FRAME_PAD, x1: Math.max(...xs) + FRAME_PAD,
-      y0: Math.min(...ys) - FRAME_PAD, y1: Math.max(...ys) + FRAME_PAD
-    };
-    const cw = c.x1 - c.x0, ch = c.y1 - c.y0;
-
-    const panel = document.querySelector(".panel");
-    const wide = window.innerWidth > 880 && panel;
-    const overlap = wide ? (box.right - panel.getBoundingClientRect().left) + 24 : 0;
-    const freeW = Math.max(260, box.width - Math.max(0, overlap));
-
-    // Frame against the part of the map that is on screen, not the part that
-    // exists. In the mobile map view the band is taller than the fold, and
-    // centring the pins in the whole band buries them below it.
-    const visTop = Math.max(0, -box.top);
-    const visH = Math.max(160, Math.min(box.height, window.innerHeight - box.top) - visTop);
-
-    const k = Math.min(K_MAX, Math.max(K_MIN, Math.min(freeW/cw, visH/ch)));
-    const vbW = box.width / k, vbH = box.height / k;
-    const x = (c.x0 + cw/2) - (freeW/2) / k;
-    const y = (c.y0 + ch/2) - (visTop + visH/2) / k;
-
-    atlas.setAttribute("viewBox", x+" "+y+" "+vbW+" "+vbH);
-    atlas.setAttribute("preserveAspectRatio", "xMidYMid meet");
-
-    // Named against the visible window rather than at a fixed spot on the
-    // canvas, and tucked just under the coast so it shares no lane with the
-    // Toronto Islands label. It hugs whichever end of the water is free: the
-    // right on desktop, where the key block sits over the bottom-left corner,
-    // and the left on mobile, where the key has moved off the map entirely.
-    if(lakeLabel){
-      lakeLabel.setAttribute("text-anchor", wide ? "end" : "start");
-      lakeLabel.setAttribute("x", x + (wide ? freeW - 28 : 28) / k);
-    }
-  }
-  let fitTimer = null;
-  window.addEventListener("resize", ()=>{
-    clearTimeout(fitTimer);
-    fitTimer = setTimeout(fitMapToViewport, 150);
-  });
-  // The fit is measured from the element, so it has to be re-measured whenever
-  // the element's size can have changed - which is more often than a window
-  // resize: the masthead is taller once the display face lands, and the map
-  // can be laid out at zero height while the tab it is in is still hidden.
-  if(window.ResizeObserver){
-    new ResizeObserver(()=>fitMapToViewport()).observe(atlas);
-  }
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitMapToViewport);
-
-  let markerEls = {};
-  let firstMarkerPaint = true;
-  function renderMarkers(visibleKeys){
-    Object.values(markerEls).forEach(g=>g.remove());
-    markerEls = {};
-    let landed = 0;
-    places.forEach(p=>{
-      const visible = visibleKeys.has(p.key);
-      const colour = CATS[p.category].color;
-
-      // A filtered-out place doesn't vanish - the city would lose its shape -
-      // but it stops being a marker and becomes a survey dot. Ghosting a full
-      // disc left thirty grey blobs still competing for attention; a dot reads
-      // as ground, so the matches are the only things with weight on the field.
-      if(!visible){
-        const out = svgEl("g", {class:"marker out", "data-key":p.key});
-        out.appendChild(svgEl("circle", {class:"speck", cx:p.mx, cy:p.my, r:3.6, fill:colour}));
-        atlas.appendChild(out);
-        markerEls[p.key] = out;
-        return;
-      }
-
-      const g = svgEl("g", {class:"marker"+(state.selectedKey===p.key?" selected":""),
-        "data-key":p.key});
-      const r = radiusFor(p);
-      g.appendChild(svgEl("circle", {class:"halo", cx:p.mx, cy:p.my, r:r+11, fill:colour}));
-      // The disc carries a paper-coloured rim so that two overlapping pins
-      // still read as two objects, and so a pin over the lake keeps its edge.
-      g.appendChild(svgEl("circle", {class:"dot", cx:p.mx, cy:p.my, r:r, fill:colour}));
-
-      // Category is carried by the glyph as well as the colour, so the marker
-      // still says what it is without relying on colour alone.
-      const use = document.createElementNS("http://www.w3.org/2000/svg","use");
-      use.setAttribute("href", "#ic-"+CATS[p.category].icon);
-      use.setAttribute("x", p.mx-7.5); use.setAttribute("y", p.my-7.5);
-      use.setAttribute("width", 15); use.setAttribute("height", 15);
-      use.setAttribute("class", "glyph");
-      g.appendChild(use);
-
-      if(p.recCount>1){
-        g.appendChild(svgEl("circle", {class:"count-ring", cx:p.mx+12, cy:p.my-12, r:8.5,
-          fill:"var(--paper)", stroke:colour, "stroke-width":"1.5"}));
-        const t = svgEl("text", {x:p.mx+12, y:p.my-8.4, "text-anchor":"middle",
-          class:"badge-count", fill:colour, "font-size":"10"});
-        t.textContent = p.recCount;
-        g.appendChild(t);
-      }
-      g.addEventListener("click", ()=> selectPlace(p.key, true));
-      g.addEventListener("mouseenter", ()=> showTooltip(p));
-      g.addEventListener("mouseleave", hideTooltip);
-      // Only the first render is an arrival. Every render after this one is
-      // the result of a filter, and a pin re-landing on every keystroke would
-      // be motion reporting nothing.
-      if(firstMarkerPaint){
-        g.classList.add("arrive");
-        g.style.animationDelay = (landed++ * 11) + "ms";
-      }
-      atlas.appendChild(g);
-      markerEls[p.key] = g;
-    });
-    firstMarkerPaint = false;
-    renderLegend();
-  }
+  const CAN_HOVER = window.matchMedia("(hover: hover)");
 
   // The tooltip was a black chip borrowed from nowhere in particular. It is a
   // paper tag now: the place in the display face, what and where underneath.
   function showTooltip(p){
+    if(!map) return;
     tooltip.innerHTML =
       `<b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.category)} &middot; ${escapeHtml(p.neighbourhood)}</span>`;
-    const marker = markerEls[p.key];
-    if(!marker) return;
-    const m = marker.getBoundingClientRect();
-    const f = atlas.parentNode.getBoundingClientRect();
-    tooltip.style.left = (m.left + m.width/2 - f.left) + "px";
-    tooltip.style.top  = (m.top + m.height/2 - f.top) + "px";
+    // Asking the map where the place is, rather than measuring where the marker
+    // element happens to have landed. Same answer, and it cannot be caught
+    // mid-transition.
+    const pt = map.project([p.lng, p.lat]);
+    tooltip.style.left = pt.x + "px";
+    tooltip.style.top  = pt.y + "px";
     tooltip.classList.add("show");
   }
   function hideTooltip(){ tooltip.classList.remove("show"); }
 
-  // The legend is the map's key, so it answers the map's question and follows
-  // the map's state: filter to one activity and the rest of the key steps back
-  // rather than continuing to advertise colours that are no longer on the field.
-  function renderLegend(){
-    const el = document.getElementById("mapLegend");
-    const only = state.filterCat;
-    el.innerHTML = '<span class="key-title">Key</span>' + CAT_ORDER.map(c=>
-      `<span class="key-item${only!=="All" && only!==c ? " off":""}">`+
-      `<span class="swatch" style="background:${CATS[c].color}"></span>${escapeHtml(c)}</span>`
-    ).join("");
+
+  /* ---------------- The real map ----------------
+     MapLibre GL JS drawing OpenFreeMap's public vector tiles, with every place
+     at its true coordinates. This replaced a schematic SVG drawing whose pins
+     were projected, squashed and pushed apart so they would not overlap - a
+     nice drawing, but one that could not tell you where anything was.
+
+     Nothing is self-hosted and there is no API key: OpenFreeMap's public
+     instance is free and unmetered. The style is our own, forked from its
+     Positron and recoloured to the Field Guide. It still draws OpenFreeMap's
+     tiles, fonts and sprites - only the look lives in the repo. Edit
+     map/ikap-atlas.json directly or open it in Maputnik. */
+  const MAP_STYLE = "./map/ikap-atlas.json";
+  // Breathing room around the pin cluster, in pixels. A fixed 64 spent a third
+  // of a phone screen on margin and left the city as a smudge, so it scales
+  // with the viewport and only reaches its full value on a desktop map.
+  const mapPad = ()=> Math.max(22, Math.min(64, Math.round(window.innerWidth * 0.055)));
+
+  let map = null;
+  let markerObjs = {};
+  let mapReady = false;
+
+  function placeBounds(){
+    const b = new maplibregl.LngLatBounds();
+    places.forEach(p => b.extend([p.lng, p.lat]));
+    return b;
+  }
+
+  // The camera frames places in the part of the map you can actually see.
+  // On desktop that is all of it - the list sits beside the map, not over it -
+  // except the band of controls along the top.
+  function mapPadding(){
+    const P = mapPad();
+    const pad = { top:P, bottom:P, left:P, right:P };
+    const field = document.querySelector(".mapfield");
+    // Clear of the buttons along the top.
+    pad.top = Math.max(P, NARROW.matches ? 58 : 64);
+    // On a phone the list sheet covers the bottom of the map; frame above it.
+    if(NARROW.matches && field && sheetY > 80){
+      const cover = field.getBoundingClientRect().height - sheetY;
+      if(cover > 0) pad.bottom = Math.max(pad.bottom, cover + Math.round(P / 2));
+    }
+    // On a phone the peek card sits over the map in the same way the panel
+    // does on desktop. Across the bottom in portrait; down the right side in a
+    // short landscape screen, where across the bottom would bury the map.
+    if(field && !peek.hidden){
+      const f = field.getBoundingClientRect(), k = peek.getBoundingClientRect();
+      if(k.width && k.height){
+        if(k.width < f.width * 0.66) pad.right  = Math.max(pad.right,  f.right  - k.left + 12);
+        else                         pad.bottom = Math.max(pad.bottom, f.bottom - k.top  + 12);
+      }
+    }
+    return pad;
+  }
+
+  function fitPlaces(opts){
+    if(!map) return;
+    map.fitBounds(placeBounds(), Object.assign({ padding: mapPadding(), duration: 0 }, opts));
+  }
+  // On a phone the map starts hidden behind the index, at no size at all, so
+  // the fit made at load is a fit of nothing. The first time it has a real
+  // size - and only if nobody has moved it yet - it is framed properly.
+  let mapFramed = false, mapTouched = false;
+  function mapResize(){
+    if(!map) return;
+    map.resize();
+    const c = map.getContainer();
+    if(mapReady && !mapFramed && !mapTouched && c.clientWidth && c.clientHeight){
+      fitPlaces();
+      mapFramed = true;
+    }
+  }
+
+  // MapLibre only measures its container when told to. A window resize is the
+  // obvious case; the ResizeObserver catches the rest - the masthead growing
+  // when the display face lands, and the map being laid out at no size while
+  // the phone's index is showing.
+  let resizeTimer = null;
+  window.addEventListener("resize", ()=>{
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(mapResize, 150);
+  });
+  if(window.ResizeObserver) new ResizeObserver(()=>mapResize()).observe(atlas);
+
+  // Camera moves are motion reporting a change of state, so they obey the same
+  // rule the scrolling already does.
+  const mapEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? 0 : 520;
+
+  // A marker is a fixed number of pixels, but a pixel is not a fixed number of
+  // metres. Framed on the whole city one pixel is about twelve metres, so a
+  // full-size disc covers a third of a kilometre and the downtown pins become
+  // one shape. The disc shrinks when the map is far out and grows back as the
+  // streets do - a band at a time, not a calculation per frame.
+  // The whole-city fit lands near zoom 13.6, so "far" is the view most people
+  // see first and the other bands are measured from it: one step down for
+  // pulling back off the city, two steps up for coming in to street level.
+  const ZOOM_BANDS = [[12.6, "wide"], [14.2, "far"], [15.4, "mid"]];
+  function applyZoomBand(){
+    if(!map || !mapField) return;
+    const z = map.getZoom();
+    const band = (ZOOM_BANDS.find(([max]) => z < max) || [, "near"])[1];
+    if(mapField.dataset.zoom !== band) mapField.dataset.zoom = band;
+  }
+
+  // Selecting a place should not yank the map about. If the pin is already
+  // somewhere you can see it, leave the view alone; only move when the pin is
+  // off screen or hidden under the index panel.
+  const REVEAL_MARGIN = 30;
+  function revealOnMap(key){
+    if(!mapReady || !map) return;
+    const p = placesByKey[key];
+    if(!p) return;
+    const pt = map.project([p.lng, p.lat]);
+    const box = map.getContainer().getBoundingClientRect();
+    const pad = mapPadding();
+    const seen =
+      pt.x > pad.left + REVEAL_MARGIN && pt.x < box.width  - pad.right  - REVEAL_MARGIN &&
+      pt.y > pad.top  + REVEAL_MARGIN && pt.y < box.height - pad.bottom - REVEAL_MARGIN;
+    if(seen) return;
+    // Centred in the part of the map that is free, not in the middle of the
+    // container - the same correction mapPadding() makes for the initial fit.
+    map.easeTo({
+      center: [p.lng, p.lat],
+      offset: [(pad.left - pad.right) / 2, (pad.top - pad.bottom) / 2],
+      duration: mapEase()
+    });
+  }
+
+  /* ---------------- When the map can't be a map ----------------
+     The index has never depended on the map, so every way the map can fail
+     ends the same way: say so plainly, point at the index, and on a phone take
+     the switch away rather than offer a view that has nothing in it.
+
+     "Unavailable" is for no map at all - the library didn't load, the device
+     has no WebGL, or our style file didn't arrive. "No streets" is for when the
+     map runs but OpenFreeMap's tiles don't: the pins still stand in the right
+     places relative to each other, so they stay, with a note over them. */
+  const mapNote = document.getElementById("mapNote");
+  const INDEX_LINE = "The index has every place, with who recommended it and what they said.";
+
+  function showMapNote(state, title){
+    mapField.classList.remove("is-loading", "is-unavailable", "is-degraded");
+    if(state) mapField.classList.add(state);
+    mapNote.innerHTML = title
+      ? `<p class="map-note-title">${escapeHtml(title)}</p><p>${escapeHtml(INDEX_LINE)}</p>`
+      : "";
+  }
+  function mapUnavailable(title){
+    showMapNote("is-unavailable", title);
+    stage.classList.add("map-off");
+    // No map to pull the list off: on a phone the list simply is the page.
+    if(NARROW.matches) snapSheet("full", { instant:true });
+  }
+
+  function webglAvailable(){
+    try {
+      const c = document.createElement("canvas");
+      return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch (e) { return false; }
+  }
+
+  // Tiles failing and tiles never having worked are different things: a
+  // single tile can fail on a flaky connection and the next pan fixes it.
+  let tilesSeen = false, streetsNoted = false;
+  function onMapError(e){
+    const err = e && e.error, url = (err && err.url) || "";
+    if(!mapReady && (url.includes("ikap-atlas.json") || (!e.sourceId && !url))){
+      console.warn("The map style could not be loaded.", err);
+      return mapUnavailable("The map isn't available right now");
+    }
+    if(url.includes("openfreemap.org") || e.sourceId === "openmaptiles"){
+      if(!tilesSeen && !streetsNoted){
+        streetsNoted = true;
+        console.warn("OpenFreeMap tiles are not loading; the pins are shown without streets.", err);
+        showMapNote("is-degraded", "The street map didn't load");
+      }
+      return;
+    }
+    console.warn("Map error", err);
+  }
+
+  function initMap(){
+    if(typeof maplibregl === "undefined"){
+      console.warn("MapLibre GL JS did not load.");
+      return mapUnavailable("The map isn't available right now");
+    }
+    if(!webglAvailable()){
+      return mapUnavailable("This browser can't draw the map");
+    }
+    try {
+      startMap();
+    } catch (err) {
+      console.warn("The map could not start.", err);
+      map = null;
+      mapUnavailable("This browser can't draw the map");
+    }
+  }
+
+  function startMap(){
+    map = new maplibregl.Map({
+      container: "atlas",
+      style: MAP_STYLE,
+      bounds: placeBounds(),
+      fitBoundsOptions: { padding: mapPadding() },
+      // A north-up city map. Rotating it only makes the street labels harder to
+      // read, so the gesture is taken away rather than corrected for.
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      // Past this the pins are one dot and the map is a continent.
+      minZoom: 9,
+      maxZoom: 18,
+      attributionControl: false
+    });
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
+
+    // Deliberately few controls. Zoom, because pinch is not discoverable on a
+    // desktop; where-am-I, because "what's near me" is the most useful thing
+    // this map can answer on a phone; and a way home once you have panned
+    // away. No compass - there is no rotation to undo - and no scale bar.
+    // They stack under the Filters button: down the left edge on desktop,
+    // the right edge on a phone (where the city selector has the left).
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+      fitBoundsOptions: { maxZoom: 15 }
+    }), "top-left");
+    // The style already carries OpenFreeMap, OpenMapTiles and OpenStreetMap,
+    // so this only has to put it on screen, not restate it.
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+
+    // Once someone has moved the map themselves, it is theirs: no automatic
+    // re-framing will take it back from them.
+    ["dragstart", "wheel", "touchstart"].forEach(t =>
+      map.on(t, ()=>{ mapTouched = true; }));
+
+    // A tag pinned to a pin has to leave when the pin does.
+    map.on("movestart", hideTooltip);
+    // The list is the map's other view: when the map settles somewhere new,
+    // the list shows what is on it. Debounced, so a fling is one update.
+    map.on("moveend", scheduleListUpdate);
+    // On a phone, tapping the map away from any pin puts the card away.
+    map.on("click", ()=>{
+      if(NARROW.matches && !peek.hidden){ state.selectedKey = null; refresh(); hidePeek(); }
+    });
+    map.on("zoom", applyZoomBand);
+    map.on("error", onMapError);
+    map.on("data", (e)=>{
+      if(e.dataType === "source" && e.sourceId === "openmaptiles" && e.tile && !tilesSeen){
+        tilesSeen = true;
+        if(streetsNoted) showMapNote(null);   // they came back after all
+      }
+    });
+    // Slow is not broken. If nothing has arrived after a while, say that the
+    // index works without waiting, but keep drawing.
+    setTimeout(()=>{
+      if(!mapReady && mapField.classList.contains("is-loading")){
+        mapNote.innerHTML = '<p class="map-note-title">Still drawing Toronto&hellip;</p>' +
+          `<p>${escapeHtml(INDEX_LINE)}</p>`;
+      }
+    }, 10000);
+
+    // The canvas is the one part of the map a keyboard can reach: arrow keys
+    // pan it and +/- zoom. The places themselves are reached through the index,
+    // which is the accessible way to every one of them.
+    map.getCanvas().setAttribute("aria-label",
+      "Street map of Toronto showing the recommended places. Arrow keys pan, plus and minus zoom. " +
+      "Every place is also listed in the index.");
+
+    map.on("load", ()=>{
+      mapReady = true;
+      foldAttributionOnPhones();
+      if(mapField.classList.contains("is-loading")) showMapNote(null);
+      applyZoomBand();
+      buildMarkers();
+      // Re-framed once the container has its final size: the masthead grows
+      // when the display face lands, and the panel is only measurable now.
+      const c = map.getContainer();
+      if(c.clientWidth && c.clientHeight){ fitPlaces(); mapFramed = true; }
+      refresh();
+    });
+  }
+
+  // A phone has no room for the credit spelled out over the map, so there it
+  // starts folded to its (i). MapLibre unfolds the compact credit itself the
+  // first time the attributions arrive, which can be after "load", so the
+  // first unfolding is watched for and undone. A tap on the (i) still opens it.
+  function foldAttributionOnPhones(){
+    if(!NARROW.matches) return;
+    const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
+    if(!attrib) return;
+    const fold = ()=>{ attrib.classList.remove("maplibregl-compact-show"); attrib.removeAttribute("open"); };
+    if(attrib.hasAttribute("open")){ fold(); return; }
+    const mo = new MutationObserver(()=>{
+      if(attrib.hasAttribute("open")){ fold(); mo.disconnect(); }
+    });
+    mo.observe(attrib, { attributes:true, attributeFilter:["open", "class"] });
+    setTimeout(()=> mo.disconnect(), 8000);
+  }
+
+  // "Recentre" is not a permanent control any more. It appears, low and
+  // centred on the map, only once the map shows less than a quarter of the
+  // places the filters allow - and goes again once it has done its job.
+  const recentreBtn = document.getElementById("recentreBtn");
+  recentreBtn.addEventListener("click", ()=>{
+    hideTooltip();
+    fitPlaces({ duration: mapEase() });
+  });
+  function syncRecentre(bounds, inViewCount){
+    const lost = !!bounds && filtered.length > 0 && inViewCount < filtered.length / 4;
+    recentreBtn.hidden = !lost;
+  }
+
+  // Built once, at boot. Filtering only ever toggles a class from here on, so a
+  // keystroke in the search box never rebuilds a pin.
+  function buildMarkers(){
+    // North first, so southern pins end up later in the DOM and therefore on
+    // top: the usual cartographic convention, and it makes the downtown
+    // overlaps read the same way every time.
+    [...places].sort((a,b)=> b.lat - a.lat).forEach(p=>{
+      const el = document.createElement("div");
+      el.className = "marker";
+      el.dataset.key = p.key;
+      // Pins are a pointer shortcut to rows in the index, not a second copy of
+      // it: out of the tab order and out of the accessibility tree, so a screen
+      // reader meets each place once, in the list, with everything said about it.
+      el.setAttribute("aria-hidden", "true");
+      el.style.setProperty("--cat", CATS[p.category].color);
+      el.innerHTML =
+        '<span class="halo"></span>' +
+        '<span class="dot">' +
+          iconUse(CATS[p.category].icon, 'class="glyph" viewBox="0 0 24 24" aria-hidden="true"') +
+        '</span>' +
+        (p.recCount > 1 ? '<span class="count">' + p.recCount + '</span>' : '') +
+        '<span class="speck"></span>';
+      el.addEventListener("click", (e)=>{ e.stopPropagation(); selectPlace(p.key, true); });
+      // On a touch screen there is no hover to answer, and the tag would only
+      // flash on the way to the tap. The peek card is the answer there.
+      if(CAN_HOVER.matches){
+        el.addEventListener("mouseenter", ()=> showTooltip(p));
+        el.addEventListener("mouseleave", hideTooltip);
+      }
+      markerObjs[p.key] = new maplibregl.Marker({ element: el, anchor: "center" })
+        .setLngLat([p.lng, p.lat])
+        .addTo(map);
+    });
+
+    // The pins land once, staggered, as the city finishes drawing. Every render
+    // after this one is the result of a filter, and a pin re-landing on every
+    // keystroke would be motion reporting nothing.
+    let landed = 0;
+    places.forEach(p=>{
+      const el = markerObjs[p.key].getElement();
+      el.style.animationDelay = (landed++ * 11) + "ms";
+      el.classList.add("arrive");
+    });
+  }
+
+  function updateMarkers(visibleKeys){
+    if(!mapReady) return;
+    places.forEach(p=>{
+      const m = markerObjs[p.key];
+      if(!m) return;
+      const el = m.getElement();
+      el.classList.toggle("out", !visibleKeys.has(p.key));
+      el.classList.toggle("selected", state.selectedKey === p.key);
+    });
   }
 
   /* ---------------- Render list ---------------- */
@@ -715,15 +896,26 @@
 
   // The whole point of this site is that real people recommended these
   // places, so the collapsed row names one of them instead of reporting a
-  // count. "Ashton + 2 friends" reads as people; "Recommended by 3 friends"
-  // reads as a statistic.
+  // count. A bare "Greg" gave no context, so it says what Greg did:
+  // "Recommended by Greg", or "Recommended by Ashton + 2".
   function contributorLine(p){
     const list = recsByPlace[p.key] || [];
     if(list.length === 0) return "";
-    const first = `<em>${escapeHtml(list[0].alias)}</em>`;
+    const first = `<b class="who-name">${escapeHtml(list[0].alias)}</b>`;
     const others = list.length - 1;
-    if(others === 0) return first;
-    return `${first} + ${others} friend${others > 1 ? "s" : ""}`;
+    return `Recommended by ${first}${others ? ` + ${others}` : ""}`;
+  }
+
+  // Ten places were recommended by name without saying which branch, so their
+  // pin is a reasonable guess rather than the place itself. On a real map that
+  // is worth one quiet line. The workbook's own note is written for whoever
+  // cleaned the data ("the form did not specify..."), so it is not shown as-is.
+  function locationLine(p){
+    if(p.confidence !== "Medium") return "";
+    const why = /did not specify/i.test(p.locationNote) ? " — branch not specified"
+              : /moving|routes/i.test(p.locationNote) ? " — routes vary"
+              : "";
+    return `<p class="location-approx">Approximate location${why}</p>`;
   }
 
   function cardHtml(p){
@@ -731,8 +923,8 @@
     const notes = rlist.map(r=>`
       <div class="note">
         <div class="note-head">
-          <span class="note-stamp">${escapeHtml(r.alias)}</span>
-          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.75em")}</span>
+          <span class="note-name">${escapeHtml(r.alias)}</span>
+          <span class="note-rating" title="${fmtRating(r.rating)}/10">${starsHtml(r.rating,"0.875rem")}</span>
         </div>
         <blockquote class="note-text">${escapeHtml(r.note)}</blockquote>
       </div>`).join("");
@@ -744,7 +936,7 @@
         <span class="row-main">
           <span class="row-headline">
             <span class="row-title">${escapeHtml(p.name)}</span>
-            <span class="row-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"0.8125rem")}</span>
+            <span class="row-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"1rem")}</span>
           </span>
           <span class="row-where">${escapeHtml(p.category)} <span class="sep">·</span> ${escapeHtml(p.neighbourhood)}</span>
           <span class="row-who">${contributorLine(p)}</span>
@@ -756,6 +948,7 @@
       <div class="row-detail" id="detail-${p.key}">
         ${statRow(p)}
         <div class="note-list">${notes}</div>
+        ${locationLine(p)}
         <div class="card-links">
           <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
         </div>
@@ -763,90 +956,429 @@
     </article>`;
   }
 
-  function refresh(){
-    const visible = places.filter(p=>{
+  /* ---------------- The list follows the map ----------------
+     The map and the list are two views of one set of places. Filters decide
+     which places exist at all: they drive the markers, as before. The map's
+     viewport then decides which of those the list shows - zoom in on a
+     neighbourhood and the list is that neighbourhood; zoom out and it is the
+     city again. Search is a filter, so it is held to the visible map too.
+
+     Two exceptions keep the list honest. The selected place stays in it even
+     when panned out of view, so the entry you are reading never vanishes
+     mid-pan. And with no usable map - still loading, failed, or hidden on a
+     phone's list view - there is no viewport, so the list is every match. */
+  let filtered = places.slice();
+  let listSig = "";
+  const panelScroll = document.querySelector(".panel-scroll");
+
+  function applyFilters(){
+    filtered = places.filter(p=>{
       const catOk = state.filterCat==="All" || p.category===state.filterCat;
       const priceOk = state.filterPrice==="any" || p.price <= Number(state.filterPrice);
       const ratingOk = state.filterMinRating==="any" || (p.avgRating/2) >= Number(state.filterMinRating);
       const searchOk = !state.search || p.name.toLowerCase().includes(state.search);
       return catOk && priceOk && ratingOk && searchOk;
     });
-    const visibleKeys = new Set(visible.map(p=>p.key));
+    const keys = new Set(filtered.map(p=>p.key));
 
+    // A selected place that a filter has just turned into a survey dot is a
+    // selection with nothing on screen to show for it. Let it go, and take the
+    // peek card with it.
+    if(state.selectedKey && !keys.has(state.selectedKey)){
+      state.selectedKey = null;
+      hidePeek();
+    }
+    updateMarkers(keys);
+  }
+
+  // The part of the map the reader can see, in container pixels: all of it
+  // on desktop; on a phone, what is above the list sheet.
+  function visibleMapRect(w, h){
+    const bottom = NARROW.matches ? Math.min(h, sheetY) : h;
+    return { left:0, top:0, right:w, bottom };
+  }
+
+  function mapViewBounds(){
+    if(!mapReady || !map || mapField.classList.contains("is-unavailable")) return null;
+    const c = map.getContainer();
+    const w = c.clientWidth, h = c.clientHeight;
+    if(!w || !h || !c.offsetParent) return null;
+    const r = visibleMapRect(w, h);
+    if(r.bottom - r.top < 40 || r.right - r.left < 40) return null;
+    // North is always up, so two corners are the whole box.
+    return new maplibregl.LngLatBounds(map.unproject([r.left, r.bottom]), map.unproject([r.right, r.top]));
+  }
+
+  function renderList(opts){
+    opts = opts || {};
+    let bounds = mapViewBounds();
+    // With the sheet pulled all the way up there is no map showing, but the
+    // list is still the list of the area you were looking at.
+    if(NARROW.matches && mapReady){
+      if(bounds) lastSheetBounds = bounds;
+      else if(sheetState === "full") bounds = lastSheetBounds;
+    }
+    const inView = bounds ? filtered.filter(p=> bounds.contains([p.lng, p.lat])) : filtered;
+    const shown = inView.slice();
+    const sel = state.selectedKey && filtered.find(p=> p.key === state.selectedKey);
+    if(sel && !shown.includes(sel)) shown.push(sel);
+    const sorted = shown.sort(SORTERS[state.sortBy]);
+    const limited = !!bounds && inView.length < filtered.length;
+    syncRecentre(bounds, inView.length);
+
+    const n = sorted.length;
     document.getElementById("listHeading").textContent =
-      visible.length + " place" + (visible.length===1 ? "" : "s");
+      (n || "No") + " place" + (n===1 ? "" : "s") + (limited ? " in this area" : "");
+    syncFilterUI(n);
 
-    renderMarkers(visibleKeys);
+    const sig = sorted.map(p=>p.key).join() + "|" + state.selectedKey;
+    if(!opts.force && sig === listSig) return;
+    const changedSet = sig.split("|")[0] !== listSig.split("|")[0];
+    listSig = sig;
 
-    if(visible.length===0){
+    if(n===0){
       listEl.style.display="none";
       listEl.innerHTML = "";
-      emptyEl.style.display="block";
+      showEmpty(filtered.length === 0);
     } else {
       listEl.style.display="flex";
       emptyEl.style.display="none";
-      const sorted = [...visible].sort(SORTERS[state.sortBy]);
       listEl.innerHTML = sorted.map(cardHtml).join("");
-      listEl.querySelectorAll(".row-top").forEach(top=>{
-        top.addEventListener("click", ()=>{
-          const key = top.closest(".row").dataset.key;
-          selectPlace(key, false);
-        });
-      });
+    }
+
+    // A map move that changes what is listed starts the list from the top,
+    // unless something is selected - then that entry is kept in sight.
+    if(opts.fromMap && changedSet && panelScroll){
+      const card = state.selectedKey && document.getElementById("card-"+state.selectedKey);
+      if(card) scrollRowIntoIndex(card, true);
+      else panelScroll.scrollTop = 0;
     }
   }
 
-  // scrollIntoView walks every scrollable ancestor, so clicking a marker used
-  // to scroll the window as well as the index - taking the map the click was
-  // aimed at off the top of the screen. Scroll the index itself and leave the
-  // page where it is. Below 880px the index isn't its own scroller, and there
-  // the page scroll is the right one to move.
-  /* ---------------- Mobile: the map and the index take turns ----------------
-     Below 880px there is no room to show a map and a 39-row index at once, and
-     stacking them means the index is always a scroll away from the pin you
-     just tapped. So they take turns, and a tapped pin answers where it was
-     tapped: a peek card at the bottom of the map, with a way through to the
-     full entry. The index is the default - the map is the beautiful part, but
-     the list is the useful one on a phone. */
+  const emptyTitle = document.getElementById("emptyTitle");
+  const emptyText = document.getElementById("emptyText");
+  const emptyAction = document.getElementById("emptyAction");
+  function showEmpty(noMatches){
+    emptyEl.style.display = "block";
+    emptyAction.hidden = false;
+    if(noMatches){
+      emptyTitle.textContent = "No matches";
+      emptyText.textContent = "Try loosening a filter or clearing your search.";
+      emptyAction.textContent = "Clear filters";
+      emptyAction.onclick = clearFilters;
+    } else {
+      emptyTitle.textContent = activeFilterCount() ? "Nothing here matches" : "Nothing in this part of the map";
+      emptyText.textContent = `${filtered.length} place${filtered.length===1?"":"s"} ${filtered.length===1?"is":"are"} just out of view.`;
+      emptyAction.textContent = "Zoom back out";
+      emptyAction.onclick = ()=> fitPlaces({ duration: mapEase() });
+    }
+  }
+
+  let listTimer = null;
+  function scheduleListUpdate(){
+    clearTimeout(listTimer);
+    listTimer = setTimeout(()=> renderList({ fromMap:true }), 120);
+  }
+
+  function refresh(){
+    applyFilters();
+    renderList({ force:true });
+  }
+
+  // One listener for every row, rather than one per row per render.
+  listEl.addEventListener("click", (e)=>{
+    const top = e.target.closest(".row-top");
+    if(top) selectPlace(top.closest(".row").dataset.key, false);
+  });
+
+  /* ---------------- Phones: the list is a sheet over the map ----------------
+     Below 880px the map fills the stage and the recommendations are a sheet
+     pulled up over it, the way a map-and-list app works rather than a page
+     that scrolls. Three resting places:
+
+       collapsed  the map, with the sheet's head (handle and count) at the foot
+       mid        the default: map above, the top of the list below
+       full       the list, over the whole map; a floating "Map" pill goes back
+
+     The sheet is always the stage's full height and only ever translated, so
+     dragging it never resizes the map underneath. Short landscape screens skip
+     the middle stop - half of 350px is not a view of anything. */
   const stage = document.querySelector(".stage");
+  const panel = document.querySelector(".panel");
   const peek = document.getElementById("peekCard");
   const NARROW = window.matchMedia("(max-width: 880px)");
-  const vsIndex = document.getElementById("viewIndex");
-  const vsMap = document.getElementById("viewMap");
-  let mobileView = "list";
+  const SHORT = window.matchMedia("(max-height: 500px)");
+  const sheetHandle = document.getElementById("sheetHandle");
+  const mapPill = document.getElementById("mapPill");
+  const SHEET_MID = 0.44;       // share of the stage the map keeps in the middle
+  let sheetState = "mid";
+  let sheetY = 0;
+  let sheetSnaps = { full:0, mid:0, collapsed:0 };
+  let lastSheetBounds = null;
+  let sheetSettleTimer = null;
 
-  function setView(v){
-    mobileView = v;
-    stage.dataset.view = v;
-    vsIndex.classList.toggle("on", v === "list");
-    vsMap.classList.toggle("on", v === "map");
-    vsIndex.setAttribute("aria-pressed", String(v === "list"));
-    vsMap.setAttribute("aria-pressed", String(v === "map"));
-    if(v === "list") hidePeek();
-    // The map band only has a size once it is the visible half.
-    if(v === "map") fitMapToViewport();
-    changeOver(v === "map" ? document.querySelector(".mapfield") : document.querySelector(".panel"));
+  const sheetStops = ()=> SHORT.matches ? ["full","collapsed"] : ["full","mid","collapsed"];
+
+  // Down, the sheet shows exactly its head - the handle and the count - and
+  // not a sliver of the first card under it.
+  function measureSheet(){
+    const H = stage.clientHeight;
+    const peekH = panel.querySelector(".panel-head").offsetHeight + 4;
+    sheetSnaps = { full:0, mid: Math.round(H * SHEET_MID), collapsed: Math.max(0, H - peekH) };
+  }
+  function setSheetY(y){
+    sheetY = y;
+    stage.style.setProperty("--sheet-y", Math.round(y) + "px");
   }
 
-  // Restarting an animation means taking the class off, forcing a reflow and
-  // putting it back; without the reflow the browser never sees it leave.
-  function changeOver(el){
-    if(!el) return;
-    el.classList.remove("view-in");
-    void el.offsetWidth;
-    el.classList.add("view-in");
+  /* ---- The map follows the sheet ----
+     As Airbnb does it: pulling the list down doesn't just uncover more map, it
+     brings you in closer to the area you were looking at, so by the time the
+     cards are gone the map is about that area rather than the whole city.
+     The part of the map above the sheet keeps its centre, and the zoom grows
+     with its height - twice the height, one level closer. It only applies
+     between the middle stop and the bottom; above the middle the map is
+     mostly hidden anyway, so it holds still. Pin taps don't use it: a tapped
+     pin must stay where it was tapped. */
+  let sheetCam = null;    // { z0, vis0, centre } from where the move began
+  let sheetCamRaf = 0;
+  const sheetVisible = (y)=> Math.min(sheetSnaps.collapsed, Math.max(sheetSnaps.mid, y));
+  // Where the sheet is drawn right now, mid-animation included.
+  function renderedSheetY(){
+    const t = getComputedStyle(panel).transform;
+    return t && t !== "none" ? new DOMMatrixReadOnly(t).m42 : sheetY;
   }
-  vsIndex.addEventListener("click", ()=> setView("list"));
-  vsMap.addEventListener("click", ()=> setView("map"));
-  // Leaving mobile drops the whole idea: on desktop both are on screen.
-  NARROW.addEventListener("change", e=>{ if(!e.matches) hidePeek(); fitMapToViewport(); });
+  function beginSheetCam(){
+    cancelAnimationFrame(sheetCamRaf);
+    sheetCam = null;
+    if(!mapReady || !map || SHORT.matches || stage.classList.contains("map-off")) return;
+    const vis0 = sheetVisible(renderedSheetY());
+    const w = map.getContainer().clientWidth;
+    if(!w || vis0 < 40) return;
+    sheetCam = { z0: map.getZoom(), vis0, centre: map.unproject([w / 2, vis0 / 2]) };
+  }
+  function applySheetCam(y){
+    if(!sheetCam) return;
+    const c = map.getContainer();
+    const vis = sheetVisible(y);
+    map.jumpTo({ zoom: sheetCam.z0 + Math.log2(vis / sheetCam.vis0), center: sheetCam.centre });
+    // The centre belongs in the middle of the part above the sheet, not of
+    // the container: measure where it landed and slide it up by the difference.
+    const at = map.project(sheetCam.centre), mid = map.project(map.getCenter());
+    map.jumpTo({ center: map.unproject([mid.x + at.x - c.clientWidth / 2, mid.y + at.y - vis / 2]) });
+  }
+  // A snap is a CSS transition, so the camera reads the sheet frame by frame
+  // rather than keep a second copy of its timing.
+  function followSheetSnap(){
+    cancelAnimationFrame(sheetCamRaf);
+    const t0 = performance.now();
+    const step = ()=>{
+      if(!sheetCam) return;
+      const moving = panel.classList.contains("sheet-animate") && performance.now() - t0 < 450;
+      applySheetCam(moving ? renderedSheetY() : sheetY);
+      if(moving) sheetCamRaf = requestAnimationFrame(step);
+      else sheetCam = null;
+    };
+    sheetCamRaf = requestAnimationFrame(step);
+  }
 
-  function hidePeek(){ peek.hidden = true; peek.innerHTML = ""; }
+  function snapSheet(to, opts){
+    if(!NARROW.matches) return;
+    opts = opts || {};
+    if(stage.classList.contains("map-off")) to = "full";
+    if(!sheetStops().includes(to)) to = "collapsed";
+    measureSheet();
+    const was = sheetState;
+    sheetState = to;
+    stage.dataset.sheet = to;
+    if(opts.follow && !sheetCam) beginSheetCam();
+    panel.classList.toggle("sheet-animate", !opts.instant);
+    setSheetY(sheetSnaps[to]);
+    if(opts.follow) followSheetSnap();
+    if(to !== "collapsed") hidePeek();
+    syncSheetControls();
+    // Once it has settled, the list catches up with the part of the map that
+    // is now showing.
+    if(to !== was || opts.force){
+      clearTimeout(sheetSettleTimer);
+      sheetSettleTimer = setTimeout(()=> renderList({ fromMap:true }), opts.instant ? 0 : 360);
+    }
+  }
 
-  function renderPeek(){
-    if(!NARROW.matches || mobileView !== "map" || !state.selectedKey) return hidePeek();
-    const p = placesByKey[state.selectedKey];
-    if(!p) return hidePeek();
+  function syncSheetControls(){
+    const full = sheetState === "full";
+    sheetHandle.setAttribute("aria-label", full ? "Show the map" : "Show more of the list");
+    mapPill.tabIndex = full ? 0 : -1;
+    mapPill.setAttribute("aria-hidden", String(!full));
+  }
+
+  sheetHandle.addEventListener("click", ()=>{
+    if(suppressSheetClick()) return;
+    snapSheet(sheetState === "full" ? (SHORT.matches ? "collapsed" : "mid") : "full", { follow:true });
+  });
+  mapPill.addEventListener("click", ()=> snapSheet("collapsed", { follow:true }));
+  // Keyboard focus that reaches the list pulls the list up to meet it.
+  panel.addEventListener("focusin", (e)=>{
+    if(NARROW.matches && sheetState !== "full" && panelScroll.contains(e.target)) snapSheet("full");
+  });
+
+  /* ---- Dragging ----
+     Touch first (that is where a sheet lives), with the mouse as a courtesy
+     on the handle for a narrow desktop window. Anywhere on the sheet drags it
+     while it is down; once it is full the list scrolls, and only a pull down
+     from the very top of the list takes the sheet with it. A flick carries:
+     where the sheet would have got to decides where it rests. */
+  const DRAG_SLOP = 6;
+  let drag = null;
+  let clickBlockedUntil = 0;
+  const suppressSheetClick = ()=> performance.now() < clickBlockedUntil;
+
+  function dragStart(y, inList){
+    if(!NARROW.matches || stage.classList.contains("map-off")) return;
+    drag = { y0:y, sheet0:sheetY, lastY:y, lastT:performance.now(), v:0, moved:false, inList };
+  }
+  // Returns true when the move is the sheet's, so the caller can stop the
+  // browser doing anything else with it.
+  function dragMove(y){
+    if(!drag) return false;
+    const dy = y - drag.y0;
+    if(!drag.moved){
+      if(drag.inList && sheetState === "full"){
+        // A full sheet's list is a scroller. Up, or down from anywhere but
+        // the top, is a scroll and none of the sheet's business.
+        if(dy < 0 || panelScroll.scrollTop > 0){ drag = null; return false; }
+        if(dy === 0) return false;
+      } else if(Math.abs(dy) < DRAG_SLOP){
+        return true;
+      }
+      drag.moved = true;
+      beginSheetCam();
+      drag.y0 = y; drag.sheet0 = renderedSheetY();
+      panel.classList.remove("sheet-animate");
+      panel.classList.add("sheet-dragging");
+      hidePeek(); hideTooltip();
+    }
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.lastT);
+    drag.v = 0.8 * ((y - drag.lastY) / dt) + 0.2 * drag.v;
+    drag.lastY = y; drag.lastT = now;
+    let ny = drag.sheet0 + (y - drag.y0);
+    const max = sheetSnaps.collapsed;
+    if(ny < 0) ny *= 0.25;                          // resist past the top
+    if(ny > max) ny = max + (ny - max) * 0.25;      // and past the bottom
+    setSheetY(ny);
+    applySheetCam(ny);
+    return true;
+  }
+  function dragEnd(){
+    if(!drag) return;
+    const d = drag; drag = null;
+    if(!d.moved) return;
+    panel.classList.remove("sheet-dragging");
+    clickBlockedUntil = performance.now() + 350;
+    // Stale velocity (the finger stopped before lifting) counts for nothing.
+    const v = (performance.now() - d.lastT) > 90 ? 0 : d.v;
+    const projected = sheetY + v * 200;
+    const to = sheetStops().reduce((best, s)=>
+      Math.abs(sheetSnaps[s] - projected) < Math.abs(sheetSnaps[best] - projected) ? s : best);
+    snapSheet(to, { force:true, follow:true });
+  }
+
+  panel.addEventListener("touchstart", (e)=>{
+    if(e.touches.length !== 1) { drag = null; return; }
+    dragStart(e.touches[0].clientY, panelScroll.contains(e.target));
+  }, { passive:true });
+  panel.addEventListener("touchmove", (e)=>{
+    if(drag && dragMove(e.touches[0].clientY) && e.cancelable) e.preventDefault();
+  }, { passive:false });
+  panel.addEventListener("touchend", dragEnd);
+  panel.addEventListener("touchcancel", dragEnd);
+  const panelHead = panel.querySelector(".panel-head");
+  panelHead.addEventListener("pointerdown", (e)=>{
+    if(e.pointerType !== "mouse" || e.button !== 0) return;
+    dragStart(e.clientY, false);
+    panelHead.setPointerCapture(e.pointerId);
+  });
+  panelHead.addEventListener("pointermove", (e)=>{ if(e.pointerType === "mouse") dragMove(e.clientY); });
+  panelHead.addEventListener("pointerup", (e)=>{ if(e.pointerType === "mouse") dragEnd(); });
+  // A drag that ended over a row must not also open it.
+  panel.addEventListener("click", (e)=>{
+    if(suppressSheetClick()){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
+
+  // The stage changes height with the phone's toolbars and rotation; the
+  // sheet keeps its place, re-measured.
+  function relayoutSheet(){
+    if(!NARROW.matches) return;
+    measureSheet();
+    if(!sheetStops().includes(sheetState)) sheetState = "collapsed";
+    stage.dataset.sheet = sheetState;
+    panel.classList.remove("sheet-animate");
+    setSheetY(sheetSnaps[sheetState]);
+    clearPeekSpace();
+  }
+  if(window.ResizeObserver) new ResizeObserver(()=> relayoutSheet()).observe(stage);
+  SHORT.addEventListener("change", relayoutSheet);
+
+  // Crossing the breakpoint swaps one layout for the other entirely.
+  NARROW.addEventListener("change", e=>{
+    hidePeek();
+    if(e.matches){
+      setMapFull(false);
+      snapSheet(SHORT.matches ? "collapsed" : "mid", { instant:true, force:true });
+    } else {
+      stage.style.removeProperty("--sheet-y");
+      delete stage.dataset.sheet;
+      panel.classList.remove("sheet-animate", "sheet-dragging");
+      renderList({ force:true });
+    }
+    mapResize();
+  });
+
+  /* ---------------- Full-screen map (desktop) ----------------
+     The map can take the list's column for a while. The masthead stays; the
+     map card simply widens. The same button - now an X, as Airbnb has it -
+     or Escape brings the list back, showing whatever the map has moved to. */
+  const mapExpandBtn = document.getElementById("mapExpand");
+  function setMapFull(on){
+    if(stage.classList.contains("map-full") === on) return;
+    stage.classList.toggle("map-full", on);
+    mapExpandBtn.setAttribute("aria-pressed", String(on));
+    mapExpandBtn.setAttribute("aria-label", on ? "Close the full map" : "Expand the map");
+    hideTooltip();
+    // The ResizeObserver resizes the map as the column opens or closes; the
+    // list catches up once it is back.
+    if(!on) scheduleListUpdate();
+  }
+  mapExpandBtn.addEventListener("click", ()=> setMapFull(!stage.classList.contains("map-full")));
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape" && stage.classList.contains("map-full") && !openPop &&
+       !document.querySelector(".modal-scrim.open")) setMapFull(false);
+  });
+  // The skip link lands on the list's heading, so the list has to be there.
+  document.getElementById("listHeading").addEventListener("focus", ()=>{
+    setMapFull(false);
+    if(NARROW.matches && sheetState !== "full") snapSheet("full");
+  });
+
+  /* ---------------- The peek card (phones) ----------------
+     A tapped pin answers where it was tapped. The sheet steps down out of the
+     way and a card floats above it with what you need to decide: the place,
+     who recommended it, and price, time and energy. "Read what they said"
+     goes through to the full entry - the friends' own words - in the list. */
+  // The attribution sits just above the sheet, and above the card while one
+  // is open, so the credit is always readable.
+  function clearPeekSpace(){
+    mapField.style.setProperty("--peek-clear", peek.hidden ? "0px" : (peek.offsetHeight + 12) + "px");
+  }
+  function hidePeek(){
+    if(peek.hidden) return;
+    peek.hidden = true; peek.innerHTML = ""; clearPeekSpace();
+  }
+
+  function showPeek(){
+    const p = NARROW.matches && state.selectedKey && placesByKey[state.selectedKey];
+    if(!p){ hidePeek(); return; }
     peek.innerHTML = `
       <button class="peek-close" type="button" aria-label="Close">&#10005;</button>
       <div class="peek-top">
@@ -855,60 +1387,75 @@
           <p class="peek-title">${escapeHtml(p.name)}</p>
           <p class="peek-where">${escapeHtml(p.category)} <span class="sep">&middot;</span> ${escapeHtml(p.neighbourhood)}</p>
         </div>
-        <span class="peek-stars">${starsHtml(p.avgRating,"0.8em")}</span>
+        <span class="peek-stars" title="${fmtRating(p.avgRating)}/10">${starsHtml(p.avgRating,"0.9375rem")}</span>
       </div>
       <p class="peek-who">${contributorLine(p)}</p>
+      ${statRow(p)}
+      ${locationLine(p)}
       <div class="peek-actions">
-        <button class="peek-open" type="button">Read what they said</button>
+        <button class="btn-primary peek-open" type="button">Read what they said</button>
         <a class="maps-link" href="${p.mapsUrl}" target="_blank" rel="noopener">Open in Google Maps</a>
       </div>`;
     peek.hidden = false;
+    clearPeekSpace();
     peek.querySelector(".peek-close").addEventListener("click", ()=>{
       state.selectedKey = null; refresh(); hidePeek();
     });
     peek.querySelector(".peek-open").addEventListener("click", ()=>{
       const key = state.selectedKey;
-      setView("list");
+      hidePeek();
+      snapSheet("full");
       const card = document.getElementById("card-"+key);
-      if(card) card.scrollIntoView({behavior:scrollEase(), block:"center"});
+      if(card) scrollRowIntoIndex(card);
     });
   }
 
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
   const scrollEase = ()=> (REDUCED_MOTION && REDUCED_MOTION.matches) ? "auto" : "smooth";
 
-  function scrollRowIntoIndex(card){
-    // In the mobile map view the index isn't on screen at all, and the peek
-    // card is what answers the tap - scrolling to a hidden row would only
-    // move the page out from under the map.
-    if(NARROW.matches && mobileView === "map") return;
+  // scrollIntoView walks every scrollable ancestor, so it would move the page
+  // as well as the list. Scroll the list itself and leave the page alone.
+  function scrollRowIntoIndex(card, instant){
+    const behavior = instant ? "auto" : scrollEase();
     const box = card.closest(".panel-scroll");
-    if(!box || box.scrollHeight <= box.clientHeight + 1){
-      card.scrollIntoView({behavior:scrollEase(), block:"center"});
-      return;
-    }
+    if(!box) return;
     const cb = card.getBoundingClientRect(), bb = box.getBoundingClientRect();
-    const top = box.scrollTop + (cb.top - bb.top) - (bb.height - cb.height)/2;
-    box.scrollTo({top:Math.max(0, top), behavior:scrollEase()});
+    // A just-opened entry is read from its top, so it is brought near the
+    // top of the list rather than centred with its detail cut off.
+    const top = box.scrollTop + (cb.top - bb.top) - Math.min(24, (bb.height - cb.height)/2);
+    box.scrollTo({top:Math.max(0, top), behavior});
   }
 
-  function selectPlace(key, scrollMap){
+  // fromMap: the selection came from a pin rather than from the list.
+  function selectPlace(key, fromMap){
     state.selectedKey = (state.selectedKey===key) ? null : key;
     refresh();
-    if(state.selectedKey){
+    if(NARROW.matches){
+      if(fromMap && state.selectedKey){
+        // Map-focused: the sheet steps down and the card answers the tap.
+        snapSheet("collapsed");
+        showPeek();
+      } else {
+        hidePeek();
+        // An entry opened in the list is read in the list, all of it.
+        if(state.selectedKey){
+          snapSheet("full");
+          const card = document.getElementById("card-"+state.selectedKey);
+          if(card) scrollRowIntoIndex(card);
+        }
+      }
+    } else if(state.selectedKey){
       const card = document.getElementById("card-"+state.selectedKey);
       if(card) scrollRowIntoIndex(card);
-      const marker = markerEls[state.selectedKey];
-      if(marker) atlas.appendChild(marker);
     }
-    renderPeek();
+    if(state.selectedKey) revealOnMap(state.selectedKey);
   }
 
   /* ---------------- Planner (Help me choose) ---------------- */
   const TIME_OPTIONS = [
     {id:"t1", label:"Up to 2 hours", cap:2, days:1},
     {id:"t2", label:"2 to 4 hours", cap:4, days:1},
-    {id:"t3", label:"1 day", cap:6, days:1},
+    {id:"t3", label:"1 day", cap:6, days:1},   // a day is 6 to 7 hours: see DAY_HOURS
     {id:"t4", label:"2 days", cap:12, days:2},
     {id:"t5", label:"3 days", cap:18, days:3}
   ];
@@ -916,7 +1463,8 @@
     {id:1, label:"Low"}, {id:2, label:"Medium"}, {id:3, label:"High"}
   ];
   const BUDGET_OPTIONS = [
-    {id:0, label:"Free"}, {id:1, label:"$"}, {id:2, label:"$$"}, {id:3, label:"$$$"}, {id:4, label:"$$$$"}
+    // The same ranges the recommendations and the filter use.
+    ...PRICE_LABELS.map((label, id)=>({id, label}))
   ];
 
   // Highest tier on each already covers everything at or below it, so there's
@@ -985,30 +1533,185 @@
   function openModal(){ renderForm(); openScrim(scrim, openPlannerBtn); }
   function closeModal(){ closeScrim(scrim); }
 
-  // Contribute and the city selector are visible product now, but neither
-  // feature exists yet - so both open an honest holding modal rather than
-  // pretending to work. They reuse the same focus trap as the other modals.
-  [["citiesScrim","openCities","closeCities"],
-   ["contributeScrim","openContribute","closeContribute"]].forEach(([scrimId, openId, closeId])=>{
-    const el = document.getElementById(scrimId);
-    const btn = document.getElementById(openId);
-    btn.addEventListener("click", ()=> openScrim(el, btn));
-    document.getElementById(closeId).addEventListener("click", ()=> closeScrim(el));
-    el.addEventListener("click", (e)=>{ if(e.target===el) closeScrim(el); });
+  /* ---------------- Contribute ----------------
+     One text box: where should I go next, and what's good there. It posts to
+     Formspree, which emails each one on - there is no backend of our own.
+     Submissions are kept in the Formspree dashboard; whether each one is
+     also emailed is a setting on the form there, not here. */
+  const CONTRIBUTE_ENDPOINT = "https://formspree.io/f/xnppdrzn";
+  const contributeScrim = document.getElementById("contributeScrim");
+  const openContributeBtn = document.getElementById("openContribute");
+  const cfForm = document.getElementById("contributeForm");
+  const cfMessage = document.getElementById("cfMessage");
+  const cfStatus = document.getElementById("cfStatus");
+  const cfSend = document.getElementById("cfSend");
+  const cfThanks = document.getElementById("cfThanks");
+  openContributeBtn.addEventListener("click", ()=> openScrim(contributeScrim, openContributeBtn));
+  document.getElementById("closeContribute").addEventListener("click", ()=> closeScrim(contributeScrim));
+  contributeScrim.addEventListener("click", (e)=>{ if(e.target===contributeScrim) closeScrim(contributeScrim); });
+
+  function cfSay(text, isError){
+    cfStatus.textContent = text;
+    cfStatus.classList.toggle("is-error", !!isError);
+  }
+  cfMessage.addEventListener("input", ()=>{ if(cfStatus.classList.contains("is-error")) cfSay(""); });
+  cfForm.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    if(!cfMessage.value.trim()){ cfSay("Write a place or two first.", true); cfMessage.focus(); return; }
+    if(!CONTRIBUTE_ENDPOINT){ cfSay("This isn't connected yet, so nothing was sent.", true); return; }
+    cfSend.disabled = true; cfSend.textContent = "Sending…"; cfSay("");
+    try {
+      const res = await fetch(CONTRIBUTE_ENDPOINT, {
+        method:"POST", body:new FormData(cfForm), headers:{ "Accept":"application/json" }
+      });
+      if(!res.ok) throw new Error("Formspree responded " + res.status);
+      cfForm.reset();
+      cfForm.hidden = true; cfThanks.hidden = false;
+      document.getElementById("cfAnother").focus();
+    } catch (err) {
+      console.error("Could not send the recommendation.", err);
+      cfSay("That didn't send. Check your connection and try again.", true);
+    } finally {
+      cfSend.disabled = false; cfSend.textContent = "Send";
+    }
+  });
+  document.getElementById("cfAnother").addEventListener("click", ()=>{
+    cfThanks.hidden = true; cfForm.hidden = false; cfMessage.focus();
   });
 
+  // "Why this exists" has two triggers - under the tagline on desktop, in the
+  // action row on a phone - and focus goes back to whichever was pressed.
   const storyScrim = document.getElementById("storyScrim");
-  const openStoryBtn = document.getElementById("openStory");
-  openStoryBtn.addEventListener("click", ()=> openScrim(storyScrim, openStoryBtn));
+  document.querySelectorAll("[data-open-story]").forEach(btn=>
+    btn.addEventListener("click", ()=> openScrim(storyScrim, btn)));
   document.getElementById("closeStory").addEventListener("click", ()=> closeScrim(storyScrim));
   storyScrim.addEventListener("click",(e)=>{ if(e.target===storyScrim) closeScrim(storyScrim); });
 
+  /* ---------------- Popovers ----------------
+     A small anchored panel that is not a dialog: it opens under the button
+     that asked for it, and Escape, a click anywhere else or tabbing out of it
+     closes it and hands focus back. The city menu uses it now; the filters
+     will too. The element is placed with position:fixed from the trigger's
+     own box, so one popover can serve triggers in different parts of the page. */
+  let openPop = null;   // { pop, trigger, onKey, onDown }
+  const POP_GAP = 8, POP_EDGE = 12;
+
+  function placePopover(pop, trigger, align){
+    const r = trigger.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    let left = align === "end" ? r.right - w : r.left;
+    left = Math.max(POP_EDGE, Math.min(left, window.innerWidth - w - POP_EDGE));
+    pop.style.left = left + "px";
+    pop.style.top = (r.bottom + POP_GAP) + "px";
+    // Tall panels scroll inside themselves rather than run off the window.
+    pop.style.maxHeight = Math.max(200, window.innerHeight - r.bottom - POP_GAP - POP_EDGE) + "px";
+  }
+
+  function closePopover(returnFocus){
+    if(!openPop) return;
+    const { pop, trigger, onKey, onDown } = openPop;
+    openPop = null;
+    pop.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("pointerdown", onDown, true);
+    pop.removeEventListener("focusout", pop._onFocusOut);
+    if(returnFocus) trigger.focus();
+  }
+
+  // focusTarget: where focus lands on open. By default the first control;
+  // the filter panel takes it itself, so a phone does not raise its keyboard
+  // for the search box the moment the panel opens.
+  function openPopover(pop, trigger, align, focusTarget){
+    if(openPop && openPop.pop === pop && openPop.trigger === trigger){ closePopover(true); return; }
+    closePopover(false);
+    pop.hidden = false;
+    placePopover(pop, trigger, align);
+    trigger.setAttribute("aria-expanded", "true");
+    const onKey = (e)=>{ if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); closePopover(true); } };
+    const onDown = (e)=>{ if(!pop.contains(e.target) && !trigger.contains(e.target)) closePopover(false); };
+    pop._onFocusOut = (e)=>{ if(e.relatedTarget && !pop.contains(e.relatedTarget) && e.relatedTarget !== trigger) closePopover(false); };
+    pop.addEventListener("focusout", pop._onFocusOut);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("pointerdown", onDown, true);
+    openPop = { pop, trigger, onKey, onDown };
+    const first = focusTarget || pop.querySelector("button, input, select, [tabindex]:not([tabindex='-1'])");
+    if(first) first.focus({ preventScroll:true });
+  }
+  // A popover is measured once, where it opened; it is closed rather than
+  // chased when the window's width changes under it. Height alone changes
+  // whenever a phone's keyboard comes up, and that must not close anything.
+  let popLastWidth = window.innerWidth;
+  window.addEventListener("resize", ()=>{
+    if(window.innerWidth !== popLastWidth){ popLastWidth = window.innerWidth; closePopover(false); }
+  });
+
+  /* On a phone the filters are a sheet, so a sheet's gesture puts them away:
+     swipe down and they follow the finger; let go far enough down, or with a
+     flick, and they close. Short of that they settle back. Inside the
+     options a pull down only counts once they are scrolled to the top. */
+  const fpBody = filterPanel.querySelector(".fp-body");
+  let fpDrag = null;
+  function fpSettle(y, then){
+    filterPanel.style.transition = "transform .22s cubic-bezier(.3,.7,.2,1)";
+    filterPanel.style.transform = y ? "translateY(" + y + "px)" : "";
+    // The drag class stays until the panel next opens: taking it off here
+    // would replay the opening animation on a sheet that never left.
+    setTimeout(()=>{
+      filterPanel.style.transition = "";
+      if(then) then();
+    }, 230);
+  }
+  filterPanel.addEventListener("touchstart", (e)=>{
+    if(!NARROW.matches || e.touches.length !== 1){ fpDrag = null; return; }
+    const y = e.touches[0].clientY;
+    fpDrag = { y0:y, lastY:y, lastT:performance.now(), v:0, on:false, inBody: fpBody.contains(e.target) };
+  }, { passive:true });
+  filterPanel.addEventListener("touchmove", (e)=>{
+    if(!fpDrag) return;
+    const y = e.touches[0].clientY, dy = y - fpDrag.y0;
+    if(!fpDrag.on){
+      if(dy < 0 || (fpDrag.inBody && fpBody.scrollTop > 0)){ fpDrag = null; return; }
+      if(dy < DRAG_SLOP) return;
+      fpDrag.on = true;
+      filterPanel.classList.add("fp-dragging");
+    }
+    const now = performance.now();
+    fpDrag.v = 0.8 * ((y - fpDrag.lastY) / Math.max(1, now - fpDrag.lastT)) + 0.2 * fpDrag.v;
+    fpDrag.lastY = y; fpDrag.lastT = now;
+    filterPanel.style.transform = "translateY(" + Math.max(0, dy) + "px)";
+    if(e.cancelable) e.preventDefault();
+  }, { passive:false });
+  function fpDragEnd(){
+    if(!fpDrag) return;
+    const d = fpDrag; fpDrag = null;
+    if(!d.on) return;
+    const dy = d.lastY - d.y0;
+    const flick = (performance.now() - d.lastT) < 90 && d.v > 0.5;
+    if(flick || dy > filterPanel.offsetHeight * 0.3){
+      fpSettle(filterPanel.offsetHeight, ()=>{ closePopover(true); filterPanel.style.transform = ""; });
+    } else {
+      fpSettle(0);
+    }
+  }
+  filterPanel.addEventListener("touchend", fpDragEnd);
+  filterPanel.addEventListener("touchcancel", fpDragEnd);
+
+  // The city menu. Toronto is the only city, so choosing it just closes the
+  // menu; the note says why there isn't more to choose from.
+  const cityMenu = document.getElementById("cityMenu");
+  document.querySelectorAll("[data-city-trigger]").forEach(btn=>
+    btn.addEventListener("click", ()=> openPopover(cityMenu, btn, "start")));
+  cityMenu.querySelector(".pop-item").addEventListener("click", ()=> closePopover(true));
+
   const plannerLede = document.getElementById("plannerLede");
-  const FORM_LEDE = "Give me an idea of what you want to do and I'll build a few plans based on real recommendations from my friends.";
   const RESULTS_LEDE = "Three ways to spend it, assembled from what my friends actually recommended.";
 
+  // The form needs no introduction; the results get one line.
+  function setLede(text){ plannerLede.textContent = text; plannerLede.hidden = !text; }
+
   function renderForm(){
-    plannerLede.textContent = FORM_LEDE;
+    setLede("");
     body.innerHTML = `
       <div class="field-group">
         <span class="field-label">Activity</span>
@@ -1023,7 +1726,7 @@
         <div class="option-grid" id="pf-energy"></div>
       </div>
       <div class="field-group">
-        <span class="field-label">Maximum budget</span>
+        <span class="field-label">Max price per activity</span>
         <div class="option-grid" id="pf-budget"></div>
       </div>
       <div class="modal-footer">
@@ -1136,10 +1839,17 @@
     "Nightlife":1
   };
 
-  function fillBucket(rng, pool, hoursCap, used, opts){
+  // A day lands anywhere from 6 to 7 hours, so three plans don't all come
+  // out at exactly six. Durations come in steps of 45 minutes or more, so a
+  // day either stops as soon as it reaches six or keeps going while it still
+  // fits under seven - a coin toss per day, which gives 6h, 6h 30m and 6h 45m.
+  const DAY_HOURS = { min:6, max:7 };
+
+  // A bucket fills until it reaches stopAt, and nothing may take it past ceiling.
+  function fillBucket(rng, pool, stopAt, ceiling, used, opts){
     opts = opts || {};
     const chosen = [];
-    let hoursLeft = hoursCap;
+    let filled = 0;
     const catCount = {};
 
     function capFor(cat){
@@ -1147,7 +1857,7 @@
       return CATEGORY_DAY_CAP[cat] ?? 2;
     }
     function eligible(fromPool){
-      return fromPool.filter(p=> !used.has(p.key) && p.hours <= hoursLeft + 0.15
+      return fromPool.filter(p=> !used.has(p.key) && filled + p.hours <= ceiling
         && (catCount[p.category]||0) < capFor(p.category));
     }
     function takeOne(fromPool){
@@ -1157,7 +1867,7 @@
       chosen.push(pick);
       used.add(pick.key);
       catCount[pick.category] = (catCount[pick.category]||0) + 1;
-      hoursLeft -= pick.hours;
+      filled += pick.hours;
       return pick;
     }
 
@@ -1168,7 +1878,7 @@
     }
 
     let guard = 0;
-    while(hoursLeft > 0.4 && guard < 200){
+    while(filled < stopAt && guard < 200){
       guard++;
       if(!takeOne(pool)) break;
     }
@@ -1200,9 +1910,13 @@
     const used = new Set();
     const clusters = kmeansCluster(candidates, timeOpt.days, rng);
     const days = [];
+    const fullDays = timeOpt.cap >= DAY_HOURS.min * timeOpt.days;
     clusters.slice(0, timeOpt.days).forEach(cluster=>{
-      const cap = timeOpt.days>1 ? 6 : timeOpt.cap;
-      const items = fillBucket(rng, cluster, cap, used, opts);
+      // Shorter outings keep their old fit: within 0.4h under the cap, at
+      // most 0.15h over it.
+      const items = fullDays
+        ? fillBucket(rng, cluster, rng() < 0.5 ? DAY_HOURS.min : DAY_HOURS.max, DAY_HOURS.max, used, opts)
+        : fillBucket(rng, cluster, timeOpt.cap - 0.4, timeOpt.cap + 0.15, used, opts);
       if(items.length) days.push(items);
     });
     const flat = days.flat();
@@ -1237,7 +1951,7 @@
   }
 
   function renderResults(){
-    plannerLede.textContent = RESULTS_LEDE;
+    setLede(RESULTS_LEDE);
     const timeOpt = TIME_OPTIONS.find(t=>t.id===plannerState.timeId);
     const cats = plannerState.categories;
     let candidates = places.filter(p=>{
@@ -1320,26 +2034,10 @@
     `;
   }
 
-  /* ---------------- Footer ---------------- */
-  function renderFooter(){
-    const hoods = [...new Set(places.map(p=>p.neighbourhood))].sort();
-    // The track is duplicated so the loop can translate a full copy width and
-    // land back exactly where it started, with no visible seam.
-    const strip = hoods.map(h=>`<span>${escapeHtml(h)}</span>`).join("");
-    document.getElementById("marqueeTrack").innerHTML = strip + strip;
-
-    const friends = new Set(recs.map(r=>r.alias)).size;
-    document.getElementById("colophon").textContent =
-      `${places.length} places · ${recs.length} recommendations · ${friends} friends · Toronto`;
-  }
-
   /* ---------------- Init ---------------- */
-  renderFooter();
-  renderAtlasChrome();
-  fitMapToViewport();
-  renderLegend();
-  renderFilterBar();
-  renderRefineBar();
+  if(NARROW.matches) snapSheet(SHORT.matches ? "collapsed" : "mid", { instant:true, force:true });
+  initMap();
+  renderFilters();
   refresh();
 
   // The load moment is over once it has played. Taking the class off means

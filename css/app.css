@@ -11,10 +11,13 @@
        Two real grounds. Chrome (page, masthead, filter rail,
        footer) sits on the deeper --paper-2; content plates
        (map, index) sit on the lighter --paper. */
-    --paper:#FBF7ED;       /* content plates                     */
-    --paper-2:#F3EDDF;     /* chrome ground                      */
-    --paper-3:#EFE8D7;     /* recessed: notes, chips, insets     */
-    --card:#FFFCF5;        /* raised: peek card + modals only    */
+    /* Lifted about two shades in the polish pass, and one more after it:
+       the old chrome ground read as dull, then as beige. Still warm,
+       never stark white. */
+    --paper:#FEFCF8;       /* content plates                     */
+    --paper-2:#FBF9F3;     /* chrome ground: the page itself     */
+    --paper-3:#F4F1E9;     /* recessed: chips, insets            */
+    --card:#FFFEFB;        /* raised: panels, popovers, modals   */
 
     /* --- Ink -------------------------------------------------- */
     --ink:#1E241C;         /* primary text            15.0:1     */
@@ -37,14 +40,15 @@
 
     /* --- Ochre: the one supporting accent ---------------------
        Decorative only. Never on a control, never as body text. */
-    --ochre:#B8863B;       /* stamps, marquee, marks   3.0:1     */
+    --ochre:#B8863B;       /* accents and marks only   3.0:1     */
     --ochre-ink:#8A5C25;   /* the text-safe variant    5.4:1     */
     --star:#A8761F;        /* star fill                3.7:1     */
 
     /* --- Water: stays unmistakably blue ----------------------- */
-    --water-fill:#A9C6D4;
+    --map-land:#EEF0EF;      /* the map's ground: cool stone, before the tiles land too */
+    --water-fill:#A9CFDF;
     --water-line:#3C6A80;    /* the coast: a line, 3.3:1 on --water-fill */
-    --water-ink:#2A4E60;     /* text on the water        5.0:1          */
+    --water-ink:#2A4E60;     /* text on the water 5.0:1 - the map style's water labels */
 
     /* --- Category colours -------------------------------------
        The only other colour in the interface. Outdoors sits well
@@ -65,15 +69,21 @@
     --font-display:'Instrument Serif', Georgia, 'Iowan Old Style', serif;
     --font-body:'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-    /* --- Radius: encodes what a thing is, not taste ----------- */
-    --r-flat:2px;          /* the default: almost everything     */
-    --r-pill:999px;        /* pills, markers, stamps             */
-    --r-sheet:16px;        /* mobile peek card + modals          */
+    /* --- Radius: one soft family ------------------------------
+       Functional UI is rounded and quiet; the personality comes
+       from type, photos and accents, not from the controls. */
+    --r-sm:10px;           /* inputs, selects, map controls      */
+    --r-md:16px;           /* cards, rows, popovers, peek card   */
+    --r-lg:24px;           /* modals, panels, the map card       */
+    --r-pill:999px;        /* buttons, chips, markers            */
 
     /* --- Elevation --------------------------------------------
-       Nothing floats except the peek card and the modals, which
-       set their own shadow. Everything else is flat on paper. */
-    --shadow:none;
+       Soft and low, never a hard edge. --shadow-1 lifts a control
+       off the map; --shadow-2 is for things that float over the
+       page (popovers, panels, modals). */
+    --shadow-1:0 1px 2px rgba(30,36,28,.08), 0 3px 10px rgba(30,36,28,.10);
+    --shadow-2:0 2px 6px rgba(30,36,28,.06), 0 16px 40px -8px rgba(30,36,28,.22);
+    --line-soft:#E6E0D2;   /* hairline on the lighter grounds    */
 
     /* --- Spacing: 4px base ------------------------------------ */
     --s-1:4px;  --s-2:8px;  --s-3:12px; --s-4:16px;
@@ -100,16 +110,15 @@
   button{font-family:inherit; cursor:pointer;}
   a{color:inherit;}
   ::selection{background:var(--green); color:var(--paper);}
-  :focus-visible{outline:2.5px solid var(--green); outline-offset:2px; border-radius:var(--r-flat);}
+  :focus-visible{outline:2.5px solid var(--green); outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
-    .marquee-track{animation:none !important;}
   }
   /* A map is a lot of page to tab past to reach the thing you came for. */
   .skip-link{
     position:absolute; left:var(--s-4); top:-60px; z-index:60;
     background:var(--green); color:var(--paper);
-    padding:10px 16px; border-radius:var(--r-flat);
+    padding:10px 16px; border-radius:var(--r-pill);
     font-family:var(--font-body); font-size:.875rem; font-weight:600;
     text-decoration:none;
     transition:top .12s ease;
@@ -119,167 +128,406 @@
   .visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
 
   /* ---------- Shell -------------------------------------------
-     No centred max-width column any more. The masthead is a band and
-     the map is a field that runs to the edges of the window. */
-  .app{position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh;}
+     An app, not a page: the strip, the masthead, and the stage taking
+     exactly the rest of the window. Nothing lives below the stage. The
+     stage's height is measured by the layout, not guessed. */
+  .app{
+    position:relative; z-index:1;
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh;
+  }
+  .mob-only{display:none !important;}
+
+  /* ---------- The checker strip -------------------------------
+     Two rows of 8px checks, deep green on paper, along the top edge
+     only. One repeating gradient - no image, no request. */
+  .checker{
+    flex:0 0 auto;
+    height:16px;
+    background:repeating-conic-gradient(var(--green-deep) 0 25%, var(--paper) 0 50%) 0 0 / 16px 16px;
+  }
 
   /* ---------- Masthead ----------------------------------------
-     Identity sits in its own band above the map, so the type never
-     competes with the pin cluster for the same space. */
+     A compact band: identity on the left, the tagline on one line
+     beside it with "Why this exists" tucked under, and the actions on
+     the right. */
   .masthead{
+    flex:0 0 auto;
     display:flex;
-    align-items:flex-start;
+    align-items:center;
     justify-content:space-between;
     gap:var(--s-5);
-    flex-wrap:wrap;
-    padding:var(--s-4) var(--s-6) var(--s-5);
+    padding:var(--s-3) var(--s-6);
     background:var(--paper-2);
-    border-bottom:1.5px dashed var(--green-line);
+    border-bottom:1px solid var(--line-soft);
   }
+  .mast-id{display:flex; align-items:center; gap:var(--s-5); min-width:0;}
   .word{
     font-family:var(--font-display);
-    font-size:clamp(2.1rem, 3.6vw, 3.1rem);
+    font-size:2.25rem;
     font-weight:400;
     letter-spacing:-.04em;
-    line-height:.94;
+    line-height:1;
     margin:0;
     color:var(--green-deep);
+    white-space:nowrap;
   }
   .word .dot{color:var(--ochre);}
+  .mast-sub{
+    display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+    padding-left:var(--s-5);
+    border-left:1px solid var(--line-soft);
+  }
   .kicker{
     font-family:var(--font-display);
     font-style:italic;
-    font-size:1.0625rem;
+    font-size:1.1875rem;
+    line-height:1.25;
     color:var(--ink-2);
-    margin:var(--s-2) 0 0;
-    max-width:34ch;
+    margin:0;
+    white-space:nowrap;
   }
-  .kicker strong{font-weight:400; color:var(--ink);}
+  /* Instrument Serif has no bold, and a synthesised one smears. A hairline
+     stroke in the text's own colour thickens "actually" just enough. */
+  .kicker strong{
+    font-weight:400; color:var(--green-deep);
+    -webkit-text-stroke:.45px currentColor;
+    paint-order:stroke fill;
+  }
+  /* "Why this exists" on desktop: a small note left on the corner of the
+     map - the one corner none of the map's own controls use. On a phone
+     the bottom of the map belongs to the list, so there it lives in the
+     masthead's action row instead. */
+  .why-float{
+    position:absolute; z-index:3;
+    left:var(--s-4); bottom:var(--s-4);
+    display:inline-flex; align-items:center; gap:8px;
+    min-height:40px; padding:0 16px 0 12px;
+    background:var(--card); border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-1);
+    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    color:var(--green-deep);
+    transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .why-float:hover{box-shadow:var(--shadow-2); transform:translateY(-1px);}
+  .why-float svg{
+    width:18px; height:18px; fill:none; stroke:var(--ochre-ink); stroke-width:1.6;
+    stroke-linejoin:round;
+  }
+  .mapfield.is-unavailable .why-float{display:none;}
   .mast-right{
     display:flex; align-items:center; gap:var(--s-2);
-    flex-wrap:wrap; justify-content:flex-end;
+    flex:0 0 auto;
   }
-  .mast-nav{display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;}
-  .nav-link{
-    display:inline-flex; align-items:center; min-height:44px;
-    background:none; border:none;
-    font-family:var(--font-body); font-size:.9375rem; font-weight:500;
-    color:var(--ink-2); padding:0 10px; border-radius:var(--r-flat);
-  }
-  .nav-link:hover{color:var(--green); text-decoration:underline; text-underline-offset:4px;}
-  .city-stamp{
-    display:inline-flex; flex-direction:column; align-items:center; gap:1px;
-    padding:6px 16px;
-    background:none; border:1.5px solid var(--ochre); border-radius:var(--r-pill);
+  /* Secondary actions (Contribute; on a phone, Why this exists too) are the
+     same white pill as the city selector; Plan my trip is the one filled. */
+  .pill-btn{
+    display:inline-flex; align-items:center; min-height:40px;
+    padding:0 16px;
+    background:var(--card); border:1px solid var(--line-soft); border-radius:var(--r-pill);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600;
     color:var(--green-deep);
-    transform:rotate(-1.2deg);
-    transition:transform .18s ease, border-color .18s ease;
+    box-shadow:0 1px 2px rgba(30,36,28,.05);
+    transition:border-color .12s ease, box-shadow .12s ease;
   }
-  .city-stamp:hover{transform:rotate(0deg); border-color:var(--ochre-ink);}
-  .city-stamp-name{font-family:var(--font-display); font-size:1.0625rem; line-height:1;}
-  .city-stamp-sub{
-    font-family:var(--font-body); font-size:.5625rem; font-weight:600;
-    letter-spacing:.18em; text-transform:uppercase; color:var(--ochre-ink);
+  .pill-btn:hover{border-color:var(--line-control); box-shadow:var(--shadow-1);}
+
+  /* The city selector reads as a selector: the name and a chevron, in a
+     quiet outlined pill. It opens the city menu (a popover), not a modal. */
+  .city-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:40px; padding:0 12px 0 16px;
+    background:var(--card); border:1px solid var(--line-soft); border-radius:var(--r-pill);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600;
+    color:var(--green-deep);
+    box-shadow:0 1px 2px rgba(30,36,28,.05);
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .city-btn:hover{border-color:var(--line-control); box-shadow:var(--shadow-1);}
+  .city-btn .chev{
+    width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round;
+    transition:transform .18s ease;
+  }
+  .city-btn[aria-expanded="true"] .chev{transform:rotate(180deg);}
+  .city-btn-sm{min-height:36px; font-size:.875rem; padding:0 10px 0 14px;}
+
+  /* ---------- Popovers ----------------------------------------
+     Anchored panels that are not dialogs. Placed by openPopover(). */
+  .popover{
+    position:fixed; z-index:45;
+    background:var(--card);
+    border:1px solid var(--line-soft);
+    border-radius:var(--r-md);
+    box-shadow:var(--shadow-2);
+    animation:pop-in .16s ease both;
+  }
+  .popover[hidden]{display:none;}
+  @keyframes pop-in{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
+  @keyframes sheet-up{ from{transform:translateY(24px); opacity:0;} to{transform:none; opacity:1;} }
+  .city-pop{padding:6px; min-width:230px;}
+  .pop-item{
+    display:flex; align-items:center; justify-content:space-between; gap:var(--s-3);
+    width:100%; min-height:44px; padding:0 12px;
+    background:none; border:none; border-radius:var(--r-sm);
+    font-family:var(--font-body); font-size:.9375rem; font-weight:600; color:var(--ink);
+    text-align:left;
+  }
+  .pop-item:hover{background:var(--paper-3);}
+  .pop-item .tick{
+    width:18px; height:18px; fill:none; stroke:var(--green); stroke-width:2.2;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .pop-note{
+    padding:8px 12px 10px;
+    margin-top:2px;
+    border-top:1px solid var(--line-soft);
+    font-family:var(--font-display); font-style:italic;
+    font-size:1rem; color:var(--ink-3);
+  }
+
+  /* ---------- The filter panel -------------------------------
+     Search, activity, price, rating and sort in one place. Chips share
+     the site's one selected state: green fill, paper ink. */
+  .filter-pop{
+    width:432px;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .filter-pop:focus{outline:none;}
+  .fp-grab{display:none;}
+  .fp-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:var(--s-4) var(--s-5) var(--s-2);
+  }
+  .fp-title{
+    font-family:var(--font-body); font-weight:600;
+    font-size:1.0625rem; letter-spacing:-.01em; color:var(--ink);
+  }
+  .fp-clear{
+    background:none; border:none; padding:6px 2px;
+    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
+    color:var(--ink);
+    text-decoration:underline; text-underline-offset:3px;
+  }
+  .fp-clear:disabled{color:var(--ink-3); text-decoration:none; cursor:default; opacity:.6;}
+  .fp-body{
+    flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain;
+    display:flex; flex-direction:column; gap:var(--s-5);
+    padding:var(--s-2) var(--s-5) var(--s-5);
+  }
+  .fp-search{
+    display:flex; align-items:center; gap:10px;
+    min-height:46px; padding:0 16px;
+    background:var(--card);
+    border:1px solid var(--line-control); border-radius:var(--r-pill);
+    color:var(--ink-3);
+  }
+  .fp-search:focus-within{border-color:var(--green); box-shadow:0 0 0 1px var(--green);}
+  .fp-search .ic{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; flex:0 0 auto;}
+  .fp-search input{
+    flex:1; min-width:0; border:none; outline:none; background:none;
+    font-family:var(--font-body); font-size:.9375rem; color:var(--ink);
+  }
+  .fp-search input::placeholder{color:var(--ink-3);}
+  .fp-group{border:0; margin:0; padding:0; min-width:0;}
+  .fp-label{
+    display:block; padding:0; margin-bottom:var(--s-2);
+    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
+    color:var(--ink);
+  }
+  .chip-row{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:36px; padding:0 13px;
+    background:var(--card); color:var(--ink);
+    border:1px solid var(--line-soft); border-radius:var(--r-pill);
+    font-family:var(--font-body); font-size:.8125rem; font-weight:500;
+    transition:border-color .12s ease, background .12s ease, color .12s ease;
+  }
+  .chip:hover{border-color:var(--ink-3);}
+  .chip.on{background:var(--green); border-color:var(--green); color:var(--paper);}
+  #priceBar .chip{padding:0 12px;}
+  .chip-ic{display:inline-flex;}
+  .chip.on .chip-ic{color:inherit !important;}
+  .fp-pair{display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3);}
+  .fp-field{display:flex; flex-direction:column; min-width:0;}
+  .f-select{
+    appearance:none; -webkit-appearance:none;
+    width:100%; min-height:44px; padding:0 36px 0 14px;
+    background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23636B5C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px 16px;
+    border:1px solid var(--line-control); border-radius:var(--r-sm);
+    font-family:var(--font-body); font-size:.875rem; font-weight:500; color:var(--ink);
+    cursor:pointer;
+  }
+  .f-select:hover{border-color:var(--ink-3);}
+  .fp-foot{
+    padding:var(--s-3) var(--s-5) var(--s-4);
+    border-top:1px solid var(--line-soft);
+    background:var(--card);
+  }
+  .fp-done{width:100%;}
+
+  /* Between the phone layout and a wide window there is not room for the
+     wordmark, a one-line tagline and the actions side by side, so the
+     tagline steps under the wordmark rather than wrapping or overlapping. */
+  @media (min-width: 881px) and (max-width: 1140px){
+    .mast-id{flex-direction:column; align-items:flex-start; gap:4px;}
+    .mast-sub{padding-left:0; border-left:none; flex-direction:row; align-items:baseline; gap:var(--s-3);}
+    .word{font-size:2rem;}
   }
 
   /* ---------- The stage ---------------------------------------
-     The map is the ground the product stands on: full-bleed, no
-     border, no radius. The index floats over it on paper. */
+     The product canvas: the map as a rounded card taking about 70% of
+     the width, and one column of recommendations beside it on the page
+     ground. The list column can fold away to give the map the lot. */
   .stage{
+    --list-w:clamp(384px, 30%, 480px);
     position:relative;
-    flex:1 0 auto;
-    height:calc(100vh - 156px);
-    min-height:540px;
+    flex:1 1 auto;
+    min-height:420px;
     overflow:hidden;
-    background:var(--paper);
+    display:grid;
+    grid-template-columns:minmax(0,1fr) var(--list-w);
+    padding:var(--s-4) 0 var(--s-4) var(--s-4);
+    background:var(--paper-2);
+    transition:grid-template-columns .32s cubic-bezier(.3,.7,.2,1), padding .32s cubic-bezier(.3,.7,.2,1);
   }
-  /* The map/index switch and the peek card belong to the mobile stage only.
-     On desktop both halves are on screen, so neither has a job. */
-  .viewswitch{display:none;}
+  .stage.map-full{grid-template-columns:minmax(0,1fr) 0px; padding-right:var(--s-4);}
+  .stage.map-full .panel{visibility:hidden;}
+  /* The control row, the sheet's handle, the Map pill and the peek card
+     belong to the phone layout only. */
+  .sheet-handle, .map-pill{display:none;}
   .peek{display:none;}
 
-  .mapfield{position:absolute; inset:0; z-index:0;}
-  svg.atlas{display:block; width:100%; height:100%;}
-  .schematic{
-    position:absolute; left:var(--s-6); top:var(--s-5); z-index:2;
+  .mapfield{
+    position:relative; z-index:0; min-width:0; min-height:0;
+    border-radius:var(--r-lg);
+    overflow:hidden;
+    background:var(--map-land);
+    box-shadow:0 0 0 1px var(--line-soft);
+    /* Safari only clips a transformed child (the map canvas) to rounded
+       corners when the clipping box has its own layer. */
+    isolation:isolate;
+  }
+  /* Fills .mapfield rather than positioning itself: MapLibre puts its own
+     position:relative on the container, and fighting that is not worth a rule. */
+  .atlas{display:block; width:100%; height:100%;}
+  /* MapLibre paints its own background before the style loads; make that
+     moment paper rather than the library's grey. */
+  .atlas, .maplibregl-canvas-container, .maplibregl-canvas{background:var(--map-land);}
+  /* ---------- The map's note ----------------------------------
+     One line of the display face while the map draws, and a short plain
+     paragraph if it can't. Centred on the map. */
+  .map-note{
+    position:absolute; z-index:3; top:50%; left:50%;
+    transform:translate(-50%, -50%);
+    max-width:min(34ch, 80%);
+    text-align:center; color:var(--ink-2); font-size:.875rem; line-height:1.5;
+    pointer-events:none;
+  }
+  .map-note:empty{display:none;}
+  .map-note-title{
     font-family:var(--font-display); font-style:italic;
-    font-size:.95rem; color:var(--ink-3);
+    font-size:1.375rem; line-height:1.2; color:var(--ink);
   }
-  /* The key, not a widget. It sits on the field in the map's own
-     drawing language and answers the map's question. */
-  .map-legend{
-    position:absolute; left:var(--s-6); bottom:var(--s-5); z-index:2;
-    display:flex; flex-wrap:wrap; align-items:center; gap:var(--s-2) var(--s-4);
-    max-width:44ch;
-    font-size:.75rem; color:var(--ink-2);
-    background:color-mix(in srgb, var(--paper) 88%, transparent);
-    border:1px solid var(--green-line);
-    border-top:1px dashed var(--ochre);
-    padding:10px 14px 11px;
+  .map-note p + p{margin-top:var(--s-2);}
+  .mapfield:not(.is-loading):not(.is-unavailable):not(.is-degraded) .map-note{display:none;}
+  /* A failure note sits on paper so it reads over whatever is under it. */
+  .mapfield.is-unavailable .map-note,
+  .mapfield.is-degraded .map-note{
+    background:var(--paper);
+    border-radius:var(--r-md);
+    padding:var(--s-4) var(--s-5);
+    box-shadow:var(--shadow-2);
   }
-  .map-legend .key-title{
-    flex:1 0 100%;
-    font-family:var(--font-display); font-style:italic;
-    font-size:.9375rem; color:var(--ink-3); line-height:1;
-  }
-  .map-legend .key-item{
-    display:flex; align-items:center; gap:6px;
-    transition:opacity .15s ease;
-  }
-  .map-legend .key-item.off{opacity:.32;}
-  .map-legend .swatch{width:9px; height:9px; border-radius:var(--r-pill);}
+  /* No map at all: no controls, no key to a map that isn't there. */
+  .mapfield.is-unavailable .atlas{visibility:hidden;}
 
-  /* ---------- The field itself -------------------------------- */
-  .ground .grat{
-    stroke:var(--green-line); stroke-width:1;
-    stroke-dasharray:2 7; opacity:.75;
+  /* ---------- Markers -----------------------------------------
+     Markers are ordinary HTML now, positioned by MapLibre. That is what keeps
+     the design language: colour, glyph, paper rim and count badge are all still
+     CSS, where a sprite-based map layer would have baked every state into an
+     image. One custom property per marker (--cat) carries the category colour
+     to the disc, the halo, the badge and the survey dot.
+
+     Note: no `position` is declared here. MapLibre sets position:absolute on
+     the element itself and moves it with a transform - overriding that would
+     drop all 39 markers back into normal flow. */
+  /* One size variable per zoom band, and every part of the marker is measured
+     from it - see applyZoomBand(). */
+  .mapfield{--m:30px;}
+  .mapfield[data-zoom="wide"]{--m:15px;}
+  .mapfield[data-zoom="far"]{--m:21px;}
+  .mapfield[data-zoom="mid"]{--m:26px;}
+  /* Pulled back past the city there is no room for a number beside a disc,
+     and the disc itself is the only thing still worth reading. */
+  .mapfield[data-zoom="wide"] .marker .count{display:none;}
+
+  .marker{
+    width:var(--m); height:var(--m);
+    cursor:pointer;
+    transition:width .2s ease, height .2s ease;
   }
-  .ground .water{fill:var(--water-fill);}
-  /* The coast is the one drawn edge on the map, so it gets the only
-     solid stroke in the whole drawing. */
-  .ground .shoreline{
-    fill:none; stroke:var(--water-line); stroke-width:2; opacity:.8;
+  .marker .halo{
+    position:absolute; inset:calc(var(--m) * -0.37);
+    border-radius:var(--r-pill); background:var(--cat);
+    opacity:0; transition:opacity .15s ease;
   }
-  .ground .water-label{
-    font-family:var(--font-display); font-style:italic; font-size:26px;
-    fill:var(--water-ink);
+  .marker:hover .halo, .marker.selected .halo{opacity:.22;}
+  /* Paper rim: two overlapping pins still read as two objects, and a pin out
+     over the lake keeps its edge against the water. */
+  .marker .dot{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:var(--r-pill); background:var(--cat); color:#fff;
+    box-shadow:0 0 0 2px var(--paper);
+    transition:transform .14s ease, box-shadow .14s ease;
   }
-  .ground .district{
-    font-family:var(--font-body); font-size:14px; font-weight:600;
-    letter-spacing:.16em; text-transform:uppercase;
-    fill:var(--ink-3);
+  .marker:hover .dot{transform:scale(1.14);}
+  .marker.selected .dot{transform:scale(1.14); box-shadow:0 0 0 2.5px var(--ink);}
+  .marker .glyph{
+    width:calc(var(--m) * 0.5); height:calc(var(--m) * 0.5);
+    pointer-events:none;
+  }
+  .marker .count{
+    position:absolute;
+    left:calc(var(--m) * 0.63); top:calc(var(--m) * -0.23);
+    min-width:calc(var(--m) * 0.57); height:calc(var(--m) * 0.57);
+    padding:0 3px; box-sizing:border-box;
+    border-radius:var(--r-pill);
+    background:var(--paper); border:1.5px solid var(--cat); color:var(--cat);
+    font-family:var(--font-body); font-weight:700; text-align:center;
+    font-size:calc(var(--m) * 0.33);
+    line-height:calc(var(--m) * 0.57 - 3px);
     pointer-events:none; user-select:none;
   }
-  .ground .district.offshore{fill:var(--water-ink);}
+  /* A hovered or selected pin comes to the front of the pile. Everything else
+     stacks by latitude, which is the order they are added to the map in. */
+  .marker:hover{z-index:2;}
+  .marker.selected{z-index:3;}
 
-  /* ---------- Markers ----------------------------------------- */
-  .marker{cursor:pointer;}
-  .marker circle.halo{opacity:0; transition:opacity .15s ease;}
-  .marker:hover circle.halo, .marker.selected circle.halo{opacity:.22;}
-  /* Paper rim: two overlapping pins still read as two objects, and a pin
-     out over the lake keeps its edge against the water. */
-  .marker circle.dot{
-    stroke:var(--paper); stroke-width:2;
-    transition:r .14s ease, stroke-width .14s ease;
+  /* Filtered out: a survey dot, not a ghosted marker. Ghosting a full disc
+     left thirty grey blobs still competing for attention; a dot reads as
+     ground, so the matches are the only things with weight on the field. */
+  .marker.out{pointer-events:none; z-index:0;}
+  .marker.out .halo,
+  .marker.out .dot,
+  .marker.out .count{display:none;}
+  .marker .speck{display:none;}
+  .marker.out .speck{
+    display:block; position:absolute; left:50%; top:50%;
+    width:7px; height:7px; margin:-3.5px 0 0 -3.5px;
+    border-radius:var(--r-pill); background:var(--cat); opacity:.3;
   }
-  .marker:hover circle.dot{r:17;}
-  .marker.selected circle.dot{stroke:var(--ink); stroke-width:2.5; r:17;}
-  .marker .glyph{pointer-events:none; color:#fff;}
-  .marker .badge-count{
-    font-family:var(--font-body); font-weight:700;
-    pointer-events:none; user-select:none;
-  }
-  /* Filtered out: a survey dot, not a ghosted marker. */
-  .marker.out{pointer-events:none;}
-  .marker.out .speck{opacity:.3;}
 
-  /* A paper tag, not a black chip. */
+  /* A small card, not a black chip. */
   .map-tooltip{
     position:absolute; pointer-events:none; z-index:5;
     display:flex; flex-direction:column; gap:2px;
-    background:var(--paper); color:var(--ink);
-    border:1px solid var(--ink);
-    padding:6px 10px 7px; border-radius:var(--r-flat);
+    background:var(--card); color:var(--ink);
+    box-shadow:var(--shadow-2);
+    padding:7px 12px 8px; border-radius:var(--r-sm);
     white-space:nowrap; text-align:left;
     transform:translate(-50%,-165%);
     opacity:0; transition:opacity .12s ease;
@@ -294,60 +542,128 @@
   }
   .map-tooltip.show{opacity:1;}
 
+
+  /* ---------- Map controls and attribution --------------------
+     Modern, soft controls: a card-coloured squircle with a low shadow and
+     no hard edge, lifted off the map rather than outlined on it. */
+  /* The map's own controls stack down the left edge, under Filters. */
+  .maplibregl-ctrl-top-left{top:calc(var(--s-4) + 40px + var(--s-3)); left:var(--s-4);
+    display:flex; flex-direction:column; align-items:flex-start;}
+  .maplibregl-ctrl-top-left .maplibregl-ctrl{margin:0 0 var(--s-2);}
+  .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 var(--s-3) var(--s-3) 0;}
+  .maplibregl-ctrl-group:not(:empty){
+    background:var(--card);
+    border:none;
+    border-radius:var(--r-sm);
+    box-shadow:var(--shadow-1);
+    overflow:hidden;
+  }
+  .maplibregl-ctrl-group button{width:40px; height:40px;}
+  .maplibregl-ctrl-group button + button{border-top:1px solid var(--line-soft);}
+  .maplibregl-ctrl-group button:not(:disabled):hover{background-color:var(--paper-3);}
+  .maplibregl-ctrl button:focus-visible{outline:2.5px solid var(--green); outline-offset:-3px; box-shadow:none;}
+  /* The library's icons are drawn in near-black; this softens them to ink. */
+  .maplibregl-ctrl-group .maplibregl-ctrl-icon{opacity:.8;}
+
+  /* Recentre: only there when the map has wandered off most of the places.
+     Low and centred, in the lower quarter of the map (on a phone, just
+     above the list sheet). */
+  .recentre-pill{
+    position:absolute; z-index:4;
+    left:50%; bottom:72px;
+    transform:translateX(-50%);
+    display:inline-flex; align-items:center; gap:6px;
+    min-height:34px; padding:0 14px 0 11px;
+    background:var(--card); color:var(--green-deep);
+    border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-2);
+    font-family:var(--font-body); font-size:.8125rem; font-weight:600;
+    animation:recentre-in .22s ease both;
+  }
+  .recentre-pill[hidden]{display:none;}
+  .recentre-pill:hover{background:var(--paper);}
+  .recentre-pill svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round;}
+  @keyframes recentre-in{ from{opacity:0; transform:translate(-50%, 8px);} to{opacity:1; transform:translate(-50%, 0);} }
+  .mapfield.is-unavailable .recentre-pill{display:none;}
+
+  .maplibregl-ctrl-attrib{
+    font-family:var(--font-body); font-size:.6875rem; color:var(--ink-3);
+  }
+  .maplibregl-ctrl-attrib.maplibregl-compact{
+    background:color-mix(in srgb, var(--card) 92%, transparent);
+    border:none;
+    box-shadow:var(--shadow-1);
+    border-radius:var(--r-pill);
+  }
+  .maplibregl-ctrl-attrib a{color:var(--ink-2);}
+
+  /* ---------- Buttons on the map ------------------------------
+     Filters (top right) and expand (top left): white, soft shadow, no
+     outline - the same family as the map's own controls. */
+  .filters-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    min-height:40px; padding:0 16px 0 13px;
+    background:var(--card); color:var(--ink);
+    border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-1);
+    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    transition:box-shadow .15s ease, background .15s ease;
+  }
+  .filters-btn:hover{box-shadow:var(--shadow-2);}
+  .filters-btn .ic, .map-expand .ic{
+    width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto;
+  }
+  .f-count{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:20px; height:20px; padding:0 6px; margin-right:-6px;
+    border-radius:var(--r-pill);
+    background:var(--green); color:var(--paper);
+    font-size:.6875rem; font-weight:700; font-variant-numeric:tabular-nums;
+  }
+  .f-count[hidden]{display:none;}
+  .map-filters{position:absolute; z-index:3; top:var(--s-4); left:var(--s-4);}
+
+  .map-expand{
+    position:absolute; z-index:3; top:var(--s-4); right:var(--s-4);
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    width:40px; height:40px; padding:0;
+    background:var(--card); color:var(--ink);
+    border:none; border-radius:var(--r-pill);
+    box-shadow:var(--shadow-1);
+    font-family:var(--font-body); font-size:.875rem; font-weight:600;
+    transition:box-shadow .15s ease;
+  }
+  .map-expand:hover{box-shadow:var(--shadow-2);}
+  .map-expand .ic-close{display:none;}
+  .stage.map-full .map-expand .ic-expand{display:none;}
+  .stage.map-full .map-expand .ic-close{display:inline;}
+  .mapfield.is-unavailable .map-expand{display:none;}
+
   /* ---------- The index panel --------------------------------- */
+  /* Recommendations only: a count, then the list. No box - it sits on the
+     page ground beside the map card. */
   .panel{
-    position:absolute; top:var(--s-5); right:var(--s-6); bottom:var(--s-5);
-    width:min(430px, calc(100% - var(--s-6) * 2));
-    z-index:4;
+    position:relative; z-index:1;
+    min-width:0; min-height:0;
     display:flex; flex-direction:column;
-    background:var(--paper);
-    border:1px solid var(--green-line);
-    box-shadow:0 24px 60px -28px rgba(30,40,25,.45);
+    overflow:hidden;
   }
-  .panel-head{padding:var(--s-5) var(--s-5) var(--s-3); border-bottom:1px dashed var(--green-line);}
-  .panel-head h2{font-size:1.5rem; color:var(--green-deep); letter-spacing:-.02em;}
-  .panel-scroll{overflow:auto; padding:0 var(--s-5) var(--s-5);}
-
-  /* Controls, unboxed. A row of words for category; the native select
-     kept for the rest, but reduced to an underline and a caret. */
-  .filter-cats{display:flex; flex-wrap:wrap; gap:var(--s-1) var(--s-4); margin-top:var(--s-3);}
-  .filter-cats .cat{
-    background:none; border:none;
-    /* The words were a 17px-tall tap target. The rule still sits on the
-       baseline; the padding is what your thumb gets. */
-    padding:8px 0; min-height:34px;
-    font-size:.8125rem; font-weight:500; color:var(--ink-3);
-    border-bottom:1.5px solid transparent;
+  .panel-head{padding:var(--s-1) var(--s-5) var(--s-3) var(--s-5);}
+  .panel-head h2{
+    font-family:var(--font-body); font-weight:600;
+    font-size:1.25rem; line-height:1.3; letter-spacing:-.01em;
+    color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .filter-cats .cat:hover{color:var(--ink);}
-  .filter-cats .cat.on{color:var(--green-deep); border-bottom-color:var(--green);}
-
-  .refine{display:flex; flex-wrap:wrap; gap:var(--s-2) var(--s-4); margin-top:var(--s-3);}
-  .refine-field{
-    display:inline-flex; align-items:center; gap:5px;
-    font-size:.75rem; color:var(--ink-3);
+  .panel-head h2:focus{outline:none;}
+  .panel-head h2:focus-visible{outline:2.5px solid var(--green); outline-offset:2px;}
+  .panel-scroll{
+    flex:1 1 auto; min-height:0;
+    overflow:auto; overscroll-behavior:contain;
+    padding:2px var(--s-4) var(--s-4) var(--s-4);
+    scrollbar-width:thin; scrollbar-color:var(--line-control) transparent;
   }
-  .refine-field select{
-    appearance:none; -webkit-appearance:none;
-    background-color:transparent; border:none;
-    border-bottom:1.5px solid var(--line-control);
-    font-family:var(--font-body); font-size:.75rem; font-weight:600;
-    color:var(--ink); padding:7px 14px 7px 0; min-height:34px; cursor:pointer;
-    background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),
-                     linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
-    background-position:calc(100% - 5px) 60%, calc(100% - 1px) 60%;
-    background-size:4px 4px, 4px 4px;
-    background-repeat:no-repeat;
-  }
-  .refine-field select:hover{border-bottom-color:var(--green);}
-
-  .searchline{margin-top:var(--s-4); border-bottom:1.5px solid var(--line-control); padding-bottom:6px;}
-  .searchline input{
-    border:none; outline:none; background:none; width:100%;
-    font-family:var(--font-display); font-style:italic; font-size:1.05rem; color:var(--ink);
-  }
-  .searchline input::placeholder{color:var(--ink-3);}
-  .searchline:focus-within{border-bottom-color:var(--green);}
 
   /* ---------- Paper -------------------------------------------
      A single tiled SVG noise over the whole page. No image file and
@@ -359,58 +675,10 @@
     inset:0;
     z-index:0;
     pointer-events:none;
-    opacity:0.055;
+    opacity:0.04;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
   }
   .app{position:relative; z-index:1;}
-
-  /* ---------- The dashed route rule ----------------------------
-     Amici frames its content with a repeating checkerboard border.
-     The same idea in this product's own vernacular: a route dashed
-     across the page. Used as a horizontal band separator only - a
-     full dashed box would read as an empty drop target. */
-  .rule-route{
-    border:0;
-    border-top:1.5px dashed var(--green-line);
-    margin:0 0 var(--s-5);
-  }
-
-  /* ---------- Footer ------------------------------------------ */
-  .site-foot{padding:var(--s-5) var(--s-6); background:var(--paper-2);
-             border-top:1.5px dashed var(--green-line);}
-  .marquee{overflow:hidden; margin-bottom:var(--s-5);}
-  .marquee-track{
-    display:flex;
-    gap:var(--s-5);
-    width:max-content;
-    animation:marquee 90s linear infinite;
-    font-family:var(--font-display);
-    font-size:1.375rem;
-    color:var(--ochre);
-    white-space:nowrap;
-  }
-  @keyframes marquee{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
-  .foot-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    gap:var(--s-4);
-    flex-wrap:wrap;
-  }
-  .colophon{
-    font-size:0.8125rem;
-    color:var(--ink-3);
-    font-variant-numeric:tabular-nums;
-  }
-  .foot-link{
-    display:inline-flex; align-items:center;
-    min-height:44px;
-    font-size:0.8125rem;
-    font-weight:600;
-    color:var(--green);
-    text-decoration:underline;
-    text-underline-offset:3px;
-  }
 
   /* ---------- Holding modals ---------------------------------- */
   .holding-copy{
@@ -422,53 +690,107 @@
   }
   .holding-copy:last-child{margin-bottom:0;}
 
-  /* ---------- The story plate ----------------------------------
-     A drawn plate, not a photograph: the site's own map vocabulary
-     used once, at the head of the only long piece of writing here.
-     It is decorative and marked aria-hidden - the essay below says
-     everything it says. */
-  .story-plate{
-    position:relative;
-    margin:calc(var(--s-5) * -1) calc(var(--s-5) * -1) var(--s-5);
-    border-bottom:1px dashed var(--green-line);
-    background:var(--paper-3);
-    overflow:hidden;
+  /* ---------- Contribute --------------------------------------
+     A text box and a send button: the same edge and radius as the
+     filter panel's controls. */
+  .contribute-form{display:flex; flex-direction:column; gap:var(--s-3);}
+  .contribute-form textarea, .contribute-form input[type=text]{
+    width:100%;
+    background:var(--card); color:var(--ink);
+    border:1px solid var(--line-control); border-radius:var(--r-md);
+    padding:12px 14px;
+    font-family:var(--font-body); font-size:1rem; line-height:1.5;
   }
-  .story-plate svg{display:block; width:100%; height:150px;}
-  .story-plate .plate-grat{
-    fill:none; stroke:var(--green-line); stroke-width:1;
-    stroke-dasharray:2 7; opacity:.9;
+  .contribute-form textarea{min-height:140px; resize:vertical;}
+  /* Placeholders sit back, so the example never reads as something typed. */
+  .contribute-form textarea::placeholder, .contribute-form input::placeholder{color:#A9AEA3; opacity:1;}
+  .contribute-form textarea:focus-visible, .contribute-form input:focus-visible{
+    outline:2.5px solid var(--green); outline-offset:1px; border-color:var(--green);
   }
-  .story-plate .plate-water{fill:var(--water-fill); opacity:.85;}
-  .story-plate .plate-shore{fill:none; stroke:var(--water-line); stroke-width:1.6; opacity:.7;}
-  .story-plate .plate-route{
-    fill:none; stroke:var(--ochre); stroke-width:1.6;
-    stroke-dasharray:6 6; stroke-linecap:round;
+  .cf-status{font-size:.8125rem; color:var(--ink-2); min-height:1.2em; margin:0;}
+  .cf-status:empty{display:none;}
+  .cf-status.is-error{color:var(--cat-food);}
+  .cf-foot{display:flex; justify-content:flex-end;}
+  .cf-thanks-title{
+    font-family:var(--font-display); font-size:1.5rem; line-height:1.1;
+    color:var(--green-deep); margin-bottom:var(--s-2);
   }
-  .story-plate .plate-pin circle{stroke:var(--paper); stroke-width:2.5;}
-  .story-plate .plate-rose{fill:none; stroke:var(--ochre-ink); stroke-width:1.2; opacity:.85;}
-  .story-plate .plate-caption{
-    position:absolute; left:var(--s-5); top:12px;
-    font-family:var(--font-body); font-size:.5625rem; font-weight:600;
-    letter-spacing:.18em; text-transform:uppercase; color:var(--ochre-ink);
+  .contribute-form[hidden], .cf-thanks[hidden]{display:none;}
+
+  /* ---------- Why this exists ----------------------------------
+     An editorial spread rather than a document: three phone photos
+     dropped onto the left of the sheet, the essay beside them. Sized to
+     sit on a laptop screen whole, without scrolling inside it. */
+  .modal.modal-story{max-width:960px; margin-block:auto;}
+  /* On a laptop-height screen the sheet borrows some of the scrim's margin
+     rather than scroll inside itself. */
+  @media (max-height: 840px) and (min-width: 761px){
+    #storyScrim{padding-top:var(--s-5); padding-bottom:var(--s-5);}
+  }
+  .story-close{position:absolute; top:var(--s-4); right:var(--s-4); z-index:3;}
+  .story-grid{
+    display:grid;
+    grid-template-columns:280px minmax(0,1fr);
+    gap:var(--s-6);
+    padding:var(--s-6) var(--s-6) var(--s-5) var(--s-5);
   }
 
-  /* The essay is the one place on the site that is just writing, so it
-     gets a measure, a size you can read at length, and nothing else. */
-  .story-body{font-size:1rem; color:var(--ink); line-height:1.7; max-width:62ch;}
-  .story-body p{margin-bottom:var(--s-4);}
-  .story-body p:last-child{margin-bottom:0;}
-  .story-body strong{font-weight:600;}
-  .story-signature{
-    font-family:var(--font-display); font-style:italic; font-size:1.25rem;
-    color:var(--green-deep); text-align:right; margin-top:var(--s-5) !important;
+  /* The photos. Placed, not framed: a white print border, a small tilt,
+     a strip of tape, and the first one hanging off the sheet's edge.
+     Padar is the main print - bigger, and on top of the other three. */
+  .story-photos{position:relative; align-self:center; height:430px; margin-left:calc(var(--s-6) * -1.1);}
+  .snap{
+    position:absolute; margin:0;
+    width:128px; aspect-ratio:3 / 4;
+    padding:7px 7px 7px;
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 1px 2px rgba(30,36,28,.10), 0 14px 30px -10px rgba(30,36,28,.35);
   }
-  .story-linkedin-row{text-align:right;}
+  .snap::before{        /* the tape */
+    content:""; position:absolute; top:-10px; left:50%;
+    width:62px; height:20px; margin-left:-31px;
+    background:rgba(232,220,190,.78);
+    box-shadow:0 1px 1px rgba(30,36,28,.06);
+    transform:rotate(-4deg);
+  }
+  .snap > img{
+    display:block; width:100%; height:100%;
+    object-fit:cover; border-radius:3px;
+    background:var(--paper-3);
+  }
+  /* A print in each corner and Padar over the middle, each corner print
+     losing only its inside corner to it. */
+  .snap-1{left:0;     top:0;     transform:rotate(-6deg); z-index:1;}
+  .snap-2{left:156px; top:10px;  transform:rotate(5deg);  z-index:2;}
+  .snap-3{left:4px;   top:252px; transform:rotate(4deg);  z-index:3;}
+  .snap-4{left:154px; top:242px; transform:rotate(-4deg); z-index:3;}
+  .snap-main{left:66px; top:110px; width:156px; transform:rotate(-2deg); z-index:4;}
+  .snap-2::before{transform:rotate(3deg);}
+
+  /* The essay: the site's clean body face, a touch smaller than before,
+     at a measure that still reads comfortably. */
+  .story-body{font-size:.875rem; color:var(--ink); line-height:1.6; max-width:68ch;}
+  .story-body h2{
+    font-size:2rem; line-height:1.05; color:var(--green-deep);
+    margin:0 var(--s-7) var(--s-3) 0;
+  }
+  .story-body p{margin-bottom:10px;}
+  .story-body strong{font-weight:600;}
+  .story-sign-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:var(--s-4); flex-wrap:wrap;
+    margin-top:var(--s-4);
+  }
+  .story-signature{
+    font-family:var(--font-display); font-style:italic; font-size:1.375rem;
+    color:var(--green-deep); margin:0 !important;
+  }
   .story-linkedin{
     display:inline-flex; align-items:center; gap:7px; min-height:44px;
     font-size:0.875rem; font-weight:600; color:var(--paper);
     text-decoration:none; border:1px solid var(--green); background:var(--green);
-    padding:10px 16px; border-radius:var(--r-flat);
+    padding:10px 16px; border-radius:var(--r-pill);
   }
   .story-linkedin:hover{background:var(--green-deep); border-color:var(--green-deep);}
 
@@ -480,8 +802,8 @@
     background:var(--green);
     color:var(--paper);
     border:1px solid var(--green);
-    padding:11px 18px;
-    border-radius:var(--r-flat);
+    padding:10px 20px;
+    border-radius:var(--r-pill);
     font-family:var(--font-body);
     font-weight:600;
     font-size:0.92rem;
@@ -491,17 +813,17 @@
   .btn-secondary{
     display:inline-flex; align-items:center; justify-content:center;
     min-height:44px;
-    background:transparent;
+    background:var(--card);
     color:var(--ink);
     border:1px solid var(--line-control);
-    padding:11px 16px;
-    border-radius:var(--r-flat);
+    padding:10px 20px;
+    border-radius:var(--r-pill);
     font-family:var(--font-body);
     font-weight:600;
     font-size:0.88rem;
-    transition:border-color .12s ease;
+    transition:border-color .12s ease, background .12s ease;
   }
-  .btn-secondary:hover{border-color:var(--ink-3);}
+  .btn-secondary:hover{border-color:var(--ink-3); background:var(--paper-3);}
   .btn-text{
     background:none; border:none; color:var(--green); font-weight:600; font-size:0.85rem; padding:4px 2px;
     text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1.5px;
@@ -541,16 +863,23 @@
   }
   .sort-field select{padding:7px 28px 7px 12px; font-size:0.8125rem; font-weight:500;}
 
-  .list{display:flex; flex-direction:column;}
+  /* Each recommendation is its own card, in the same material as the map
+     card beside it: a light ground and a soft hairline, rounded. The card
+     lifts a little on hover; the selected one takes the green tint. */
+  .list{display:flex; flex-direction:column; gap:var(--s-2);}
   .row{
-    border-top:1px solid var(--green-line);
+    background:var(--paper);
+    border:1px solid var(--line-soft);
+    border-radius:var(--r-md);
     scroll-margin-top:var(--s-4);
+    transition:background .15s ease, border-color .15s ease, box-shadow .15s ease;
   }
-  .row:first-child{border-top:none;}
-  .row.selected{
-    background:var(--green-soft);
-    box-shadow:inset 2px 0 0 var(--ink);
-  }
+  .row:hover{border-color:#D9D1BF; box-shadow:var(--shadow-1);}
+  .row.selected{background:var(--paper-3); border-color:#DDD5C3;}
+  .row.selected:hover{box-shadow:none;}
+  /* The chips share the open card's tone, so there they lift to the card's
+     lighter one. */
+  .row.selected .stat-chip{background:var(--paper); box-shadow:0 0 0 1px var(--line-soft);}
 
   .row-top{
     display:flex;
@@ -560,12 +889,12 @@
     text-align:left;
     background:none;
     border:none;
-    padding:var(--s-3) var(--s-2);
+    padding:var(--s-3);
+    border-radius:var(--r-md);
     font-family:inherit;
     color:inherit;
   }
-  .row-top:hover{background:color-mix(in srgb, var(--green-soft) 55%, transparent);}
-  .row.selected .row-top:hover{background:transparent;}
+  .row-top:focus-visible{outline-offset:-2px;}
 
   /* Same disc-plus-glyph language as the map markers, so a row and its
      pin are recognisably the same object. */
@@ -575,7 +904,8 @@
     border-radius:var(--r-pill);
     display:flex; align-items:center; justify-content:center;
     color:#fff;
-    margin-top:2px;
+    /* Centred on the card's top row, not pinned to the first line. */
+    align-self:center;
   }
 
   .row-main{flex:1; min-width:0; display:block;}
@@ -593,31 +923,29 @@
 
   /* Two different kinds of fact get two different lines, rather than one
      grey middle-dot string that flattens them together. */
+  /* What and where are the personality line, in the italic display face;
+     who recommended it is information, in the clean sans. */
   .row-where{
     display:block;
-    margin-top:2px;
-    font-size:0.8125rem;
-    color:var(--ink-3);
+    margin-top:1px;
+    font-family:var(--font-display); font-style:italic;
+    font-size:.9375rem; line-height:1.3;
+    color:var(--ink-2);
   }
   .row-where .sep{opacity:0.55; padding:0 2px;}
   .row-who{
     display:block;
     margin-top:3px;
-    font-size:0.9375rem;
-    color:var(--ink-2);
+    font-size:0.875rem;
+    color:var(--ink-3);
   }
-  .row-who em{
-    font-family:var(--font-display);
-    font-style:italic;
-    font-size:1.0625rem;
-    color:var(--ink);
-  }
+  .who-name{font-weight:600; color:var(--ink);}
 
   .row-chevron{
     flex:0 0 auto;
     width:18px; height:18px;
     color:var(--ink-3);
-    margin-top:6px;
+    align-self:center;
     transition:transform .18s ease;
   }
   .row-chevron svg{width:18px; height:18px; display:block;}
@@ -625,17 +953,20 @@
 
   .row-detail{
     display:none;
-    padding:0 var(--s-2) var(--s-5) calc(30px + var(--s-3) + var(--s-2));
+    padding:0 var(--s-3) var(--s-4) calc(30px + var(--s-3) + var(--s-3));
   }
   .row.expanded .row-detail{display:block;}
 
-  .stat-row{display:flex; gap:var(--s-2); flex-wrap:wrap; margin-bottom:var(--s-4);}
+  /* Price, time and energy are one fact about the visit, so they sit on
+     one line: small chips, no wrapping inside a chip. */
+  .stat-row{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--s-4);}
   .stat-chip{
-    background:none;
-    border:1px solid var(--green-line);
+    background:var(--paper-3);
     border-radius:var(--r-pill);
-    padding:4px 10px;
-    font-size:0.75rem;
+    padding:4px 9px;
+    font-size:.75rem;
+    line-height:1.3;
+    white-space:nowrap;
     color:var(--ink-2);
   }
   .stat-chip b{color:var(--ink); font-weight:500;}
@@ -643,34 +974,33 @@
   .note-list{display:flex; flex-direction:column; gap:var(--s-4); margin-bottom:var(--s-4);}
   .note-head{display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-2);}
 
-  /* The friend stamp. Barely rotated - enough to read as placed by hand,
-     not enough to look like a sticker pack. */
-  .note-stamp{
-    display:inline-block;
-    border:1.5px solid var(--ochre);
-    border-radius:var(--r-pill);
-    padding:2px 12px;
-    font-family:var(--font-display);
-    font-size:1rem;
-    color:var(--green-deep);
-    transform:rotate(-0.9deg);
+  /* The friend's name is information, so it is set plainly. */
+  .note-name{
+    font-size:.9375rem; font-weight:600;
+    color:var(--ink);
   }
   .note-rating{flex:0 0 auto; line-height:1;}
 
-  /* Friends speak in the serif. It is the one voice on the page that is
-     not the product talking. */
+  /* What a friend wrote is the thing people came to read, so it gets the
+     clean body face at a size and leading made for reading - the same
+     voice as the essay. The quotation marks say whose words they are. */
   .note-text{
     margin:0;
-    font-family:var(--font-display);
-    font-style:italic;
-    font-size:1.125rem;
-    line-height:1.5;
+    font-family:var(--font-body);
+    font-size:.9375rem;
+    line-height:1.6;
     color:var(--ink);
-    max-width:52ch;
+    max-width:56ch;
   }
   .note-text::before{content:"“";}
   .note-text::after{content:"”";}
 
+  /* Honesty, not a feature: meta size, no icon, no colour of its own. */
+  .location-approx{
+    margin-top:var(--s-3);
+    font-size:.8125rem; color:var(--ink-3);
+  }
+  .peek .location-approx{margin-top:2px;}
   .card-links{display:flex; gap:var(--s-3); align-items:center;}
   .maps-link{
     display:inline-flex; align-items:center; gap:6px;
@@ -684,9 +1014,9 @@
   .maps-link svg{width:13px; height:13px;}
 
   .empty-state{
-    text-align:left; padding:var(--s-7) 0; color:var(--ink-2);
-    border-top:1.5px dashed var(--green-line);
+    text-align:left; padding:var(--s-6) var(--s-3); color:var(--ink-2);
   }
+  .empty-state .btn-secondary{margin-top:var(--s-4);}
   .empty-state h3{margin-bottom:var(--s-2); font-size:1.5rem; color:var(--green-deep);}
   .empty-state p{font-size:0.9375rem; max-width:40ch;}
 
@@ -706,21 +1036,25 @@
   .modal{
     position:relative;
     background:var(--card);
-    border:1px solid var(--green-line);
-    border-radius:var(--r-sheet);
+    border:none;
+    border-radius:var(--r-lg);
     max-width:640px; width:100%;
-    box-shadow:0 34px 70px -28px rgba(30,40,25,.55);
+    box-shadow:0 34px 70px -28px rgba(30,40,25,.5);
     transform:translateY(10px);
     transition:transform .18s ease;
   }
   .modal-scrim.open .modal{transform:translateY(0);}
-  .modal-narrow{max-width:460px;}
+  .modal-narrow{max-width:460px; margin-block:auto;}
+  /* Wide enough for the nine activities to sit on two lines, with the
+     title a size up now that it stands alone. */
+  .modal-planner{max-width:690px;}
+  @media (min-width: 881px){ .modal-planner .modal-head h2{font-size:2.25rem;} }
 
   .modal-head{
     display:flex; justify-content:space-between; align-items:flex-start;
     gap:var(--s-4);
     padding:var(--s-5) var(--s-5) var(--s-4);
-    border-bottom:1px dashed var(--green-line);
+    border-bottom:1px solid var(--line-soft);
   }
   .modal-head h2{
     font-family:var(--font-display); font-weight:400;
@@ -734,11 +1068,12 @@
   .modal-close{
     flex:0 0 auto;
     width:36px; height:36px; border-radius:var(--r-pill);
-    background:none; border:1px solid var(--line-control);
+    background:var(--paper-3); border:none;
     display:flex; align-items:center; justify-content:center;
     font-size:.8125rem; color:var(--ink-2);
+    transition:background .12s ease;
   }
-  .modal-close:hover{border-color:var(--ink-3); color:var(--ink);}
+  .modal-close:hover{background:var(--line-soft); color:var(--ink);}
   .modal-body{padding:var(--s-5);}
 
   /* A field label is a section marker, so it carries a rule out to the
@@ -752,27 +1087,28 @@
   }
   .field-label::after{
     content:""; flex:1; height:0;
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* One selected state, everywhere: green fill, paper ink. */
   .option-grid{display:flex; flex-wrap:wrap; gap:var(--s-2);}
   .option-pill, .option-card{
-    background:var(--paper);
+    background:var(--card);
     border:1px solid var(--line-control);
-    border-radius:var(--r-flat);
+    border-radius:var(--r-pill);
     color:var(--ink);
     font-family:var(--font-body);
     transition:border-color .12s ease, background .12s ease, color .12s ease;
   }
   .option-pill{
     display:flex; align-items:center; gap:7px;
-    min-height:40px; padding:8px 14px;
+    min-height:40px; padding:8px 16px;
     font-size:.875rem; font-weight:500;
   }
   .option-pill svg{width:14px; height:14px;}
   .option-card{
-    padding:11px 14px; flex:1 1 150px; min-width:130px; min-height:44px;
+    padding:11px 16px; flex:1 1 150px; min-width:130px; min-height:44px;
+    border-radius:var(--r-md);
     text-align:left;
   }
   .option-card .t{font-weight:600; font-size:.9375rem;}
@@ -786,7 +1122,7 @@
   .modal-footer{
     display:flex; justify-content:flex-end; gap:var(--s-3);
     margin-top:var(--s-5); padding-top:var(--s-4);
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* ---------- The plans ----------------------------------------
@@ -794,7 +1130,7 @@
      places, and a stack of bordered cards makes you re-enter a
      container for every one of them. */
   .plans-wrap{display:flex; flex-direction:column;}
-  .plan-card{padding:var(--s-5) 0; border-top:1.5px dashed var(--green-line);}
+  .plan-card{padding:var(--s-5) 0; border-top:1px solid var(--line-soft);}
   .plans-wrap .plan-card:first-child{border-top:none; padding-top:0;}
   .plan-head{display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:2px;}
   .plan-letter{
@@ -823,7 +1159,7 @@
     text-transform:uppercase; color:var(--ink-3);
     margin-bottom:var(--s-2);
   }
-  .day-label::after{content:""; flex:1; height:0; border-top:1px dashed var(--green-line);}
+  .day-label::after{content:""; flex:1; height:0; border-top:1px solid var(--line-soft);}
 
   .plan-item{
     display:flex; gap:var(--s-3); align-items:flex-start;
@@ -861,7 +1197,7 @@
   .results-actions{
     display:flex; gap:var(--s-3); justify-content:space-between; flex-wrap:wrap;
     margin-top:var(--s-5); padding-top:var(--s-4);
-    border-top:1px dashed var(--green-line);
+    border-top:1px solid var(--line-soft);
   }
 
   /* ---------- Motion ------------------------------------------
@@ -881,11 +1217,13 @@
   .booting .masthead{animation:rise .45s ease both;}
   .booting .mapfield{animation:fade .8s ease both;}
   .booting .panel{animation:rise .5s .12s ease both;}
-  .booting .site-foot{animation:fade .6s .25s ease both;}
 
   /* Pins land one after another rather than all at once. The stagger is
      capped in JS so the last pin is down well inside half a second - a
-     39-step queue would be a loading screen, not a flourish. */
+     39-step queue would be a loading screen, not a flourish.
+
+     Opacity only: MapLibre positions every marker with a transform, and an
+     arrival that animated transform would land the pin off its street. */
   .marker.arrive{animation:fade .34s ease both;}
 
   /* State, not decoration. */
@@ -893,131 +1231,243 @@
   .row.expanded .row-detail{animation:detail-in .2s ease both;}
 
   @keyframes peek-in{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;} }
-  .view-in{animation:fade .24s ease both;}
+  /* On a phone the sheet's position is a transform, so it arrives by
+     fading rather than rising. */
+  @media (max-width: 880px){ .booting .panel{animation:fade .5s .12s ease both;} }
 
-  /* ---------- Responsive ---------- */
+  /* The story on a phone: the photos become a short fanned row over the
+     text, and the text scrolls with the sheet. */
+  @media (max-width: 760px){
+    .story-grid{grid-template-columns:1fr; gap:var(--s-4); padding:var(--s-6) var(--s-4) var(--s-5);}
+    /* A fanned row: each print overlaps the next by a sliver, Padar in
+       the middle and a size up. */
+    .story-photos{min-height:0; height:172px; margin:0 auto; width:458px; max-width:100%; align-self:auto;}
+    .snap{width:92px; padding:4px;}
+    .snap::before{width:40px; height:14px; margin-left:-20px; top:-7px;}
+    .snap-1{left:0;     top:30px; transform:rotate(-7deg);}
+    .snap-2{left:84px;  top:12px; transform:rotate(-3deg);}
+    .snap-main{left:170px; top:0; width:120px; transform:rotate(1deg);}
+    .snap-3{left:280px; top:14px; transform:rotate(4deg);}
+    .snap-4{left:366px; top:34px; transform:rotate(8deg);}
+    .story-body h2{font-size:1.75rem;}
+  }
+  /* A phone has room for four in the fan; the elephant sits this one out. */
+  @media (max-width: 520px){
+    .story-photos{width:296px; height:152px;}
+    .snap{width:76px;}
+    .snap-1{left:0;     top:26px;}
+    .snap-2{left:62px;  top:10px;}
+    .snap-main{left:122px; top:0; width:104px;}
+    .snap-3{left:216px; top:16px;}
+    .snap-4{display:none;}
+  }
+
   /* ---------- Responsive --------------------------------------
      The stage stops being a stage: the map becomes a band you meet
      first, and the index runs underneath it on the page. */
   @media (max-width: 880px){
-    .masthead{padding:var(--s-3) var(--s-4) var(--s-4);}
-    /* Identity takes the first line, every control wraps under it. Nothing
-       is allowed to push the page wider than the screen. */
-    .mast-id{flex:1 1 100%;}
-    .mast-right{flex:1 1 100%; justify-content:flex-start; gap:var(--s-1) var(--s-2);}
-    .mast-nav{gap:0;}
-    .nav-link{font-size:.875rem; padding:0 8px;}
-    .word{font-size:clamp(1.9rem, 8.4vw, 2.4rem);}
-    .kicker{font-size:.9375rem; margin-top:2px;}
-    .stage{height:auto; min-height:0; overflow:visible; display:flex; flex-direction:column;}
+    /* An app on a phone too: nothing scrolls but the list. The strip, the
+       masthead and the control row sit at the top; the stage takes the rest
+       of the screen, with the map filling it and the list as a sheet. */
+    html, body{overflow:hidden; overscroll-behavior:none;}
+    .desk-only{display:none !important;}
+    .mob-only{display:inline-flex !important;}
 
-    /* ---- The switch: two words on a rule, not a pill toggle ----
-       It is the first thing under the masthead and it stays there while
-       the page scrolls, so the way back to the other half is never more
-       than a glance away. */
-    .viewswitch{
-      display:flex; gap:var(--s-5);
-      position:sticky; top:0; z-index:6;
-      padding:var(--s-3) var(--s-4);
+    /* A compact, centred masthead of its own - not the desktop one shrunk.
+       Name, line, and three small actions; about a fifth smaller than it
+       was, so the map starts much higher up the screen. */
+    .masthead{
+      flex-direction:column; align-items:center; gap:var(--s-2);
+      padding:var(--s-3) var(--s-3) var(--s-3);
+      text-align:center;
+      border-bottom:none;
+    }
+    .mast-id{flex-direction:column; align-items:center; gap:3px;}
+    .mast-sub{padding-left:0; border-left:none; align-items:center;}
+    .word{font-size:clamp(1.8rem, 7.8vw, 2.25rem);}
+    /* The tagline gives its line back to the map on a phone. */
+    .mast-sub{display:none;}
+    .mast-right{
+      flex-wrap:wrap; justify-content:center; align-items:center;
+      gap:2px 0;
+    }
+    .mast-right{gap:6px;}
+    .pill-btn{min-height:30px; padding:0 11px; font-size:.75rem;}
+    .btn-plan{min-height:30px; padding:4px 12px; font-size:.75rem;}
+    .masthead{border-bottom:1px solid var(--line-soft);}
+
+    /* ---- The city and the filters, on the map ---- */
+    .map-city, .map-filters{
+      position:absolute; z-index:3; top:var(--s-3);
+      min-height:34px; border:none; box-shadow:var(--shadow-1);
+      font-size:.8125rem;
+    }
+    .map-city{left:calc(var(--s-3) + env(safe-area-inset-left)); padding:0 9px 0 13px; gap:4px;}
+    .map-city .chev{width:14px; height:14px;}
+    .map-filters{left:auto; right:calc(var(--s-3) + env(safe-area-inset-right)); padding:0 13px 0 10px; gap:6px;}
+    .map-filters .ic{width:16px; height:16px;}
+
+    /* The filter panel is a sheet from the bottom on a phone, with the
+       page dimmed behind it. */
+    .filter-pop{
+      left:0 !important; right:0; top:auto !important; bottom:0;
+      width:auto; max-height:88vh !important; max-height:88dvh !important;
+      border:none; border-radius:var(--r-lg) var(--r-lg) 0 0;
+      box-shadow:0 0 0 100vmax rgba(20,24,18,.45), var(--shadow-2);
+      padding-bottom:env(safe-area-inset-bottom);
+      animation:sheet-up .24s cubic-bezier(.3,.7,.2,1) both;
+    }
+    .fp-head{padding-top:var(--s-2);}
+    /* The grab bar says the sheet can be swiped away. */
+    .fp-grab{
+      display:block; width:40px; height:5px; margin:10px auto 0;
+      border-radius:var(--r-pill); background:var(--line-control); opacity:.45;
+    }
+    .filter-pop.fp-dragging{animation:none;}
+
+    /* ---- The stage: the map fills it, the list sheet rides over it ---- */
+    .stage{
+      flex:1 1 auto; min-height:0;
+      display:block; padding:0;
+      background:var(--paper);
+      transition:none;
+    }
+    .mapfield{position:absolute; inset:0; border-radius:0; box-shadow:none; isolation:auto;}
+
+    .panel{
+      position:absolute; left:0; right:0; top:0; height:100%;
+      z-index:6;
+      transform:translateY(var(--sheet-y, 0px));
       background:var(--paper-2);
-      border-bottom:1px dashed var(--green-line);
+      border-radius:var(--r-lg) var(--r-lg) 0 0;
+      box-shadow:0 -1px 0 var(--line-soft), 0 -8px 24px -6px rgba(30,36,28,.16);
+      will-change:transform;
     }
-    .vs-btn{
-      background:none; border:none; padding:4px 0;
-      font-family:var(--font-body); font-size:.9375rem; font-weight:500;
-      color:var(--ink-3);
-      border-bottom:1.5px solid transparent;
-      min-height:44px;
+    .panel.sheet-animate{transition:transform .36s cubic-bezier(.2,.8,.2,1);}
+    /* The head is where the sheet is taken hold of. */
+    .panel-head{
+      flex:0 0 auto;
+      padding:0 var(--s-4) var(--s-3);
+      text-align:center;
+      touch-action:none; user-select:none; -webkit-user-select:none;
+      cursor:grab;
     }
-    .vs-btn.on{color:var(--green-deep); border-bottom-color:var(--green);}
+    .panel.sheet-dragging .panel-head{cursor:grabbing;}
+    .sheet-handle{
+      display:block; width:100%; height:26px;
+      background:none; border:none; padding:0; margin:0;
+      cursor:inherit;
+    }
+    .sheet-handle span{
+      display:block; width:38px; height:5px; margin:10px auto 0;
+      border-radius:var(--r-pill); background:#CFC6B4;
+    }
+    .sheet-handle:focus-visible{outline-offset:-4px;}
+    .panel-head h2{font-size:1rem; text-align:center; white-space:normal;}
+    /* The list only scrolls once the sheet is all the way up; before that a
+       drag on it is a drag of the sheet. Room at the foot for the Map pill. */
+    .panel-scroll{
+      overflow:hidden;
+      padding:2px var(--s-3) calc(96px + env(safe-area-inset-bottom));
+    }
+    .stage[data-sheet="full"] .panel-scroll{overflow-y:auto;}
+    .stage.map-off .sheet-handle{visibility:hidden; height:12px;}
+    .stage.map-off .panel-head{cursor:default;}
 
-    /* ---- Taking turns ---- */
-    .stage[data-view="list"] .mapfield,
-    .stage[data-view="list"] .map-legend{display:none;}
-    .stage[data-view="map"] .panel{display:none;}
-
-    .mapfield{position:relative; inset:auto; height:52vh; min-height:340px;
-              border-bottom:1px solid var(--green-line);}
-    /* In its own view the map gets the screen, not a band of it. */
-    .stage[data-view="map"] .mapfield{
-      height:calc(100vh - 128px);
-      height:calc(100dvh - 128px);
-      min-height:460px; border-bottom:none;
+    /* ---- The Map pill: the way back from the list ---- */
+    .map-pill{
+      position:absolute; z-index:8;
+      left:50%; bottom:calc(var(--s-5) + env(safe-area-inset-bottom));
+      display:inline-flex; align-items:center; gap:8px;
+      min-height:46px; padding:0 20px;
+      background:var(--green-deep); color:var(--paper);
+      border:none; border-radius:var(--r-pill);
+      box-shadow:0 6px 20px -6px rgba(20,30,22,.55);
+      font-family:var(--font-body); font-size:.9375rem; font-weight:600;
+      opacity:0; pointer-events:none;
+      transform:translate(-50%, 12px);
+      transition:opacity .2s ease, transform .2s ease;
     }
+    .map-pill svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round;}
+    .stage[data-sheet="full"]:not(.map-off) .map-pill{opacity:1; pointer-events:auto; transform:translate(-50%, 0);}
+
+    /* ---- Map chrome on a phone ----
+       No zoom buttons - pinch does that, as in every map app. Where-am-I and
+       Recentre stay, on the right where a thumb is. The note and the credit
+       keep to the part of the map the sheet leaves showing. */
+    .maplibregl-ctrl-group:has(.maplibregl-ctrl-zoom-in){display:none;}
+    /* Where-am-I sits under Filters, on the right. */
+    .maplibregl-ctrl-top-left{
+      top:calc(var(--s-3) + 34px + var(--s-2)); left:auto;
+      right:calc(var(--s-3) + env(safe-area-inset-right));
+      align-items:flex-end;
+    }
+    .maplibregl-ctrl-group button{width:42px; height:42px;}
+    .recentre-pill{bottom:calc(100% - var(--sheet-y, 100%) + var(--peek-clear, 0px) + var(--s-4));}
+    .map-note{top:calc(var(--sheet-y, 100%) / 2);}
+    .maplibregl-ctrl-bottom-right{
+      right:env(safe-area-inset-right);
+      bottom:calc(100% - var(--sheet-y, 100%) + var(--peek-clear, 0px));
+    }
+    .maplibregl-ctrl-bottom-right .maplibregl-ctrl{margin:0 var(--s-2) var(--s-2) 0;}
 
     /* ---- The peek card ----
-       The one raised surface on the page besides the modals: it is
-       answering a tap, so it has to read as sitting on top of the map. */
+       Floats just above the stepped-down sheet, answering the pin. */
     .peek{
       display:block;
-      position:sticky; bottom:var(--s-3); z-index:7;
-      margin:calc(var(--s-4) * -1 - 6px) var(--s-3) var(--s-3);
+      position:absolute; z-index:7;
+      left:calc(var(--s-3) + env(safe-area-inset-left));
+      right:calc(var(--s-3) + env(safe-area-inset-right));
+      bottom:calc(100% - var(--sheet-y, 100%) + var(--s-3));
       background:var(--card);
-      border:1px solid var(--green-line);
-      border-radius:var(--r-sheet);
-      box-shadow:0 18px 40px -20px rgba(30,40,25,.55);
+      border:none;
+      border-radius:var(--r-md);
+      box-shadow:var(--shadow-2);
       padding:var(--s-4);
       animation:peek-in .22s ease both;
     }
     .peek[hidden]{display:none;}
+    @media (orientation: landscape) and (max-height: 500px){
+      /* A landscape phone is short: the masthead folds to one row with no
+         tagline, and the card hangs from the top right instead of standing
+         on the sheet, scrolling inside itself if it has to. */
+      .masthead{flex-direction:row; justify-content:space-between; padding:var(--s-2) var(--s-3);}
+      .mast-sub{display:none;}
+      .word{font-size:1.5rem;}
+      .peek{
+        left:auto; width:min(360px, 55%);
+        top:calc(var(--s-3) + 34px + var(--s-2)); bottom:auto;
+        max-height:calc(var(--sheet-y, 100%) - 34px - var(--s-6));
+        overflow:auto; padding:var(--s-3);
+      }
+      /* The card now owns the right edge, so where-am-I goes under the city. */
+      .maplibregl-ctrl-top-left{right:auto; left:calc(var(--s-3) + env(safe-area-inset-left)); align-items:flex-start;}
+      .recentre-pill{bottom:calc(100% - var(--sheet-y, 100%) + var(--s-3));}
+    }
     .peek-close{
       position:absolute; top:6px; right:6px;
-      width:34px; height:34px; border:none; background:none;
+      width:36px; height:36px; border:none; background:none;
       color:var(--ink-3); font-size:.8125rem; line-height:1;
     }
-    .peek-top{display:flex; align-items:flex-start; gap:var(--s-3); padding-right:var(--s-5);}
+    .peek-top{display:flex; align-items:center; gap:var(--s-3); padding-right:var(--s-6);}
+    .peek-top .row-mark{align-self:center;}
     .peek-main{flex:1; min-width:0;}
-    .peek-title{font-size:1.125rem; font-weight:600; letter-spacing:-.01em; color:var(--ink);}
-    .peek-where{margin-top:2px; font-size:.8125rem; color:var(--ink-3);}
+    .peek-title{font-size:1.0625rem; font-weight:600; letter-spacing:-.01em; line-height:1.25; color:var(--ink);}
+    .peek-where{margin-top:1px; font-family:var(--font-display); font-style:italic; font-size:.9375rem; color:var(--ink-2);}
     .peek-where .sep{opacity:.55; padding:0 2px;}
-    .peek-stars{flex:0 0 auto; line-height:1; margin-top:3px;}
+    .peek-stars{flex:0 0 auto; line-height:1;}
     .peek-who{
-      margin-top:var(--s-2);
-      font-size:.9375rem; color:var(--ink-2);
+      margin:var(--s-2) 0 var(--s-3) calc(30px + var(--s-3));
+      font-size:.875rem; color:var(--ink-3);
     }
-    .peek-who em{
-      font-family:var(--font-display); font-style:italic;
-      font-size:1.0625rem; color:var(--ink);
-    }
+    .peek .stat-row{margin:0 0 0 calc(30px + var(--s-3));}
+    .peek .location-approx{margin:var(--s-2) 0 0 calc(30px + var(--s-3));}
     .peek-actions{
       display:flex; align-items:center; justify-content:space-between;
       gap:var(--s-3); flex-wrap:wrap;
-      margin-top:var(--s-2);
-      border-top:1px dashed var(--green-line); padding-top:var(--s-1);
+      margin-top:var(--s-4);
     }
-    .peek-open{
-      background:none; border:none; min-height:44px; padding:0;
-      font-family:var(--font-body); font-size:.875rem; font-weight:600;
-      color:var(--green);
-      border-bottom:1.5px solid var(--line-control);
-    }
-    .schematic{display:none;}
-    /* District names need room the band hasn't got, and the crop cuts
-       them mid-word - so at this width the map keeps only its pins. */
-    .ground .district{display:none;}
-    .ground .water-label{font-size:30px;}
-    .map-legend{position:static; max-width:none; border:none;
-                border-bottom:1px dashed var(--green-line);
-                display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
-                gap:var(--s-2) var(--s-3);
-                background:none; padding:var(--s-3) var(--s-4) var(--s-4);}
-    .map-legend .key-title{grid-column:1 / -1; margin-bottom:-2px;}
-    .panel{position:static; width:auto; border:none; box-shadow:none;}
-    .panel-head{padding:var(--s-4) var(--s-4) var(--s-3);}
-    /* Thumbs, not cursors. */
-    .filter-cats .cat{min-height:40px; white-space:nowrap;}
-    .refine-field select{min-height:40px;}
-    /* Eight activities wrapped to three lines pushed the first place most of
-       a screen down the page. One line that scrolls sideways instead - the
-       row still starts on "All activities", so what it does is still legible
-       without scrolling it. */
-    .filter-cats{
-      flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain;
-      scrollbar-width:none; -ms-overflow-style:none;
-      margin-right:calc(var(--s-4) * -1); padding-right:var(--s-4);
-    }
-    .filter-cats::-webkit-scrollbar{display:none;}
-    .panel-scroll{overflow:visible; padding:0 var(--s-4) var(--s-5);}
-    .site-foot{padding-left:var(--s-4); padding-right:var(--s-4);}
-    .marquee-track{font-size:1.125rem; animation-duration:60s;}
+    .peek-actions{flex-wrap:nowrap; gap:var(--s-2);}
+    .peek-open{min-height:42px; padding:8px 16px; font-size:.875rem; white-space:nowrap;}
+    .peek .maps-link{font-size:.8125rem; white-space:nowrap;}
   }

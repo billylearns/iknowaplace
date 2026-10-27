@@ -4,6 +4,12 @@
 system as built is written up in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
 **Last updated:** 2026-09-10
 
+> **Later note (2026-09-14):** the schematic SVG map this plan describes —
+> `project()`, the offshore pass, collision relaxation, the drawn coast and
+> district labels — has since been **replaced by a real MapLibre street map**,
+> and the "No MapLibre" decision below no longer holds. This document is kept
+> as the record of the redesign. See [`REAL_MAP_PLAN.md`](REAL_MAP_PLAN.md).
+
 This is the living plan for the visual redesign. It supersedes the original
 plan written at the start of the phase, which was revised mid-flight after a
 course correction (see §2).

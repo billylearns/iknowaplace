@@ -4,7 +4,7 @@ Recommendations from people you actually trust — not a scraped review, not an 
 
 Every place on this site was recommended by someone real, with their own rating and their own words. It's a browsable map + list for exploring Toronto through 56 recommendations from 22 friends, plus a "Plan my trip" tool that builds a real day plan out of them (time / energy / budget in, a few realistic plans out — no AI guessing, no generic itinerary).
 
-![The I Know a Place website: a hand-drawn map of Toronto with colour-coded pins, beside a scrollable list of recommended places showing each one's category, neighbourhood, star rating and how many friends recommended it.](screenshot.png)
+![The I Know a Place website: a street map of downtown Toronto with colour-coded pins for each recommended place, beside a scrollable list showing each one's category, neighbourhood, star rating and who recommended it.](screenshot.png)
 
 **Live site:** [iknowaplace-eta.vercel.app](https://iknowaplace-eta.vercel.app/)
 
@@ -14,7 +14,9 @@ Full story is on the site itself (the "Why this exists" link), but in short: rec
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript — no framework, no build step, no backend, no dependencies. `index.html` holds the markup and the logic, `css/app.css` holds the design system, and the content lives in two JSON files in `data/`. Nothing is compiled, so any static host (this one runs on Vercel) can serve the folder as-is.
+Plain HTML, CSS, and JavaScript — no framework, no build step, no backend. `index.html` holds the markup and the logic, `css/app.css` holds the design system, and the content lives in two JSON files in `data/`. Nothing is compiled, so any static host (this one runs on Vercel) can serve the folder as-is.
+
+The one library is the map: [MapLibre GL JS](https://maplibre.org/) draws [OpenFreeMap](https://openfreemap.org/)'s free vector tiles — no API key, nothing self-hosted. The map's look is a plain style file, `map/ikap-atlas.json`, that can be edited directly or in [Maputnik](https://maputnik.github.io/).
 
 ## Run it locally
 
@@ -28,7 +30,7 @@ npx serve
 
 Sourced from a Google Form filled out by real friends, then cleaned and anonymized (first-name aliases only, no last names). It lives in two files you can open and edit directly:
 
-- `data/places.json` — the 39 places (name, category, neighbourhood, coordinates, address, rating summary)
+- `data/places.json` — the 39 places (name, category, neighbourhood, coordinates and how confident they are, address, rating summary)
 - `data/recommendations.json` — the 56 recommendations (who suggested it, their rating, their note)
 
 The two are linked by `place_key`: every recommendation names the place it belongs to. Those keys are permanent — never renumber them.
@@ -41,6 +43,7 @@ the map is drawn, and the rules the components follow:
 
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — the system as built
 - [`docs/VISUAL_REDESIGN_PLAN.md`](docs/VISUAL_REDESIGN_PLAN.md) — how it got there, and what was tried and rejected
+- [`docs/REAL_MAP_PLAN.md`](docs/REAL_MAP_PLAN.md) — replacing the drawn map with a real one
 
 ## Status
 
